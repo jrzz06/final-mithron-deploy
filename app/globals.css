@@ -3999,3 +3999,16 @@ canvas {
     transition-duration: 1ms;
   }
 }
+
+[data-product-rich-text] .ProseMirror p.is-editor-empty:first-child::before {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+[data-product-rich-text][data-variant="dark"] .ProseMirror p.is-editor-empty:first-child::before,
+[data-product-rich-text] .ProseMirror:focus p.is-editor-empty:first-child::before {
+  color: #64748b;
+}

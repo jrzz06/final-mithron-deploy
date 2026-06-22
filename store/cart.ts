@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem, CheckoutDraft, CheckoutStep } from "@/config/types";
+import { summarizeCartTax } from "@/lib/product-tax";
 
 export type NewCartItem = Omit<CartItem, "quantity">;
 
@@ -21,6 +22,8 @@ export type CartSlice = {
   setShippingAddressId: (addressId: string) => void;
   setCheckoutOrderMeta: (meta: Partial<Pick<CheckoutDraft, "paymentIntentId" | "orderId">>) => void;
   subtotal: () => number;
+  taxTotal: () => number;
+  grandTotal: () => number;
   itemCount: () => number;
 };
 
@@ -84,7 +87,13 @@ export function createCartSlice(): CartSlice {
       slice.checkout = { ...slice.checkout, ...meta };
     },
     subtotal() {
-      return slice.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+      return summarizeCartTax(slice.items).subtotal;
+    },
+    taxTotal() {
+      return summarizeCartTax(slice.items).taxTotal;
+    },
+    grandTotal() {
+      return summarizeCartTax(slice.items).total;
     },
     itemCount() {
       return slice.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -111,6 +120,8 @@ type CartStore = {
   setShippingAddressId: (addressId: string) => void;
   setCheckoutOrderMeta: (meta: Partial<Pick<CheckoutDraft, "paymentIntentId" | "orderId">>) => void;
   subtotal: () => number;
+  taxTotal: () => number;
+  grandTotal: () => number;
   itemCount: () => number;
 };
 
@@ -179,7 +190,13 @@ export const useCartStore = create<CartStore>()(
         set((state) => ({ checkout: { ...state.checkout, ...meta } }));
       },
       subtotal() {
-        return get().items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+        return summarizeCartTax(get().items).subtotal;
+      },
+      taxTotal() {
+        return summarizeCartTax(get().items).taxTotal;
+      },
+      grandTotal() {
+        return summarizeCartTax(get().items).total;
       },
       itemCount() {
         return get().items.reduce((sum, item) => sum + item.quantity, 0);

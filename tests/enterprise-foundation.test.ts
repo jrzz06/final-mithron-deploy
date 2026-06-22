@@ -110,7 +110,11 @@ describe("enterprise foundation completion", () => {
         slug: "source-agri-kisan-drone-small-8-liter",
         name: "Agri Kisan Drone Small",
         price: 120000,
-        category: "Agri Drones"
+        category: "Agri Drones",
+        chargeTax: true,
+        taxGroup: "agri-drones",
+        taxRate: 5,
+        taxIncluded: false
       }
     ];
     const input: CheckoutOrderInput = {
@@ -132,12 +136,13 @@ describe("enterprise foundation completion", () => {
     expect(draft.order.payment_status).toBe("not_required");
     expect(draft.order.fulfillment_status).toBe("pending");
     expect(draft.order.subtotal).toBe(240000);
-    expect(draft.order.total).toBe(240000);
+    expect(draft.order.total).toBe(252000);
+    expect(draft.order.metadata.tax_total).toBe(12000);
     expect(draft.orderItems[0]).toMatchObject({
       product_slug: "source-agri-kisan-drone-small-8-liter",
       quantity: 2,
       unit_price: 120000,
-      line_total: 240000
+      line_total: 252000
     });
 
     expect(() => buildValidatedOrderDraft({

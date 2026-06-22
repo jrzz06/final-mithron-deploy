@@ -732,7 +732,7 @@ export async function getProductManagerSnapshot(env: EnvSource = process.env) {
       countTable(config, "media_assets"),
       countTable(config, "product_media_assets")
     ]),
-    fetchAdminRows(config, "mithron_products", `select=slug,name,category,price,compare_at,badge,description,on_sale,discount_type,discount_value,cost_of_goods,show_price_per_unit,charge_tax,tax_rate,tax_included,image,hero,variants,workflow_status,published_at,archived_at,is_visible,seo_title,seo_description,og_title,og_description,og_image,source_availability,sort_order,updated_at&order=sort_order.asc&limit=${PRODUCT_MANAGER_LIMIT}`),
+    fetchAdminRows(config, "mithron_products", `select=slug,name,category,price,compare_at,badge,description,on_sale,discount_type,discount_value,cost_of_goods,show_price_per_unit,charge_tax,tax_group,tax_rate,tax_included,image,hero,variants,workflow_status,published_at,archived_at,is_visible,seo_title,seo_description,og_title,og_description,og_image,source_availability,sort_order,updated_at&order=sort_order.asc&limit=${PRODUCT_MANAGER_LIMIT}`),
     fetchAdminRows(config, "product_media_assets", `select=product_slug,media_asset_id,usage,variant_id,is_primary,sort_order,alt_text,caption,metadata,updated_at&order=updated_at.desc&limit=${PRODUCT_RELATION_LIMIT}`),
     fetchAdminRows(config, "inventory", `select=product_slug,sku,stock_status,quantity,reserved_quantity,reorder_threshold,updated_at&order=updated_at.desc&limit=${PRODUCT_RELATION_LIMIT}`),
     fetchAdminRows(config, "warehouse_stock", `select=warehouse_code,product_slug,sku,available_quantity,committed_quantity,last_counted_at,updated_at&order=updated_at.desc&limit=${PRODUCT_RELATION_LIMIT}`),

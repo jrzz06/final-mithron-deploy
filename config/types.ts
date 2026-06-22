@@ -122,6 +122,7 @@ export type Product = {
   costOfGoods?: number;
   showPricePerUnit?: boolean;
   chargeTax?: boolean;
+  taxGroup?: string;
   taxRate?: number;
   taxIncluded?: boolean;
   category: string;
@@ -188,6 +189,10 @@ export type CartItem = {
   unitPrice: number;
   image: string;
   quantity: number;
+  chargeTax?: boolean;
+  taxGroup?: string;
+  taxRate?: number;
+  taxIncluded?: boolean;
 };
 
 export type CheckoutStep = "cart" | "details" | "shipping" | "payment" | "review" | "confirmation";

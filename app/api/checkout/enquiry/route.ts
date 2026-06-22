@@ -56,7 +56,11 @@ export async function POST(request: Request) {
     slug: product.slug,
     name: product.name,
     price: product.price,
-    category: product.category
+    category: product.category,
+    chargeTax: product.chargeTax,
+    taxGroup: product.taxGroup,
+    taxRate: product.taxRate,
+    taxIncluded: product.taxIncluded
   }));
 
   const draft = buildCustomerEnquiryOrderDraft(

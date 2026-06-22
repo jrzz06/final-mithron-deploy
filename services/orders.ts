@@ -1,10 +1,16 @@
 type JsonRecord = Record<string, unknown>;
 
+import { calculateProductTaxBreakdown } from "@/lib/product-tax";
+
 export type OrderCatalogProduct = {
   slug: string;
   name: string;
   price: number;
   category: string;
+  chargeTax?: boolean;
+  taxGroup?: string | null;
+  taxRate?: number | null;
+  taxIncluded?: boolean;
 };
 
 export type CheckoutOrderItemInput = {
@@ -82,20 +88,36 @@ export function buildValidatedOrderDraft(input: CheckoutOrderInput, catalogProdu
     if (!product) {
       throw new Error(`Unknown product slug in checkout order: ${item.productSlug}.`);
     }
-    const lineTotal = product.price * item.quantity;
+    const unitPrice = product.price;
+    const taxBreakdown = calculateProductTaxBreakdown({
+      unitPrice,
+      quantity: item.quantity,
+      chargeTax: product.chargeTax,
+      taxGroup: product.taxGroup,
+      taxRate: product.taxRate,
+      taxIncluded: product.taxIncluded
+    });
     return {
       product_slug: product.slug,
       product_name: product.name,
       bundle_id: item.bundleId ?? null,
       sku: item.sku?.trim() ? item.sku.trim() : null,
       quantity: item.quantity,
-      unit_price: product.price,
-      line_total: lineTotal,
+      unit_price: unitPrice,
+      line_total: taxBreakdown.lineTotal,
       metadata: {
-        category: product.category
+        category: product.category,
+        charge_tax: taxBreakdown.chargeTax,
+        tax_group: product.taxGroup ?? null,
+        tax_rate: taxBreakdown.taxRate,
+        tax_included: taxBreakdown.taxIncluded,
+        taxable_base: taxBreakdown.taxableBase,
+        tax_amount: taxBreakdown.taxAmount
       }
     };
   });
+  const subtotal = orderItems.reduce((sum, item) => sum + Number(item.metadata.taxable_base ?? item.line_total), 0);
+  const taxTotal = orderItems.reduce((sum, item) => sum + Number(item.metadata.tax_amount ?? 0), 0);
   const total = orderItems.reduce((sum, item) => sum + item.line_total, 0);
 
   return {
@@ -105,7 +127,7 @@ export function buildValidatedOrderDraft(input: CheckoutOrderInput, catalogProdu
       payment_status: "not_required",
       fulfillment_status: "pending",
       channel: "checkout",
-      subtotal: total,
+      subtotal,
       total,
       currency: "INR",
       // @deprecated orders.items duplicates order_items — keep for compatibility; stop writing in a future migration.
@@ -115,7 +137,8 @@ export function buildValidatedOrderDraft(input: CheckoutOrderInput, catalogProdu
         region: input.region ?? null,
         mission_profile: input.missionProfile ?? null,
         customer_phone: input.phone?.trim() ? input.phone.trim() : null,
-        payment_scope: "not_integrated"
+        payment_scope: "not_integrated",
+        tax_total: taxTotal
       }
     },
     orderItems

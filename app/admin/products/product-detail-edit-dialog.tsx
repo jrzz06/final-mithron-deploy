@@ -1,6 +1,5 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { ProductFieldLabel } from "@/components/admin/product-info-tooltip";
 import { ProductPricingFields } from "@/components/admin/product-pricing-fields";
 import { ProductSimpleRichText } from "@/components/admin/product-simple-rich-text";
@@ -40,6 +39,7 @@ export function ProductDetailEditDialog({
             costOfGoods: String(formData.get("cost_of_goods") ?? product.costOfGoods ?? ""),
             showPricePerUnit: formData.get("show_price_per_unit") === "true",
             chargeTax: formData.get("charge_tax") === "true",
+            taxGroup: String(formData.get("tax_group") ?? product.taxGroup ?? "products-default"),
             taxRate: String(formData.get("tax_rate") ?? product.taxRate ?? ""),
             taxIncluded: formData.get("tax_included") === "true"
           });
@@ -97,24 +97,15 @@ export function ProductDetailEditDialog({
               </label>
             </div>
 
-            <div className="grid gap-1.5 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <ProductFieldLabel>Description</ProductFieldLabel>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-sky-400 hover:text-sky-300"
-                  onClick={() => window.alert("AI text generation will be connected in a future release.")}
-                >
-                  <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                  Generate AI Text
-                </button>
-              </div>
+            <label className="grid gap-1.5 text-sm">
+              <ProductFieldLabel>Description</ProductFieldLabel>
               <ProductSimpleRichText
                 name="description"
+                variant="dark"
                 defaultValue={product.description ?? ""}
-                className="[&_[contenteditable]]:border-slate-800 [&_[contenteditable]]:bg-[#10151d] [&_[contenteditable]]:text-slate-100"
+                placeholder="Describe features, payload, and warranty details..."
               />
-            </div>
+            </label>
           </section>
 
           <ProductPricingFields
@@ -129,7 +120,8 @@ export function ProductDetailEditDialog({
 
           <ProductTaxFields
             initialChargeTax={product.chargeTax ?? true}
-            initialTaxRate={product.taxRate ? Number(product.taxRate) : 18}
+            initialTaxGroup={product.taxGroup ?? "products-default"}
+            initialTaxRate={product.taxRate ? Number(product.taxRate) : null}
             initialTaxIncluded={product.taxIncluded}
           />
 

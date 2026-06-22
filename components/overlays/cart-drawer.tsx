@@ -17,6 +17,8 @@ export function CartDrawer({ products }: { products: ProductShellItem[] }) {
   const setCartOpen = useCartStore((state) => state.setCartOpen);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const subtotal = useCartStore((state) => state.subtotal());
+  const taxTotal = useCartStore((state) => state.taxTotal());
+  const grandTotal = useCartStore((state) => state.grandTotal());
   const suggestions = products
     .filter((product) => product.interests.includes("agriculture") || product.interests.includes("components"))
     .slice(0, 3);
@@ -107,9 +109,21 @@ export function CartDrawer({ products }: { products: ProductShellItem[] }) {
                   router.push("/checkout");
                 }}
               >
-                <span className="type-price mb-4 flex items-center justify-between text-lg font-medium">
-                  <span>Subtotal</span>
-                  <span>{formatUsd(subtotal)}</span>
+                <span className="type-price mb-4 grid gap-2 text-sm font-medium">
+                  <span className="flex items-center justify-between">
+                    <span>Subtotal</span>
+                    <span>{formatUsd(subtotal)}</span>
+                  </span>
+                  {taxTotal > 0 ? (
+                    <span className="flex items-center justify-between text-white/70">
+                      <span>GST</span>
+                      <span>{formatUsd(taxTotal)}</span>
+                    </span>
+                  ) : null}
+                  <span className="flex items-center justify-between text-lg">
+                    <span>Total</span>
+                    <span>{formatUsd(grandTotal)}</span>
+                  </span>
                 </span>
                 <span className={glassButtonClassName({ className: "type-button block h-14 w-full rounded-full text-center text-base leading-[3.5rem]" })}>
                   Configure deployment

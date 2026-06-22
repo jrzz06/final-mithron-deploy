@@ -1,76 +1,190 @@
 "use client";
 
-import { Bold, Italic, Link2, List, ListOrdered, Underline } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import LinkExtension from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
+import Underline from "@tiptap/extension-underline";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { Bold, Italic, Link2, List, ListOrdered, Underline as UnderlineIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
-function exec(command: string, value?: string) {
-  document.execCommand(command, false, value);
+function toolbarButtonClass(active: boolean, variant: "light" | "dark") {
+  if (variant === "light") {
+    return cn(
+      "rounded p-1.5 transition-colors",
+      active ? "bg-slate-200 text-slate-900" : "text-slate-600 hover:bg-white"
+    );
+  }
+
+  return cn(
+    "rounded p-1.5 transition-colors",
+    active ? "bg-slate-700 text-slate-100" : "text-slate-300 hover:bg-[#151c26]"
+  );
 }
 
 export function ProductSimpleRichText({
   name,
   defaultValue = "",
   placeholder = "Describe this product...",
+  variant = "light",
   className = ""
 }: {
   name: string;
   defaultValue?: string;
   placeholder?: string;
+  variant?: "light" | "dark";
   className?: string;
 }) {
-  const editorRef = useRef<HTMLDivElement>(null);
   const [html, setHtml] = useState(defaultValue);
 
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false
+        }
+      }),
+      Underline,
+      LinkExtension.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          rel: "noopener noreferrer",
+          target: "_blank"
+        }
+      }),
+      Placeholder.configure({
+        placeholder
+      })
+    ],
+    content: defaultValue,
+    immediatelyRender: false,
+    onUpdate: ({ editor: nextEditor }) => {
+      setHtml(nextEditor.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class: cn(
+          "min-h-[140px] max-h-[280px] overflow-y-auto px-3 py-2.5 text-sm leading-6 outline-none",
+          "[&_p]:my-1 [&_ul]:my-2 [&_ol]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline",
+          variant === "light"
+            ? "text-slate-900 [&_.is-editor-empty:first-child::before]:text-slate-400"
+            : "text-slate-100 [&_.is-editor-empty:first-child::before]:text-slate-500"
+        )
+      }
+    }
+  });
+
   useEffect(() => {
-    if (editorRef.current && defaultValue && !editorRef.current.innerHTML.trim()) {
-      editorRef.current.innerHTML = defaultValue;
+    if (!editor || !defaultValue) return;
+    const current = editor.getHTML();
+    if (current === "<p></p>" || !current.trim()) {
+      editor.commands.setContent(defaultValue, { emitUpdate: false });
       setHtml(defaultValue);
     }
-  }, [defaultValue]);
+  }, [defaultValue, editor]);
 
-  function syncHtml() {
-    const next = editorRef.current?.innerHTML ?? "";
-    setHtml(next);
+  function setLink() {
+    if (!editor) return;
+    const previousUrl = editor.getAttributes("link").href as string | undefined;
+    const url = window.prompt("Enter link URL", previousUrl ?? "https://");
+    if (url === null) return;
+    if (!url.trim()) {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
   }
 
-  function addLink() {
-    const url = window.prompt("Enter link URL");
-    if (!url?.trim()) return;
-    exec("createLink", url.trim());
-    syncHtml();
+  if (!editor) {
+    return (
+      <div
+        data-product-rich-text
+        className={cn(
+          "min-h-[180px] rounded-lg border",
+          variant === "light" ? "border-slate-200 bg-white" : "border-slate-800 bg-[#10151d]",
+          className
+        )}
+      />
+    );
   }
 
   return (
-    <div className={className} data-product-rich-text>
-      <div className="flex flex-wrap items-center gap-1 rounded-t-lg border border-b-0 border-slate-200 bg-slate-50 px-2 py-1.5">
-        <button type="button" onClick={() => { exec("bold"); syncHtml(); }} className="rounded p-1.5 text-slate-600 hover:bg-white" aria-label="Bold">
+    <div data-product-rich-text data-variant={variant} className={className}>
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-1 rounded-t-lg border border-b-0 px-2 py-1.5",
+          variant === "light" ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-[#0b1017]"
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          className={toolbarButtonClass(editor.isActive("bold"), variant)}
+          aria-label="Bold"
+          aria-pressed={editor.isActive("bold")}
+        >
           <Bold className="h-3.5 w-3.5" />
         </button>
-        <button type="button" onClick={() => { exec("italic"); syncHtml(); }} className="rounded p-1.5 text-slate-600 hover:bg-white" aria-label="Italic">
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          className={toolbarButtonClass(editor.isActive("italic"), variant)}
+          aria-label="Italic"
+          aria-pressed={editor.isActive("italic")}
+        >
           <Italic className="h-3.5 w-3.5" />
         </button>
-        <button type="button" onClick={() => { exec("underline"); syncHtml(); }} className="rounded p-1.5 text-slate-600 hover:bg-white" aria-label="Underline">
-          <Underline className="h-3.5 w-3.5" />
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          className={toolbarButtonClass(editor.isActive("underline"), variant)}
+          aria-label="Underline"
+          aria-pressed={editor.isActive("underline")}
+        >
+          <UnderlineIcon className="h-3.5 w-3.5" />
         </button>
-        <button type="button" onClick={addLink} className="rounded p-1.5 text-slate-600 hover:bg-white" aria-label="Insert link">
+        <button
+          type="button"
+          onClick={setLink}
+          className={toolbarButtonClass(editor.isActive("link"), variant)}
+          aria-label="Insert link"
+          aria-pressed={editor.isActive("link")}
+        >
           <Link2 className="h-3.5 w-3.5" />
         </button>
-        <button type="button" onClick={() => { exec("insertUnorderedList"); syncHtml(); }} className="rounded p-1.5 text-slate-600 hover:bg-white" aria-label="Bulleted list">
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          className={toolbarButtonClass(editor.isActive("bulletList"), variant)}
+          aria-label="Bulleted list"
+          aria-pressed={editor.isActive("bulletList")}
+        >
           <List className="h-3.5 w-3.5" />
         </button>
-        <button type="button" onClick={() => { exec("insertOrderedList"); syncHtml(); }} className="rounded p-1.5 text-slate-600 hover:bg-white" aria-label="Numbered list">
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          className={toolbarButtonClass(editor.isActive("orderedList"), variant)}
+          aria-label="Numbered list"
+          aria-pressed={editor.isActive("orderedList")}
+        >
           <ListOrdered className="h-3.5 w-3.5" />
         </button>
       </div>
       <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={syncHtml}
-        onBlur={syncHtml}
-        data-placeholder={placeholder}
-        className="min-h-[140px] max-h-[280px] overflow-y-auto rounded-b-lg border border-slate-200 bg-white px-3 py-2.5 text-sm leading-6 text-slate-900 outline-none focus:border-slate-400 empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]"
-      />
+        className={cn(
+          "rounded-b-lg border focus-within:border-slate-400",
+          variant === "light" ? "border-slate-200 bg-white focus-within:border-slate-400" : "border-slate-800 bg-[#10151d] focus-within:border-slate-600"
+        )}
+      >
+        <EditorContent editor={editor} />
+      </div>
       <input type="hidden" name={name} value={html} />
     </div>
   );

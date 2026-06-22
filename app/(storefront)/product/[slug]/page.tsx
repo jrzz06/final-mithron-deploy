@@ -38,6 +38,10 @@ function buildProductConfiguratorModel(product: Product): ProductConfiguratorMod
     badge: product.badge,
     price: product.price,
     compareAt: product.compareAt,
+    chargeTax: product.chargeTax,
+    taxGroup: product.taxGroup,
+    taxRate: product.taxRate,
+    taxIncluded: product.taxIncluded,
     image: product.image,
     variants: product.variants,
     bundles: product.bundles

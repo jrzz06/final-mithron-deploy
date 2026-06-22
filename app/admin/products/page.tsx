@@ -136,6 +136,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       costOfGoods: product.cost_of_goods ? String(product.cost_of_goods) : null,
       showPricePerUnit: Boolean(product.show_price_per_unit),
       chargeTax: product.charge_tax !== false,
+      taxGroup: product.tax_group ? String(product.tax_group) : "products-default",
       taxRate: product.tax_rate ? String(product.tax_rate) : null,
       taxIncluded: Boolean(product.tax_included),
       stockQuantity: String(stock?.available_quantity ?? inventory?.quantity ?? "0"),

@@ -150,6 +150,8 @@ export function CheckoutPageClient() {
   const setShippingAddressId = useCartStore((state) => state.setShippingAddressId);
   const setCheckoutOrderMeta = useCartStore((state) => state.setCheckoutOrderMeta);
   const subtotal = useCartStore((state) => state.subtotal());
+  const taxTotal = useCartStore((state) => state.taxTotal());
+  const grandTotal = useCartStore((state) => state.grandTotal());
   const clearCart = useCartStore((state) => state.clearCart);
 
   const [addresses, setAddresses] = useState<AddressRow[]>([]);
@@ -204,11 +206,11 @@ export function CheckoutPageClient() {
       orderNumber,
       email: checkout.email.trim(),
       phone: phone.trim(),
-      total: subtotal,
+      total: grandTotal,
       isSignedIn
     });
     setError("");
-  }, [setCheckoutOrderMeta, checkout.email, phone, subtotal, isSignedIn]);
+  }, [setCheckoutOrderMeta, checkout.email, phone, grandTotal, isSignedIn]);
 
   useEffect(() => {
     let active = true;
@@ -250,7 +252,7 @@ export function CheckoutPageClient() {
     (async () => {
       setLoading("stub");
       const intentId = checkout.paymentIntentId ?? `stub_intent_${stubOrderId}`;
-      const ok = await completeStubPayment(intentId, subtotal);
+      const ok = await completeStubPayment(intentId, grandTotal);
       if (!active) return;
       if (ok) {
         markComplete("payment", stubOrderId, stubOrderId);
@@ -264,7 +266,7 @@ export function CheckoutPageClient() {
     return () => {
       active = false;
     };
-  }, [stubOrderId, stubFlag, completed, checkout.paymentIntentId, subtotal, markComplete, router]);
+  }, [stubOrderId, stubFlag, completed, checkout.paymentIntentId, grandTotal, markComplete, router]);
 
   function validateBase(requireAddress: boolean) {
     if (!items.length) {
@@ -366,7 +368,7 @@ export function CheckoutPageClient() {
         orderId: payload.orderId,
         orderNumber,
         razorpayOrderId: payload.clientSecret,
-        amount: Number(payload.amount ?? subtotal),
+        amount: Number(payload.amount ?? grandTotal),
         email: checkout.email
       });
       setLoading(null);
@@ -628,9 +630,21 @@ export function CheckoutPageClient() {
                     <p className="type-price mt-3 font-bold">{formatUsd(item.unitPrice * item.quantity)}</p>
                   </div>
                 ))}
-                <div className="type-price mt-3 flex items-center justify-between border-t border-white/10 pt-5 text-xl font-bold">
-                  <span>Total</span>
-                  <span>{formatUsd(subtotal)}</span>
+                <div className="type-price mt-3 grid gap-2 border-t border-white/10 pt-5 text-sm font-medium">
+                  <div className="flex items-center justify-between text-white/75">
+                    <span>Subtotal</span>
+                    <span>{formatUsd(subtotal)}</span>
+                  </div>
+                  {taxTotal > 0 ? (
+                    <div className="flex items-center justify-between text-white/75">
+                      <span>GST</span>
+                      <span>{formatUsd(taxTotal)}</span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between text-xl font-bold">
+                    <span>Total</span>
+                    <span>{formatUsd(grandTotal)}</span>
+                  </div>
                 </div>
               </div>
             ) : (

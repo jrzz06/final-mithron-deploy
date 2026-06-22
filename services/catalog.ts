@@ -42,6 +42,7 @@ type MithronProductRow = {
   cost_of_goods: number | string | null;
   show_price_per_unit: boolean | null;
   charge_tax: boolean | null;
+  tax_group: string | null;
   tax_rate: number | string | null;
   tax_included: boolean | null;
   category: string;
@@ -183,6 +184,7 @@ const productSelect = [
   "cost_of_goods",
   "show_price_per_unit",
   "charge_tax",
+  "tax_group",
   "tax_rate",
   "tax_included",
   "category",
@@ -527,6 +529,7 @@ function mapProductRow(row: MithronProductRow, linkedPrimaryImage?: MediaAsset):
     costOfGoods: row.cost_of_goods ? toNumber(row.cost_of_goods) : undefined,
     showPricePerUnit: row.show_price_per_unit ?? undefined,
     chargeTax: row.charge_tax ?? undefined,
+    taxGroup: row.tax_group ?? undefined,
     taxRate: row.tax_rate ? toNumber(row.tax_rate) : undefined,
     taxIncluded: row.tax_included ?? undefined,
     category: row.category,

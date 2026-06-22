@@ -28,6 +28,7 @@ export type ProductCatalogGridRow = {
   costOfGoods?: string | null;
   showPricePerUnit?: boolean;
   chargeTax?: boolean;
+  taxGroup?: string | null;
   taxRate?: string | null;
   taxIncluded?: boolean;
   stockQuantity: string;

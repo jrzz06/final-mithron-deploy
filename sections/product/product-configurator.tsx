@@ -8,6 +8,7 @@ import type { Bundle, MediaAsset, ProductVariant } from "@/config/types";
 import { isSpecLikeBlob } from "@/lib/product-spec-text";
 import { glassPillClassName } from "@/lib/glass-ui";
 import { cn, formatUsd } from "@/lib/utils";
+import { formatProductTaxPriceLabel } from "@/lib/product-tax";
 import { useCartStore } from "@/store/cart";
 import styles from "./product-detail.module.css";
 
@@ -19,6 +20,10 @@ export type ProductConfiguratorModel = {
   badge?: string;
   price: number;
   compareAt?: number;
+  chargeTax?: boolean;
+  taxGroup?: string;
+  taxRate?: number;
+  taxIncluded?: boolean;
   image: MediaAsset;
   variants: ProductVariant[];
   bundles: Bundle[];
@@ -63,7 +68,11 @@ export function ProductConfigurator({ product }: { product: ProductConfiguratorM
       bundleId: bundle.id,
       bundleName: bundle.name,
       unitPrice: bundle.price,
-      image: product.image.src
+      image: product.image.src,
+      chargeTax: product.chargeTax,
+      taxGroup: product.taxGroup,
+      taxRate: product.taxRate,
+      taxIncluded: product.taxIncluded
     });
     setCartOpen(true);
     toast.success(`${product.name} added to cart`, { description: bundle.name });
@@ -84,7 +93,15 @@ export function ProductConfigurator({ product }: { product: ProductConfiguratorM
         ) : null}
 
         <div className={styles.priceRow}>
-          <p className={cn("type-price", styles.priceCurrent)}>{formatUsd(displayPrice)}</p>
+          <p className={cn("type-price", styles.priceCurrent)}>
+            {formatProductTaxPriceLabel({
+              unitPrice: displayPrice,
+              chargeTax: product.chargeTax,
+              taxGroup: product.taxGroup,
+              taxRate: product.taxRate,
+              taxIncluded: product.taxIncluded
+            })}
+          </p>
           {product.compareAt && product.compareAt > displayPrice ? (
             <p className={cn("type-body", styles.priceCompare)}>{formatUsd(product.compareAt)}</p>
           ) : null}

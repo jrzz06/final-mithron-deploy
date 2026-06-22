@@ -1,4 +1,5 @@
 import { resolveProductPricing, type ProductDiscountType } from "@/lib/product-pricing";
+import { getProductTaxGroup, isProductTaxGroupId } from "@/lib/product-tax-groups";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -22,6 +23,7 @@ type ProductDraftFormInput = {
     cost_of_goods: number | null;
     show_price_per_unit: boolean;
     charge_tax: boolean;
+    tax_group: string | null;
     tax_rate: number | null;
     tax_included: boolean;
     category: string;
@@ -66,6 +68,7 @@ type ProductQuickEditFormInput = {
     cost_of_goods?: number | null;
     show_price_per_unit?: boolean;
     charge_tax?: boolean;
+    tax_group?: string | null;
     tax_rate?: number | null;
     tax_included?: boolean;
     source_availability?: string;
@@ -447,6 +450,7 @@ type ProductCommerceFields = {
   cost_of_goods?: number | null;
   show_price_per_unit?: boolean;
   charge_tax?: boolean;
+  tax_group?: string | null;
   tax_rate?: number | null;
   tax_included?: boolean;
 };
@@ -499,9 +503,19 @@ function readProductCommerceFields(formData: FormData): ProductCommerceFields {
   if (formData.has("charge_tax")) {
     fields.charge_tax = readOptionalBoolean(formData, "charge_tax");
     if (fields.charge_tax) {
-      fields.tax_rate = readOptionalNumber(formData, "tax_rate", "Product tax rate") ?? null;
+      const taxGroup = readOptionalString(formData, "tax_group");
+      if (taxGroup !== undefined) {
+        if (!isProductTaxGroupId(taxGroup)) {
+          throw new Error("Product tax group must be a supported Wix tax group.");
+        }
+        fields.tax_group = taxGroup;
+        fields.tax_rate = getProductTaxGroup(taxGroup).rate;
+      } else {
+        fields.tax_rate = readOptionalNumber(formData, "tax_rate", "Product tax rate") ?? null;
+      }
       fields.tax_included = readOptionalBoolean(formData, "tax_included");
     } else {
+      fields.tax_group = null;
       fields.tax_rate = null;
       fields.tax_included = false;
     }
@@ -633,7 +647,8 @@ export function buildProductDraftFromFormData(formData: FormData): ProductDraftF
             cost_of_goods: commerce.cost_of_goods ?? null,
             show_price_per_unit: commerce.show_price_per_unit ?? false,
             charge_tax: commerce.charge_tax ?? true,
-            tax_rate: commerce.tax_rate ?? null,
+            tax_group: commerce.tax_group ?? "products-default",
+            tax_rate: commerce.tax_rate ?? getProductTaxGroup(commerce.tax_group ?? "products-default").rate,
             tax_included: commerce.tax_included ?? false
           };
         }
@@ -649,7 +664,8 @@ export function buildProductDraftFromFormData(formData: FormData): ProductDraftF
           cost_of_goods: null,
           show_price_per_unit: false,
           charge_tax: true,
-          tax_rate: null,
+          tax_group: "products-default",
+          tax_rate: getProductTaxGroup("products-default").rate,
           tax_included: false
         };
       })(),

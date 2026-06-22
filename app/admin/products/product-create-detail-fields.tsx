@@ -1,6 +1,5 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { ProductFieldLabel } from "@/components/admin/product-info-tooltip";
 import { ProductPricingFields } from "@/components/admin/product-pricing-fields";
 import { ProductSimpleRichText } from "@/components/admin/product-simple-rich-text";
@@ -32,20 +31,10 @@ export function ProductCreateDetailFields() {
             />
           </label>
         </div>
-        <div className="grid gap-1.5 text-sm">
-          <div className="flex items-center justify-between gap-3">
-            <ProductFieldLabel>Description</ProductFieldLabel>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 hover:text-sky-500"
-              onClick={() => window.alert("AI text generation will be connected in a future release.")}
-            >
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-              Generate AI Text
-            </button>
-          </div>
-          <ProductSimpleRichText name="description" placeholder="Describe features, payload, and warranty details..." />
-        </div>
+        <label className="grid gap-1.5 text-sm">
+          <ProductFieldLabel>Description</ProductFieldLabel>
+          <ProductSimpleRichText name="description" variant="light" placeholder="Describe features, payload, and warranty details..." />
+        </label>
       </section>
 
       <ProductPricingFields initialPrice={0} variant="light" />
