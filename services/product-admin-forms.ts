@@ -1,3 +1,5 @@
+import { resolveProductPricing, type ProductDiscountType } from "@/lib/product-pricing";
+
 type JsonRecord = Record<string, unknown>;
 
 export const PRODUCT_MEDIA_FIELD_NAMES = ["image_src", "hero_src", "gallery_urls"] as const;
@@ -13,6 +15,15 @@ type ProductDraftFormInput = {
     price: number;
     compare_at: number | null;
     badge: string | null;
+    description: string | null;
+    on_sale: boolean;
+    discount_type: ProductDiscountType | null;
+    discount_value: number | null;
+    cost_of_goods: number | null;
+    show_price_per_unit: boolean;
+    charge_tax: boolean;
+    tax_rate: number | null;
+    tax_included: boolean;
     category: string;
     interests: string[];
     image: JsonRecord;
@@ -46,6 +57,17 @@ type ProductQuickEditFormInput = {
     name?: string;
     category?: string;
     price?: number;
+    compare_at?: number | null;
+    badge?: string | null;
+    description?: string | null;
+    on_sale?: boolean;
+    discount_type?: ProductDiscountType | null;
+    discount_value?: number | null;
+    cost_of_goods?: number | null;
+    show_price_per_unit?: boolean;
+    charge_tax?: boolean;
+    tax_rate?: number | null;
+    tax_included?: boolean;
     source_availability?: string;
     is_visible?: boolean;
   };
@@ -414,6 +436,80 @@ function slugFromCategoryTitle(title: string) {
   return routeKey;
 }
 
+type ProductCommerceFields = {
+  description?: string | null;
+  badge?: string | null;
+  price?: number;
+  compare_at?: number | null;
+  on_sale?: boolean;
+  discount_type?: ProductDiscountType | null;
+  discount_value?: number | null;
+  cost_of_goods?: number | null;
+  show_price_per_unit?: boolean;
+  charge_tax?: boolean;
+  tax_rate?: number | null;
+  tax_included?: boolean;
+};
+
+function readProductCommerceFields(formData: FormData): ProductCommerceFields {
+  const fields: ProductCommerceFields = {};
+  const description = readOptionalString(formData, "description");
+  if (description !== undefined) fields.description = description;
+
+  const ribbon = readOptionalString(formData, "ribbon") ?? readOptionalString(formData, "badge");
+  if (ribbon !== undefined) fields.badge = ribbon || null;
+
+  const listPrice = readOptionalNumber(formData, "list_price", "Product list price");
+  const legacyPrice = readOptionalNumber(formData, "price", "Product price");
+  const hasExplicitPricingForm = formData.has("list_price")
+    || formData.has("on_sale")
+    || formData.has("discount_value")
+    || formData.has("discount_type")
+    || formData.has("cost_of_goods");
+  const onSale = formData.has("on_sale") ? readOptionalBoolean(formData, "on_sale") : false;
+  const discountTypeRaw = readOptionalString(formData, "discount_type");
+  const discountType: ProductDiscountType = discountTypeRaw === "percent" ? "percent" : "amount";
+  const discountValue = readOptionalNumber(formData, "discount_value", "Product discount value") ?? 0;
+  const costOfGoods = readOptionalNumber(formData, "cost_of_goods", "Product cost of goods") ?? 0;
+
+  if (hasExplicitPricingForm) {
+    const resolved = resolveProductPricing({
+      listPrice: listPrice ?? legacyPrice ?? 0,
+      onSale,
+      discountType,
+      discountValue,
+      costOfGoods
+    });
+    fields.price = resolved.price;
+    fields.compare_at = resolved.compareAt;
+    fields.on_sale = resolved.onSale;
+    fields.discount_type = resolved.discountType;
+    fields.discount_value = resolved.discountValue;
+    fields.cost_of_goods = resolved.costOfGoods;
+  } else if (legacyPrice !== undefined) {
+    fields.price = legacyPrice;
+  } else if (costOfGoods > 0) {
+    fields.cost_of_goods = costOfGoods;
+  }
+
+  if (formData.has("show_price_per_unit")) {
+    fields.show_price_per_unit = readOptionalBoolean(formData, "show_price_per_unit");
+  }
+
+  if (formData.has("charge_tax")) {
+    fields.charge_tax = readOptionalBoolean(formData, "charge_tax");
+    if (fields.charge_tax) {
+      fields.tax_rate = readOptionalNumber(formData, "tax_rate", "Product tax rate") ?? null;
+      fields.tax_included = readOptionalBoolean(formData, "tax_included");
+    } else {
+      fields.tax_rate = null;
+      fields.tax_included = false;
+    }
+  }
+
+  return fields;
+}
+
 function readProductCategory(formData: FormData) {
   const categoryMode = readOptionalString(formData, "category_mode");
   const newCategory = readOptionalString(formData, "new_category");
@@ -431,14 +527,14 @@ export function buildProductQuickEditFromFormData(formData: FormData): ProductQu
   const fields: ProductQuickEditFormInput["fields"] = {};
   const name = readOptionalString(formData, "name");
   const category = readOptionalString(formData, "category");
-  const price = readOptionalNumber(formData, "price", "Product price");
   const sourceAvailability = readOptionalString(formData, "source_availability");
   const visibility = readOptionalString(formData, "visibility");
   const changeSummary = readOptionalString(formData, "change_summary");
+  const commerceFields = readProductCommerceFields(formData);
 
   if (name) fields.name = name;
   if (category) fields.category = category;
-  if (price !== undefined) fields.price = price;
+  Object.assign(fields, commerceFields);
   if (sourceAvailability) fields.source_availability = sourceAvailability;
   if (visibility) {
     if (visibility !== "visible" && visibility !== "hidden") {
@@ -517,9 +613,46 @@ export function buildProductDraftFromFormData(formData: FormData): ProductDraftF
     fields: {
       name,
       tagline,
-      price: readOptionalNumber(formData, "price", "Product price") ?? 0,
-      compare_at: readOptionalNumber(formData, "compare_at", "Product compare_at") ?? null,
-      badge: readOptionalString(formData, "badge") ?? null,
+      ...(() => {
+        const commerce = readProductCommerceFields(formData);
+        const hasCommerce = commerce.price !== undefined
+          || commerce.description !== undefined
+          || commerce.badge !== undefined
+          || commerce.on_sale !== undefined
+          || commerce.charge_tax !== undefined;
+
+        if (hasCommerce) {
+          return {
+            price: commerce.price ?? readOptionalNumber(formData, "price", "Product price") ?? 0,
+            compare_at: commerce.compare_at ?? readOptionalNumber(formData, "compare_at", "Product compare_at") ?? null,
+            badge: commerce.badge ?? readOptionalString(formData, "badge") ?? null,
+            description: commerce.description ?? readOptionalString(formData, "description") ?? null,
+            on_sale: commerce.on_sale ?? false,
+            discount_type: commerce.discount_type ?? null,
+            discount_value: commerce.discount_value ?? null,
+            cost_of_goods: commerce.cost_of_goods ?? null,
+            show_price_per_unit: commerce.show_price_per_unit ?? false,
+            charge_tax: commerce.charge_tax ?? true,
+            tax_rate: commerce.tax_rate ?? null,
+            tax_included: commerce.tax_included ?? false
+          };
+        }
+
+        return {
+          price: readOptionalNumber(formData, "price", "Product price") ?? 0,
+          compare_at: readOptionalNumber(formData, "compare_at", "Product compare_at") ?? null,
+          badge: readOptionalString(formData, "badge") ?? null,
+          description: readOptionalString(formData, "description") ?? null,
+          on_sale: false,
+          discount_type: null,
+          discount_value: null,
+          cost_of_goods: null,
+          show_price_per_unit: false,
+          charge_tax: true,
+          tax_rate: null,
+          tax_included: false
+        };
+      })(),
       category,
       interests: readOptionalStringList(formData, "interests"),
       image,

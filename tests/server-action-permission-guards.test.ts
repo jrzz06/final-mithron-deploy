@@ -12,14 +12,22 @@ describe("server action permission guards", () => {
     expect(warehouse).toContain('requirePermission("orders.lifecycle")');
   });
 
+  it("requires admin role for privileged admin server actions", () => {
+    expect(source("app/admin/enquiries/actions.ts")).toContain("requireAdminPermission");
+    expect(source("app/admin/media/actions.ts")).toContain("requireAdminPermission");
+    expect(source("app/admin/orders/actions.ts")).toContain("requireAdminPermission");
+    expect(source("app/operations/actions.ts")).toContain("requireAdminPermission");
+    expect(source("app/admin/cms/actions.ts")).toContain("requireAdminPermission");
+  });
+
   it("requires cms.write for CMS form mutations", () => {
     const cms = source("app/admin/cms/actions.ts");
     expect(cms).toContain('requirePermission("cms.write")');
   });
 
-  it("requires operations.write for operations actions", () => {
+  it("requires admin operations permission for operations actions", () => {
     const operations = source("app/operations/actions.ts");
-    expect(operations).toContain('requirePermission("operations.write")');
+    expect(operations).toContain('requireAdminPermission("operations.write")');
   });
 
   it("requires products.write for product admin actions", () => {
@@ -27,8 +35,9 @@ describe("server action permission guards", () => {
     expect(products).toContain('requirePermission("products.write")');
   });
 
-  it("requires media.write for media admin actions", () => {
-    const media = source("app/admin/media/actions.ts");
-    expect(media).toContain('requirePermission("media.write")');
+  it("blocks stub payment webhooks on deployed environments", () => {
+    const webhookRoute = source("app/api/payments/webhooks/[provider]/route.ts");
+    expect(webhookRoute).toContain("isInternetDeployedEnvironment");
+    expect(webhookRoute).toContain("safeSecretEquals");
   });
 });

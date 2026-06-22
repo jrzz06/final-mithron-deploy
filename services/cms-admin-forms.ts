@@ -1,4 +1,5 @@
 import type { CmsWorkflowDraftInput, HeroBannerDraftInput, HeroBannerStateInput } from "@/services/cms-admin-workflows";
+import { assertValidCmsHref } from "@/lib/cms/safe-href";
 import { CMS_CONTENT_TABLES, CmsValidationError } from "@/services/cms-crud";
 import type { CmsContentTable } from "@/services/cms-crud";
 
@@ -280,7 +281,7 @@ export function buildHeroBannerDraftFromFormData(formData: FormData): HeroBanner
     title,
     subtitle: readRequiredString(formData, "subtitle", "Hero banner"),
     ctaLabel: readRequiredString(formData, "cta_label", "Hero banner"),
-    href: readRequiredString(formData, "href", "Hero banner"),
+    href: assertValidCmsHref(readRequiredString(formData, "href", "Hero banner"), "Hero banner"),
     image: readMediaObject(formData, "image", "Hero banner", title, { priority: true }),
     poster: readOptionalMediaObject(formData, "poster", "Hero banner", title) ?? null,
     video: readOptionalMediaObject(formData, "video", "Hero banner", title) ?? null,
@@ -353,7 +354,7 @@ export function buildContentRevisionRestoreFromFormData(formData: FormData): Con
 export function buildSiteNavigationDraftFromFormData(formData: FormData): SiteNavigationDraftFormInput {
   const id = readRequiredString(formData, "id", "Site navigation");
   const label = readRequiredString(formData, "label", "Site navigation");
-  const href = readRequiredString(formData, "href", "Site navigation");
+  const href = assertValidCmsHref(readRequiredString(formData, "href", "Site navigation"), "Site navigation");
   const placement = readOptionalEnum(formData, "placement", ["primary", "secondary"], "primary", "Site navigation placement");
   const parentId = readOptionalString(formData, "parent_id") ?? null;
   const requiredRole = readOptionalString(formData, "required_role") ?? null;
@@ -402,7 +403,7 @@ export function buildFooterLinkDraftFromFormData(formData: FormData): FooterLink
   const id = readRequiredString(formData, "id", "Footer link");
   const columnId = readRequiredString(formData, "column_id", "Footer link");
   const label = readRequiredString(formData, "label", "Footer link");
-  const href = readRequiredString(formData, "href", "Footer link");
+  const href = assertValidCmsHref(readRequiredString(formData, "href", "Footer link"), "Footer link");
   const changeSummary = readOptionalString(formData, "change_summary");
 
   return {
@@ -488,7 +489,10 @@ export function buildPromotionalCampaignDraftFromFormData(formData: FormData): P
       headline,
       body: readOptionalString(formData, "body") ?? null,
       cta_label: readOptionalString(formData, "cta_label") ?? null,
-      href: readOptionalString(formData, "href") ?? null,
+      href: (() => {
+        const rawHref = readOptionalString(formData, "href");
+        return rawHref ? assertValidCmsHref(rawHref, "Promotional campaign") : null;
+      })(),
       media_asset_id: readOptionalString(formData, "media_asset_id") ?? null,
       starts_at: readOptionalTimestamp(formData, "starts_at", "Promotional campaign starts_at") ?? null,
       ends_at: readOptionalTimestamp(formData, "ends_at", "Promotional campaign ends_at") ?? null

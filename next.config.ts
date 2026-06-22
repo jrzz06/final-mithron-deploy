@@ -24,6 +24,14 @@ const securityHeaders = [
   {
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload"
+  },
+  {
+    key: "Cross-Origin-Opener-Policy",
+    value: "same-origin"
+  },
+  {
+    key: "Cross-Origin-Resource-Policy",
+    value: "same-site"
   }
 ];
 
@@ -52,8 +60,7 @@ const nextConfig: NextConfig = {
     localPatterns: [
       { pathname: "/media/**" },
       { pathname: "/assets/**" },
-      { pathname: "/optimized/**" },
-      { pathname: "/**", search: "" }
+      { pathname: "/optimized/**" }
     ],
     remotePatterns: [{ protocol: "https", hostname: supabaseImageHostname() }],
     formats: ["image/avif", "image/webp"],

@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { isStrictAdminRole } from "@/lib/auth/access-control";
 import { assertRolePermission, PermissionDeniedError, normalizeCmsRole, type EnterprisePermission } from "@/lib/auth/permissions";
 import { ProfileDisabledError } from "@/lib/auth/profile-disabled";
 import { createClient } from "@/lib/server";
@@ -136,6 +137,30 @@ export async function requirePermission(permission: EnterprisePermission) {
         }
       }).catch((securityError) => console.error("[mithron-security] Failed to log permission denial.", securityError));
     }
+    throw error;
+  }
+  return context;
+}
+
+export async function requireAdminPermission(permission: EnterprisePermission) {
+  const context = await requirePermission(permission);
+  if (!isStrictAdminRole(context.role)) {
+    const error = new PermissionDeniedError(`Admin role required for ${permission}.`);
+    await recordSecurityEvent({
+      actorUserId: context.userId,
+      actorRole: context.role,
+      eventType: "security.permission_denied",
+      attemptedResource: permission,
+      denialReason: error.message,
+      httpStatus: 403,
+      severity: "warning",
+      source: "server-action",
+      metadata: {
+        required_permission: permission,
+        required_role: "admin",
+        claims_role: context.claimsRole
+      }
+    }).catch((securityError) => console.error("[mithron-security] Failed to log admin permission denial.", securityError));
     throw error;
   }
   return context;

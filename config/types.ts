@@ -115,6 +115,15 @@ export type Product = {
   price: number;
   compareAt?: number;
   badge?: string;
+  description?: string;
+  onSale?: boolean;
+  discountType?: "percent" | "amount";
+  discountValue?: number;
+  costOfGoods?: number;
+  showPricePerUnit?: boolean;
+  chargeTax?: boolean;
+  taxRate?: number;
+  taxIncluded?: boolean;
   category: string;
   interests: string[];
   image: MediaAsset;

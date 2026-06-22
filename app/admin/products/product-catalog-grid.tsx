@@ -8,9 +8,9 @@ import { resolveNextImageSrc } from "@/lib/media/next-image-src";
 import {
   saveProductDuplicateFormAction,
   saveProductHardDeleteFormAction,
-  saveProductPublishStateFormAction,
-  saveProductQuickEditFormAction
+  saveProductPublishStateFormAction
 } from "./actions";
+import { ProductDetailEditDialog } from "./product-detail-edit-dialog";
 
 export type ProductCatalogGridRow = {
   id: string;
@@ -19,6 +19,17 @@ export type ProductCatalogGridRow = {
   status: string;
   thumbnailSrc?: string | null;
   price: string;
+  compareAt?: string | null;
+  badge?: string | null;
+  description?: string | null;
+  onSale?: boolean;
+  discountType?: "percent" | "amount" | null;
+  discountValue?: string | null;
+  costOfGoods?: string | null;
+  showPricePerUnit?: boolean;
+  chargeTax?: boolean;
+  taxRate?: string | null;
+  taxIncluded?: boolean;
   stockQuantity: string;
   stockStatus: string;
   sourceAvailability: string;
@@ -322,67 +333,11 @@ export function ProductCatalogGrid({
       ) : null}
 
       {editingProduct ? (
-        <div data-product-quick-edit-modal className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 p-4">
-          <form
-            id="update-product"
-            action={saveProductQuickEditFormAction}
-            data-product-quick-edit
-            onSubmit={(event) => {
-              const formData = new FormData(event.currentTarget);
-              updateProduct(editingProduct.id, {
-                title: String(formData.get("name") ?? editingProduct.title),
-                category: String(formData.get("category") ?? editingProduct.category),
-                price: String(formData.get("price") ?? editingProduct.price),
-                sourceAvailability: String(formData.get("source_availability") ?? editingProduct.sourceAvailability),
-                isVisible: formData.get("visibility") === "visible"
-              });
-              setEditingProduct(null);
-            }}
-            className="w-full max-w-xl rounded-2xl border border-slate-800 bg-[#10151d] p-5 shadow-none"
-          >
-            <input type="hidden" name="product_slug" value={editingProduct.id} />
-            <input type="hidden" name="change_summary" value={`Quick edit product ${editingProduct.id}`} />
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Quick edit</p>
-                <h2 className="mt-1 text-lg font-semibold text-slate-100">Edit product</h2>
-              </div>
-              <button type="button" onClick={() => setEditingProduct(null)} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-[#151c26]">
-                Cancel
-              </button>
-            </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <label className="grid gap-1.5 text-sm sm:col-span-2">
-                <span className="text-xs font-medium text-slate-500">Name</span>
-                <input name="name" defaultValue={editingProduct.title} className="rounded-lg border border-slate-800 bg-[#0b1017] px-3 py-2 text-sm text-slate-100 outline-none focus:border-slate-600" />
-              </label>
-              <label className="grid gap-1.5 text-sm">
-                <span className="text-xs font-medium text-slate-500">Category</span>
-                <input name="category" defaultValue={editingProduct.category} className="rounded-lg border border-slate-800 bg-[#0b1017] px-3 py-2 text-sm text-slate-100 outline-none focus:border-slate-600" />
-              </label>
-              <label className="grid gap-1.5 text-sm">
-                <span className="text-xs font-medium text-slate-500">Price</span>
-                <input name="price" defaultValue={editingProduct.price} inputMode="decimal" className="rounded-lg border border-slate-800 bg-[#0b1017] px-3 py-2 text-sm text-slate-100 outline-none focus:border-slate-600" />
-              </label>
-              <label className="grid gap-1.5 text-sm">
-                <span className="text-xs font-medium text-slate-500">Stock</span>
-                <input name="source_availability" defaultValue={editingProduct.sourceAvailability} className="rounded-lg border border-slate-800 bg-[#0b1017] px-3 py-2 text-sm text-slate-100 outline-none focus:border-slate-600" />
-              </label>
-              <label className="grid gap-1.5 text-sm">
-                <span className="text-xs font-medium text-slate-500">Visibility</span>
-                <select name="visibility" defaultValue={editingProduct.isVisible ? "visible" : "hidden"} className="rounded-lg border border-slate-800 bg-[#0b1017] px-3 py-2 text-sm text-slate-100 outline-none focus:border-slate-600">
-                  <option value="visible">Visible</option>
-                  <option value="hidden">Hidden</option>
-                </select>
-              </label>
-            </div>
-            <div className="mt-5 flex justify-end">
-              <button className="rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-                Save changes
-              </button>
-            </div>
-          </form>
-        </div>
+        <ProductDetailEditDialog
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onSaved={(fields) => updateProduct(editingProduct.id, fields)}
+        />
       ) : null}
 
       {deleteProduct ? (

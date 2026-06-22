@@ -1,5 +1,5 @@
 import type { Product } from "@/config/types";
-import { getProductOverviewText } from "@/lib/product-detail-content";
+import { getProductOverviewHtml, getProductOverviewText } from "@/lib/product-detail-content";
 import styles from "./product-detail.module.css";
 
 function toParagraphs(text: string) {
@@ -8,10 +8,11 @@ function toParagraphs(text: string) {
 }
 
 export function ProductOverview({ product }: { product: Product }) {
+  const overviewHtml = getProductOverviewHtml(product);
   const overview = getProductOverviewText(product);
-  if (!overview) return null;
+  if (!overviewHtml && !overview) return null;
 
-  const paragraphs = toParagraphs(overview);
+  const paragraphs = overview ? toParagraphs(overview) : [];
 
   return (
     <section className={styles.overviewSection} aria-labelledby="product-overview-title">
@@ -21,9 +22,13 @@ export function ProductOverview({ product }: { product: Product }) {
           Built for {product.category.toLowerCase()} missions
         </h2>
         <div className={styles.overviewBody}>
-          {paragraphs.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
+          {overviewHtml ? (
+            <div dangerouslySetInnerHTML={{ __html: overviewHtml }} />
+          ) : (
+            paragraphs.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))
+          )}
         </div>
       </div>
     </section>

@@ -7,6 +7,7 @@ import {
   type HomepageMissionTileCms,
   type HomepageShelfCms
 } from "@/config/homepage-cms";
+import { sanitizePublicCmsHref } from "@/lib/cms/safe-href";
 import { getSupabaseAdminConfig } from "@/lib/env";
 import { isCmsStrictMode } from "@/lib/cms/strict-mode";
 
@@ -30,11 +31,7 @@ function mergeField(stored: string | undefined, fallback: string) {
 }
 
 function sanitizeCmsHref(value: unknown, fallback: string): string {
-  if (typeof value !== "string" || !value.trim()) return fallback;
-  const normalized = value.trim();
-  if (normalized.startsWith("/") && !normalized.startsWith("//")) return normalized;
-  if (normalized.startsWith("https://") || normalized.startsWith("http://")) return normalized;
-  return fallback;
+  return sanitizePublicCmsHref(value, fallback);
 }
 
 function mergeHrefField(stored: string | undefined, fallback: string) {

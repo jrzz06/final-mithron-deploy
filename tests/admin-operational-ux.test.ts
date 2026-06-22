@@ -113,6 +113,7 @@ describe("admin operational UX", () => {
   it("makes product management searchable and status visible", () => {
     const page = source("app/admin/products/page.tsx");
     const grid = source("app/admin/products/product-catalog-grid.tsx");
+    const dialog = source("app/admin/products/product-detail-edit-dialog.tsx");
 
     expect(page).toContain("data-product-search");
     expect(page).toContain("data-product-status-filter");
@@ -133,7 +134,8 @@ describe("admin operational UX", () => {
     expect(page).toContain("activeTool === \"category\"");
     expect(page).toContain("data-product-create-toolbar");
     expect(page).toContain("data-product-create-panel");
-    expect(page).toContain("data-product-create-primary-fields");
+    expect(page).toContain("ProductCreateDetailFields");
+    expect(source("app/admin/products/product-create-detail-fields.tsx")).toContain("data-product-create-detail-fields");
     expect(page).toContain("data-product-create-media-fields");
     expect(page).toContain("data-product-create-submit-bar");
     expect(page).toContain("data-product-category-create-panel");
@@ -151,13 +153,14 @@ describe("admin operational UX", () => {
     expect(page).toContain("mithron-products Storage bucket");
     expect(page).toContain("border-emerald-400/45 bg-emerald-500/15 text-emerald-100");
     expect(page).not.toContain("border-slate-900 bg-slate-950 text-white");
-    expect(grid).toContain("id=\"update-product\"");
-    expect(grid).toContain("data-product-quick-edit");
-    expect(grid).toContain("data-product-quick-edit-modal");
-    expect(grid).toContain("Edit product");
-    expect(grid).toContain("Save changes");
-    expect(grid).toContain("name=\"product_slug\" value={editingProduct.id}");
-    expect(grid).toContain("type=\"hidden\" name=\"change_summary\"");
+    expect(grid).toContain("ProductDetailEditDialog");
+    expect(dialog).toContain("id=\"update-product\"");
+    expect(dialog).toContain("data-product-quick-edit");
+    expect(dialog).toContain("data-product-detail-modal");
+    expect(dialog).toContain("Edit product");
+    expect(dialog).toContain("Save changes");
+    expect(dialog).toContain("name=\"product_slug\" value={product.id}");
+    expect(dialog).toContain("type=\"hidden\" name=\"change_summary\"");
     expect(page).toContain("id=\"publish-product\"");
     expect(page).toContain("id=\"product-media\"");
     expect(grid).toContain("Pencil");

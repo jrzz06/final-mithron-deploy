@@ -30,6 +30,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
   }
 
+  const orderEmail = String(order.customer_email ?? "").trim().toLowerCase();
+  const requestEmail = body.email.trim().toLowerCase();
+  if (orderEmail && requestEmail !== orderEmail) {
+    return NextResponse.json({ error: "Email does not match order." }, { status: 400 });
+  }
+
   const existingPayments = await fetchAdminRecordsByColumn("payments", "order_id", body.orderId);
   const activePayment = existingPayments.find((row) => !["failed", "cancelled"].includes(String(row.status ?? "")));
   if (activePayment) {

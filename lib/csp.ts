@@ -19,6 +19,9 @@ export function buildContentSecurityPolicy(nonce: string, env: EnvSource = proce
     "frame-src https://*.razorpay.com",
     `connect-src ${connectSrc}`,
     "img-src 'self' data: https: blob:",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "form-action 'self'",
     "report-uri /api/csp-report"
   ].join("; ");
 }

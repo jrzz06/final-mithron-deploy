@@ -35,6 +35,15 @@ type MithronProductRow = {
   price: number | string | null;
   compare_at: number | string | null;
   badge: string | null;
+  description: string | null;
+  on_sale: boolean | null;
+  discount_type: "percent" | "amount" | null;
+  discount_value: number | string | null;
+  cost_of_goods: number | string | null;
+  show_price_per_unit: boolean | null;
+  charge_tax: boolean | null;
+  tax_rate: number | string | null;
+  tax_included: boolean | null;
   category: string;
   interests: string[] | null;
   image: JsonRecord | null;
@@ -167,6 +176,15 @@ const productSelect = [
   "price",
   "compare_at",
   "badge",
+  "description",
+  "on_sale",
+  "discount_type",
+  "discount_value",
+  "cost_of_goods",
+  "show_price_per_unit",
+  "charge_tax",
+  "tax_rate",
+  "tax_included",
   "category",
   "interests",
   "image",
@@ -502,6 +520,15 @@ function mapProductRow(row: MithronProductRow, linkedPrimaryImage?: MediaAsset):
     price: toNumber(row.price),
     compareAt: row.compare_at ? toNumber(row.compare_at) : undefined,
     badge: row.badge ?? undefined,
+    description: row.description ? cleanText(row.description) : undefined,
+    onSale: row.on_sale ?? undefined,
+    discountType: row.discount_type ?? undefined,
+    discountValue: row.discount_value ? toNumber(row.discount_value) : undefined,
+    costOfGoods: row.cost_of_goods ? toNumber(row.cost_of_goods) : undefined,
+    showPricePerUnit: row.show_price_per_unit ?? undefined,
+    chargeTax: row.charge_tax ?? undefined,
+    taxRate: row.tax_rate ? toNumber(row.tax_rate) : undefined,
+    taxIncluded: row.tax_included ?? undefined,
     category: row.category,
     interests: row.interests ?? [],
     image,

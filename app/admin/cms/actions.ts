@@ -41,7 +41,7 @@ import {
   type HeroBannerStateInput
 } from "@/services/cms-admin-workflows";
 import { recordCmsRevision, restoreCmsRevision } from "@/services/cms-crud";
-import { getCurrentAuthContext, requirePermission } from "@/services/auth";
+import { getCurrentAuthContext, requireAdminPermission, requirePermission } from "@/services/auth";
 import {
   assertAllowedMediaBucket,
   assertAllowedMediaMimeType,
@@ -207,7 +207,7 @@ function cmsRedirectUrl(status: "success" | "error", table: string, message: str
 
 async function runCmsFormMutation(table: string, successMessage: string, mutation: () => Promise<unknown>, section?: string) {
   if (table === "media_assets") {
-    await requirePermission("media.write");
+    await requireAdminPermission("media.write");
   } else {
     await requirePermission("cms.write");
   }

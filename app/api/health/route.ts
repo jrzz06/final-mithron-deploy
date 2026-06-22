@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabasePublicConfig } from "@/lib/env";
+import { safeBearerEquals } from "@/lib/auth/timing-safe-bearer";
 
 export const dynamic = "force-dynamic";
 
 function isInternalHealthRequest(request: Request) {
-  const secret = process.env.HEALTH_CHECK_SECRET?.trim() ?? "";
-  if (!secret) return false;
-  const auth = request.headers.get("authorization") ?? "";
-  return auth === `Bearer ${secret}`;
+  return safeBearerEquals(request, process.env.HEALTH_CHECK_SECRET);
 }
 
 async function pingSupabase(timeoutMs = 1000) {

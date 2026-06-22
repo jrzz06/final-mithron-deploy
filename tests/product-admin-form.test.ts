@@ -81,6 +81,15 @@ describe("product admin draft form", () => {
         price: 120000,
         compare_at: 149000,
         badge: "New",
+        description: null,
+        on_sale: false,
+        discount_type: null,
+        discount_value: null,
+        cost_of_goods: null,
+        show_price_per_unit: false,
+        charge_tax: true,
+        tax_rate: null,
+        tax_included: false,
         category: "Agri Drones",
         interests: ["agriculture", "smart-farming"],
         image: {
@@ -244,14 +253,16 @@ describe("product admin draft form", () => {
   it("wires compact edit to a patch-only action instead of the draft form", () => {
     const pageSource = readFileSync(join(process.cwd(), "app/admin/products/page.tsx"), "utf8");
     const gridSource = readFileSync(join(process.cwd(), "app/admin/products/product-catalog-grid.tsx"), "utf8");
+    const dialogSource = readFileSync(join(process.cwd(), "app/admin/products/product-detail-edit-dialog.tsx"), "utf8");
     const actionSource = readFileSync(join(process.cwd(), "app/admin/products/actions.ts"), "utf8");
 
     expect(pageSource).toContain("ProductCatalogGrid");
-    expect(gridSource).toContain("saveProductQuickEditFormAction");
-    expect(gridSource).toContain("data-product-quick-edit");
-    expect(gridSource).toContain("id=\"update-product\"");
-    expect(gridSource).toContain("name=\"product_slug\" value={editingProduct.id}");
-    expect(gridSource).toContain("type=\"hidden\" name=\"change_summary\"");
+    expect(gridSource).toContain("ProductDetailEditDialog");
+    expect(dialogSource).toContain("saveProductQuickEditFormAction");
+    expect(dialogSource).toContain("data-product-quick-edit");
+    expect(dialogSource).toContain("id=\"update-product\"");
+    expect(dialogSource).toContain("name=\"product_slug\" value={product.id}");
+    expect(dialogSource).toContain("type=\"hidden\" name=\"change_summary\"");
     expect(pageSource).not.toContain("<span id=\"update-product\"");
     expect(actionSource).toContain("buildProductQuickEditFromFormData");
     expect(actionSource).toContain("saveProductQuickEditFormAction");

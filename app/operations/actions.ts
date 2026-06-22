@@ -25,7 +25,7 @@ import {
   type DeploymentRequestStatus,
   type StaffTaskStatus
 } from "@/services/enterprise-admin-forms";
-import { requirePermission } from "@/services/auth";
+import { requireAdminPermission } from "@/services/auth";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -81,7 +81,7 @@ async function currentActorId() {
 }
 
 async function requireOperationsActor() {
-  return requirePermission("operations.write");
+  return requireAdminPermission("operations.write");
 }
 
 async function findExistingNotification(input: {

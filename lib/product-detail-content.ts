@@ -55,7 +55,19 @@ export function getHighlightSpecs(product: Product, limit = 6) {
   return ranked.slice(0, limit);
 }
 
+export function getProductOverviewHtml(product: Product) {
+  const description = product.description?.trim();
+  if (!description) return null;
+  if (/<[^>]+>/.test(description)) return description;
+  return null;
+}
+
 export function getProductOverviewText(product: Product) {
+  const htmlOverview = getProductOverviewHtml(product);
+  if (htmlOverview) {
+    return cleanCopy(htmlOverview);
+  }
+
   const candidates = [
     product.seoDescription,
     product.ogDescription,

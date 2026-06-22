@@ -1,4 +1,5 @@
 import type { PaymentGateway } from "./types";
+import { isInternetDeployedEnvironment } from "@/lib/auth/deploy-environment";
 import { createRazorpayGateway } from "./razorpay";
 
 export { RazorpayGateway, createRazorpayGateway } from "./razorpay";
@@ -50,7 +51,7 @@ class UnconfiguredGateway implements PaymentGateway {
 export function isPaymentGatewayConfigured(env: Record<string, string | undefined> = process.env) {
   const provider = (env.PAYMENT_PROVIDER ?? "stub").toLowerCase();
   if (provider === "stub") {
-    return env.NODE_ENV !== "production";
+    return !isInternetDeployedEnvironment(env);
   }
   if (provider === "stripe") {
     return Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET);
@@ -64,7 +65,7 @@ export function isPaymentGatewayConfigured(env: Record<string, string | undefine
 export function getPaymentGateway(env: Record<string, string | undefined> = process.env): PaymentGateway {
   const provider = (env.PAYMENT_PROVIDER ?? "stub").toLowerCase() as import("./types").PaymentProviderId;
   if (provider === "stub") {
-    if (env.NODE_ENV === "production") {
+    if (isInternetDeployedEnvironment(env)) {
       return new UnconfiguredGateway("stub");
     }
     return new StubPaymentGateway();

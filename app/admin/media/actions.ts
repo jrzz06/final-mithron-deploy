@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { assertSupabaseAdminConfig } from "@/lib/env";
 import { deleteAdminRecord, upsertMediaAssetRecord } from "@/services/admin-actions";
-import { getCurrentAuthContext, requirePermission } from "@/services/auth";
+import { getCurrentAuthContext, requireAdminPermission } from "@/services/auth";
 import {
   assertAllowedMediaBucket,
   assertAllowedMediaMimeType,
@@ -47,7 +47,7 @@ function mediaActionErrorMessage(error: unknown) {
 }
 
 async function runMediaAction(successMessage: string, action: () => Promise<void>) {
-  await requirePermission("media.write");
+  await requireAdminPermission("media.write");
   let status: "success" | "error" = "success";
   let message = successMessage;
 

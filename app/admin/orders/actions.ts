@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requirePermission } from "@/services/auth";
+import { requireAdminPermission } from "@/services/auth";
 import { fetchAdminRecordsByColumn, updateAdminRecord } from "@/services/admin-actions";
 import { appendOrderTimeline, buildOrderTimelineEntry, buildWarehouseAssignmentUpdate, transitionOrderStatus, type OrderStatus } from "@/services/orders";
 
 export async function confirmPaidOrderFormAction(formData: FormData) {
-  const context = await requirePermission("orders.write");
+  const context = await requireAdminPermission("orders.write");
   const orderId = String(formData.get("order_id") ?? "").trim();
   if (!orderId) throw new Error("Order id is required.");
 
@@ -48,7 +48,7 @@ export async function confirmPaidOrderFormAction(formData: FormData) {
 }
 
 export async function assignOrderToWarehouseFormAction(formData: FormData) {
-  const context = await requirePermission("orders.write");
+  const context = await requireAdminPermission("orders.write");
   const orderId = String(formData.get("order_id") ?? "").trim();
   if (!orderId) throw new Error("Order id is required.");
 

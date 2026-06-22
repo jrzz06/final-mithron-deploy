@@ -4,8 +4,9 @@ import { OperationalSubmitButton } from "@/components/admin/operational-submit-b
 import { getProductManagerSnapshot } from "@/services/admin";
 import { deleteProductCategoryFormAction, saveProductCategoryFormAction, saveProductDraftFormAction, saveProductInventoryWorkflowFormAction, saveProductMediaLinkFormAction, saveProductPublishStateFormAction, saveProductSeoFormAction, saveProductVariantsFormAction } from "./actions";
 import { resolveNextImageSrc } from "@/lib/media/next-image-src";
-import { ProductCatalogGrid } from "./product-catalog-grid";
+import { ProductCatalogGrid, type ProductCatalogGridRow } from "./product-catalog-grid";
 import { ProductCategoryField, type ProductCategoryOption } from "./product-category-field";
+import { ProductCreateDetailFields } from "./product-create-detail-fields";
 
 export const dynamic = "force-dynamic";
 
@@ -109,7 +110,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
     const reorder = Number(row.reorder_threshold ?? 0);
     return Number.isFinite(quantity) && Number.isFinite(reorder) && reorder > 0 && quantity <= reorder;
   }).length;
-  const productRows = filteredProducts.map((product) => {
+  const productRows: ProductCatalogGridRow[] = filteredProducts.map((product) => {
     const slug = String(product.slug ?? "");
     const inventory = snapshot.data.inventory.find((row) => String(row.product_slug ?? "") === slug);
     const stock = snapshot.data.stock.find((row) => String(row.product_slug ?? "") === slug);
@@ -122,6 +123,21 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       status,
       thumbnailSrc: resolveNextImageSrc(readMediaSrc(product.image) ?? readMediaSrc(product.hero)),
       price: String(product.price ?? "0"),
+      compareAt: product.compare_at ? String(product.compare_at) : null,
+      badge: product.badge ? String(product.badge) : null,
+      description: product.description ? String(product.description) : null,
+      onSale: Boolean(product.on_sale),
+      discountType: product.discount_type === "percent"
+        ? ("percent" as const)
+        : product.discount_type === "amount"
+          ? ("amount" as const)
+          : null,
+      discountValue: product.discount_value ? String(product.discount_value) : null,
+      costOfGoods: product.cost_of_goods ? String(product.cost_of_goods) : null,
+      showPricePerUnit: Boolean(product.show_price_per_unit),
+      chargeTax: product.charge_tax !== false,
+      taxRate: product.tax_rate ? String(product.tax_rate) : null,
+      taxIncluded: Boolean(product.tax_included),
       stockQuantity: String(stock?.available_quantity ?? inventory?.quantity ?? "0"),
       stockStatus,
       sourceAvailability: String(product.source_availability ?? "catalog"),
@@ -237,19 +253,14 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
                 <span className="rounded-md border border-emerald-200 bg-white px-2 py-1 text-xs font-semibold text-emerald-700">Draft first</span>
               </div>
               <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-                <div data-product-create-primary-fields className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
-                  <label className="grid gap-1.5 text-sm md:col-span-2">
-                    <span className="text-xs font-medium text-slate-500">Product name</span>
-                    <input name="name" required placeholder="Example: V9 Flight Controller" className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none placeholder:text-slate-400 focus:border-slate-400" />
-                  </label>
-                  <ProductCategoryField
-                    categories={categoryOptions}
-                    deleteCategoryAction={deleteProductCategoryFormAction}
-                  />
-                  <label className="grid gap-1.5 text-sm">
-                    <span className="text-xs font-medium text-slate-500">Price</span>
-                    <input name="price" inputMode="decimal" placeholder="0" className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none placeholder:text-slate-400 focus:border-slate-400" />
-                  </label>
+                <div className="grid gap-4">
+                  <ProductCreateDetailFields />
+                  <div data-product-create-primary-fields className="grid gap-3">
+                    <ProductCategoryField
+                      categories={categoryOptions}
+                      deleteCategoryAction={deleteProductCategoryFormAction}
+                    />
+                  </div>
                 </div>
                 <div data-product-create-media-fields className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <label data-product-local-image-upload className="grid gap-1.5 text-sm">

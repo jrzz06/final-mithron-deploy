@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkDistributedRateLimit } from "@/lib/rate-limit-redis";
+import { isInternetDeployedEnvironment } from "@/lib/auth/deploy-environment";
+import { safeSecretEquals } from "@/lib/auth/timing-safe-bearer";
 import { assertSupabaseAdminConfig } from "@/lib/env";
 import { fetchAdminRecordsByColumn, updateAdminRecord } from "@/services/admin-actions";
 import { releaseCheckoutStock } from "@/services/checkout-stock";
@@ -72,22 +74,29 @@ export async function POST(request: Request, context: { params: Promise<{ provid
   }
 
   const rawBody = await request.text();
-  const isProduction = process.env.NODE_ENV === "production";
   const paymentProvider = (process.env.PAYMENT_PROVIDER ?? "stub").toLowerCase();
+
+  if (provider === "stub" || paymentProvider === "stub") {
+    if (isInternetDeployedEnvironment()) {
+      return NextResponse.json({ error: "Stub payment webhooks are disabled on deployed environments." }, { status: 403 });
+    }
+  }
 
   let signature = "";
   if (paymentProvider === "razorpay") {
     signature = request.headers.get("x-razorpay-signature") ?? "";
-    if (isProduction && !signature) {
+    if (!signature) {
       return NextResponse.json({ error: "Missing Razorpay signature." }, { status: 401 });
     }
-  } else if (isProduction) {
+  } else if (paymentProvider === "stub" || provider === "stub") {
+    // Local development only; deployed stub traffic is rejected above.
+  } else {
     const webhookSecret = process.env.PAYMENT_WEBHOOK_SECRET?.trim() ?? "";
     if (!webhookSecret) {
       return NextResponse.json({ error: "Payment webhook secret is not configured." }, { status: 503 });
     }
     signature = request.headers.get("x-payment-signature") ?? request.headers.get("x-payment-webhook-secret") ?? "";
-    if (signature !== webhookSecret) {
+    if (!safeSecretEquals(signature, webhookSecret)) {
       return NextResponse.json({ error: "Unauthorized webhook." }, { status: 401 });
     }
   }
