@@ -68,7 +68,10 @@ export function getProductOverviewText(product: Product) {
     return cleanCopy(htmlOverview);
   }
 
+  const plainDescription = product.description?.trim();
   const candidates = [
+    plainDescription && !/<[^>]+>/.test(plainDescription) ? plainDescription : "",
+    product.sourceDescription,
     product.seoDescription,
     product.ogDescription,
     ...product.story.map((chapter) => chapter.body),

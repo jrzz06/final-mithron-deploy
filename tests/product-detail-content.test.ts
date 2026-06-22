@@ -43,6 +43,14 @@ describe("product detail content", () => {
     expect(getProductOverviewText(product)).toContain("long-form product overview");
   });
 
+  it("falls back to Wix source description when admin description is empty", () => {
+    const product = {
+      ...baseProduct,
+      sourceDescription: "Full Wix Studio product copy with deployment guidance for field operators."
+    };
+    expect(getProductOverviewText(product)).toContain("Full Wix Studio product copy");
+  });
+
   it("can skip fallback story when overview is rendered separately", () => {
     expect(getStoryChapters(baseProduct, { includeFallback: false })).toEqual([]);
     expect(getStoryChapters(baseProduct, { includeFallback: true })).toHaveLength(1);

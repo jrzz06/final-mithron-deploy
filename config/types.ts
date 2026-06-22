@@ -116,6 +116,7 @@ export type Product = {
   compareAt?: number;
   badge?: string;
   description?: string;
+  sourceDescription?: string;
   onSale?: boolean;
   discountType?: "percent" | "amount";
   discountValue?: number;

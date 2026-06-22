@@ -523,6 +523,7 @@ function mapProductRow(row: MithronProductRow, linkedPrimaryImage?: MediaAsset):
     compareAt: row.compare_at ? toNumber(row.compare_at) : undefined,
     badge: row.badge ?? undefined,
     description: row.description ? cleanText(row.description) : undefined,
+    sourceDescription: row.source_description ? cleanText(row.source_description) : undefined,
     onSale: row.on_sale ?? undefined,
     discountType: row.discount_type ?? undefined,
     discountValue: row.discount_value ? toNumber(row.discount_value) : undefined,
