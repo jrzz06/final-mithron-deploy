@@ -27,7 +27,9 @@ const inventoryRow: SimpleInventoryRow = {
   reservedQuantity: 0,
   reorderThreshold: 5,
   availableQuantity: 19,
-  committedQuantity: 0
+  committedQuantity: 0,
+  warehouseUpdatedAt: "2026-05-26T12:00:00.000Z",
+  inventoryUpdatedAt: "2026-05-26T12:00:00.000Z"
 };
 
 afterEach(() => {

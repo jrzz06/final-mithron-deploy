@@ -5,7 +5,7 @@ import {
   parseMoney,
   sourceCatalogIdFromWixSlug,
   wixProductPageUrl
-} from "./catalog-normalize.ts";
+} from "./catalog-normalize";
 
 export type WixProductSnapshot = {
   wix_product_id: string;

@@ -82,7 +82,9 @@ describe("inventory CSV workflow", () => {
         reservedQuantity: 0,
         reorderThreshold: 0,
         availableQuantity: 4,
-        committedQuantity: 0
+        committedQuantity: 0,
+        warehouseUpdatedAt: "2026-05-25T10:00:00.000Z",
+        inventoryUpdatedAt: "2026-05-25T10:00:00.000Z"
       },
       {
         id: "IN-WEST-01:b:B",
@@ -101,12 +103,14 @@ describe("inventory CSV workflow", () => {
         reservedQuantity: 0,
         reorderThreshold: 0,
         availableQuantity: 0,
-        committedQuantity: 0
+        committedQuantity: 0,
+        warehouseUpdatedAt: null,
+        inventoryUpdatedAt: null
       }
     ];
 
-    const snapshot = buildInventorySnapshot(rows);
-    const csv = buildInventoryExportCsv(rows);
+    const snapshot = buildInventorySnapshot(rows as import("@/services/simple-inventory-view").SimpleInventoryRow[]);
+    const csv = buildInventoryExportCsv(rows as import("@/services/simple-inventory-view").SimpleInventoryRow[]);
 
     expect(snapshot).toMatchObject({
       productCount: 2,

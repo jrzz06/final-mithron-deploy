@@ -3,9 +3,9 @@ import {
   normalizeCatalogName,
   normalizeUrl,
   slugify
-} from "../wix/catalog-normalize.ts";
-import type { WixProductSnapshot } from "../wix/catalog-client.ts";
-import type { DbProductRow } from "./score-canonical.ts";
+} from "../wix/catalog-normalize";
+import type { WixProductSnapshot } from "../wix/catalog-client";
+import type { DbProductRow } from "./score-canonical";
 
 export type ProductReconcileReport = {
   version: 1;
@@ -40,7 +40,7 @@ export type ProductReconcileReport = {
 class UnionFind {
   parent = new Map<string, string>();
 
-  find(value: string) {
+  find(value: string): string {
     const parent = this.parent.get(value) ?? value;
     if (parent !== value) {
       const root = this.find(parent);
