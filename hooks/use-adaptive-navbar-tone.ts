@@ -233,5 +233,5 @@ export function useAdaptiveNavbarTone(initialTone: NavbarInkTone = "dark") {
     };
   }, []);
 
-  return { tone, style: navbarToneStyles[tone] };
+  return { tone, style: navbarToneStyles[tone] as CSSProperties };
 }
