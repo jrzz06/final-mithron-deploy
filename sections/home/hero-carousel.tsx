@@ -83,7 +83,7 @@ const heroImageComposition: Record<string, HeroImageComposition> = {
   "ag10-arrival": {
     focalPoint: "right-center drone over glacial terrain at sunrise",
     desktopObjectPosition: "72% 52%",
-    mobileObjectPosition: "58% 52%",
+    mobileObjectPosition: "38% 42%",
     desktopTransform: "translate3d(0, 0, 0) scale(1)",
     mobileTransform: "translate3d(0, 0, 0) scale(1)",
     desktopFilter: "none",
@@ -92,7 +92,7 @@ const heroImageComposition: Record<string, HeroImageComposition> = {
   "mapping-flight": {
     focalPoint: "center-right caged drone over night sports court",
     desktopObjectPosition: "62% 58%",
-    mobileObjectPosition: "50% 50%",
+    mobileObjectPosition: "52% 46%",
     desktopTransform: "translate3d(0, 0, 0) scale(1)",
     mobileTransform: "translate3d(0, 0, 0) scale(1)",
     desktopFilter: "none",
@@ -101,7 +101,7 @@ const heroImageComposition: Record<string, HeroImageComposition> = {
   "drone-ecosystem": {
     focalPoint: "upper-right medical delivery drone over coastal horizon",
     desktopObjectPosition: "90% 52%",
-    mobileObjectPosition: "62% 48%",
+    mobileObjectPosition: "54% 44%",
     desktopTransform: "translate3d(0, 0, 0) scale(1)",
     mobileTransform: "translate3d(0, 0, 0) scale(1)",
     desktopFilter: "none",
