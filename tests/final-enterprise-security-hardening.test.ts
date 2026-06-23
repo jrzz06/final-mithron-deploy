@@ -46,6 +46,9 @@ describe("final enterprise security hardening", () => {
     expect(observability).toContain("original_actor_user_id");
     expect(securityVerifier).toContain("/api/security/denials");
     expect(securityVerifier).toContain("directRlsDeniedAttemptAppLogs");
+    expect(securityVerifier).toContain("VERIFIED_TELEMETRY_FORBIDDEN");
+    expect(securityVerifier).toContain("expectedUploadDeniedStatuses");
+    expect(securityVerifier).toContain("MITHRON_UPLOAD_API_RETIRED");
   });
 
   it("keeps the security boundary verifier on canonical roles and current warehouse selectors", () => {

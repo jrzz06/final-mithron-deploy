@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EnquiryForm } from "@/components/contact/enquiry-form";
+import { buildAuthAuditClientToken } from "@/lib/auth-audit-client";
 import { createClient } from "@/lib/server";
 
 const contactCards = [
@@ -14,9 +15,10 @@ export default async function ContactPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const email = typeof data?.claims?.email === "string" ? data.claims.email : "";
+  const auditToken = buildAuthAuditClientToken();
 
   return (
-    <main className="surface-page min-h-screen px-6 py-28 md:px-16">
+    <main className="surface-page inner-page min-h-screen">
       <section className="mx-auto max-w-[1180px]">
         <p className="type-meta text-slate-500">Contact</p>
         <div className="mt-4 grid gap-8 md:grid-cols-[0.95fr_1.05fr]">
@@ -42,7 +44,7 @@ export default async function ContactPage() {
               ))}
             </div>
           </div>
-          <EnquiryForm defaultEmail={email} />
+          <EnquiryForm defaultEmail={email} auditToken={auditToken} />
         </div>
       </section>
     </main>

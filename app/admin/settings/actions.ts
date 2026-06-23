@@ -189,8 +189,8 @@ export async function saveAdminSettingsFormAction(formData: FormData) {
     footer: {
       leadTitle: readSettingString(formData, "footer_lead_title"),
       leadBody: readSettingString(formData, "footer_lead_body"),
-      emailPlaceholder: readSettingString(formData, "footer_email_placeholder"),
-      ctaLabel: readSettingString(formData, "footer_cta_label"),
+      contactEmail: readSettingString(formData, "footer_contact_email"),
+      contactPhone: readSettingString(formData, "footer_contact_phone"),
       legalText: readSettingString(formData, "footer_legal_text")
     },
     security: {

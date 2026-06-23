@@ -338,7 +338,7 @@ const missionWorldConfigs: Record<"agri-drones" | "city-drones", MissionWorldCon
         size: "hero"
       },
       {
-        label: "All Drone Acadamic",
+        label: "All Drone Academic",
         body: "Training ecosystem for city pilots, simulation labs, classroom workflows, and certified urban flight programs.",
         media: localMedia.cityEmergencyResponse,
         operator: "Mithron Academy Network",

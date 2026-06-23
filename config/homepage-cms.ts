@@ -203,13 +203,13 @@ export const defaultHomepageCmsContent: HomepageCmsContent = {
           href: ""
         },
         {
-          label: "All Drone Acadamic",
+          label: "All Drone Academic",
           body: "Training ecosystem for city pilots, simulation labs, classroom workflows, and certified urban flight programs.",
           operator: "Mithron Academy Network",
           model: "ALL DRONE ACADAMIC",
           location: "Training and simulation hub",
           imageSrc: storefrontMediaPaths.missionCity.allDroneAcademic,
-          imageAlt: "All Drone Acadamic",
+          imageAlt: "All Drone Academic",
           href: ""
         },
         {
@@ -360,5 +360,5 @@ export const homepageCmsSections: Array<{
   { id: "testimonials", label: "Reviews header", description: "Section title, intro copy, and browse link above review cards.", previewAnchor: "home-customer-testimonials", workflow: "live", workflowLabel: "Live changes" },
   { id: "product-reviews", label: "Product review cards", description: "Customer quotes linked to catalog products.", previewAnchor: "home-customer-testimonials", workflow: "draft-publish", workflowLabel: "Draft → Publish" },
   { id: "about", label: "About band", description: "About Mithron call-to-action above the footer.", previewAnchor: "home-about-band", workflow: "live", workflowLabel: "Live changes" },
-  { id: "footer", label: "Footer & newsletter", description: "Footer lead copy and newsletter CTA.", previewAnchor: "home-about-footer", workflow: "live", workflowLabel: "Live changes" }
+  { id: "footer", label: "Footer", description: "Footer lead copy, contact details, and legal line.", previewAnchor: "home-about-footer", workflow: "live", workflowLabel: "Live changes" }
 ];

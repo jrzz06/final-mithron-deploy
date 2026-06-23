@@ -113,7 +113,7 @@ describe("final CMS cutover and real-data cleanup", () => {
     expect(globals).not.toContain("rgba(248, 250, 251, 0.5)");
     expect(globals).not.toContain("rgba(248, 250, 251, 0.25)");
     expect(globals).toContain(".catalog-product-grid");
-    expect(globals).toContain("grid-auto-rows: 1fr");
+    expect(globals).toContain("align-items: start");
     expect(cms).not.toContain("from \"@/config/products\"");
     expect(cms).not.toContain("marketing.testimonials");
     expect(cms).not.toContain("mapHomepageSections");

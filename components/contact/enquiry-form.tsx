@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 type EnquiryFormProps = {
   defaultEmail?: string;
   defaultRegion?: string;
+  auditToken?: string | null;
 };
 
-export function EnquiryForm({ defaultEmail = "", defaultRegion = "India" }: EnquiryFormProps) {
+export function EnquiryForm({ defaultEmail = "", defaultRegion = "India", auditToken }: EnquiryFormProps) {
   const [email, setEmail] = useState(defaultEmail);
   const [phone, setPhone] = useState("");
   const [subject, setSubject] = useState("");
@@ -49,7 +50,10 @@ export function EnquiryForm({ defaultEmail = "", defaultRegion = "India" }: Enqu
     setError("");
     const response = await fetch("/api/enquiries", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(auditToken ? { "x-auth-audit-token": auditToken } : {})
+      },
       body: JSON.stringify({ email: email.trim(), phone: phone.trim(), subject, message, region })
     });
     if (!response.ok) {

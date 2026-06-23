@@ -64,8 +64,8 @@ type ProductReviewRecord = {
 type FooterLeadRecord = {
   leadTitle: string;
   leadBody: string;
-  emailPlaceholder: string;
-  ctaLabel: string;
+  contactEmail: string;
+  contactPhone: string;
   legalText: string;
 };
 
@@ -451,16 +451,16 @@ function FooterLeadEditor({ footerLead }: { footerLead: FooterLeadRecord }) {
     <div className="grid gap-4">
       <CmsSplitNotice
         title="Footer content is split across two CMS stores"
-        body="Newsletter lead copy saves here (admin_settings). Footer link columns are managed in Advanced CMS under footer_columns and footer_links."
+        body="Footer lead copy and contact details save here (admin_settings). Footer link columns are managed in Advanced CMS under footer_columns and footer_links."
         href="/admin/cms?view=advanced#footer-page"
         linkLabel="Edit footer columns in Advanced CMS"
       />
       <form action={saveHomepageFooterLeadFormAction} className="grid gap-4">
-      <Field label="Newsletter title" name="footer_lead_title" defaultValue={footerLead.leadTitle || footerContent.leadTitle} />
-      <TextAreaField label="Newsletter body" name="footer_lead_body" defaultValue={footerLead.leadBody || footerContent.leadBody} />
+      <Field label="Footer title" name="footer_lead_title" defaultValue={footerLead.leadTitle || footerContent.leadTitle} />
+      <TextAreaField label="Footer body" name="footer_lead_body" defaultValue={footerLead.leadBody || footerContent.leadBody} />
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Email placeholder" name="footer_email_placeholder" defaultValue={footerLead.emailPlaceholder || footerContent.emailPlaceholder} />
-        <Field label="Subscribe button" name="footer_cta_label" defaultValue={footerLead.ctaLabel || footerContent.ctaLabel} />
+        <Field label="Contact email" name="footer_contact_email" type="email" defaultValue={footerLead.contactEmail || footerContent.contactEmail} />
+        <Field label="Contact phone" name="footer_contact_phone" defaultValue={footerLead.contactPhone || footerContent.contactPhone} />
       </div>
       <TextAreaField label="Legal text" name="footer_legal_text" defaultValue={footerLead.legalText || footerContent.legalText} />
       <AdminStickyActionFooter>

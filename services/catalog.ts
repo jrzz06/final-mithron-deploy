@@ -12,6 +12,7 @@ import {
   filterProductsForCategorySlug,
   isCatalogCategorySlug
 } from "@/lib/catalog-categories";
+import { dedupeProductsBySlug } from "@/lib/catalog-shelf-layout";
 import { formatAvailability, isSpecLikeBlob, parseInlineSpecPairs } from "@/lib/product-spec-text";
 import { customerFacingAvailability } from "@/services/inventory-csv";
 import type { OrderCatalogProduct } from "@/services/orders";
@@ -178,7 +179,7 @@ const ENTERPRISE_MENU_PRODUCT_LIMIT = 1000;
 const PRODUCT_MEDIA_LIMIT = 2000;
 const CHECKOUT_PRICING_SELECT = "slug,name,price,category,charge_tax,tax_group,tax_rate,tax_included";
 const LEGACY_WIX_INVENTORY_CATEGORY = "Imported Wix Inventory";
-const publishedCatalogFilter = `workflow_status=eq.published&is_visible=eq.true&category=neq.${encodeURIComponent(LEGACY_WIX_INVENTORY_CATEGORY)}`;
+const publishedCatalogFilter = `workflow_status=eq.published&is_visible=eq.true&category=neq.${encodeURIComponent(LEGACY_WIX_INVENTORY_CATEGORY)}&slug=not.like.audit-trace-*`;
 
 const enterpriseMenuSelect = [
   "slug",
@@ -543,47 +544,8 @@ function normalizeStory(row: MithronProductRow, marketingTagline: string, hero: 
   }];
 }
 
-function isCatalogCutoutSrc(src: string) {
-  return src.includes("/catalog-cutouts/");
-}
-
-function isRemoteImageSrc(src: string) {
-  return src.startsWith("http://") || src.startsWith("https://");
-}
-
-function withRowImageFallback(linkedMedia: MediaAsset, rowImage: MediaAsset | null): MediaAsset {
-  if (!rowImage?.src || rowImage.src.split("?")[0] === linkedMedia.src.split("?")[0]) {
-    return linkedMedia;
-  }
-
-  const fallbackSrc = rowImage.src;
-  if (linkedMedia.responsive) {
-    return {
-      ...linkedMedia,
-      responsive: {
-        ...linkedMedia.responsive,
-        fallbackSrc
-      }
-    };
-  }
-
-  return {
-    ...linkedMedia,
-    responsive: {
-      assetId: "row-fallback",
-      bucket: "mithron-products",
-      assetRole: "product",
-      category: "product",
-      generatedPromptId: "",
-      status: "fallback",
-      fallbackSrc,
-      fallbackAlt: rowImage.alt,
-      width: rowImage.width ?? 800,
-      height: rowImage.height ?? 600,
-      dominantColor: "transparent",
-      variants: {}
-    }
-  };
+function isSupabaseStorageSrc(src: string) {
+  return /^https?:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/public\//i.test(src);
 }
 
 function resolveProductImage(
@@ -593,21 +555,18 @@ function resolveProductImage(
   slug?: string
 ) {
   const rowImage = selectPrimaryProductImage(row, name);
+  const supabaseRowImage = rowImage && isSupabaseStorageSrc(rowImage.src) ? rowImage : null;
 
-  if (linkedMedia && isCatalogCutoutSrc(linkedMedia.src)) return linkedMedia;
   if (linkedMedia) {
-    if (!linkedMedia.src.trim() && rowImage) return rowImage;
-    if (rowImage && isRemoteImageSrc(rowImage.src) && !isRemoteImageSrc(linkedMedia.src)) {
-      return rowImage;
-    }
-    return withRowImageFallback(linkedMedia, rowImage);
+    if (!linkedMedia.src.trim() && supabaseRowImage) return supabaseRowImage;
+    return linkedMedia;
   }
 
-  if (rowImage) {
+  if (supabaseRowImage) {
     if (slug) {
       console.warn(`[catalog] product ${slug} is using inline JSON image fallback; link a primary media_assets row.`);
     }
-    return rowImage;
+    return supabaseRowImage;
   }
 
   return null;
@@ -764,7 +723,7 @@ export const getProductShellItems = cache(async (limit = SHELL_PREVIEW_LIMIT): P
   const rows = await fetchCatalogRows<MithronProductShellRow>(
     `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&order=sort_order.asc&limit=${boundedLimit}`
   );
-  return mapRowsWithPrimaryMedia(rows, mapProductShellRow);
+  return mapRowsWithCatalogMedia(rows, mapProductShellRow);
 });
 
 export const getFeaturedSearchProducts = cache(async (limit = 4): Promise<CatalogSearchResult[]> => {
@@ -775,7 +734,7 @@ export const getFeaturedSearchProducts = cache(async (limit = 4): Promise<Catalo
   const shellRows = rows.length ? rows : await fetchCatalogRows<MithronProductShellRow>(
     `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&order=sort_order.asc&limit=${boundedLimit}`
   );
-  const items = await mapRowsWithPrimaryMedia(shellRows, mapProductShellRow);
+  const items = await mapRowsWithCatalogMedia(shellRows, mapProductShellRow);
   return items.map(toCatalogSearchResult);
 });
 
@@ -783,7 +742,7 @@ export const getCartDrawerSuggestions = cache(async (): Promise<CatalogSearchRes
   const rows = await fetchCatalogRows<MithronProductShellRow>(
     `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&or=(interests.cs.{agriculture},interests.cs.{components})&order=sort_order.asc&limit=12`
   );
-  const items = await mapRowsWithPrimaryMedia(rows, mapProductShellRow);
+  const items = await mapRowsWithCatalogMedia(rows, mapProductShellRow);
   return items.slice(0, 3).map(toCatalogSearchResult);
 });
 
@@ -814,7 +773,7 @@ export async function getRelatedProductShellItems(slug: string, limit = 4): Prom
     const rows = await fetchCatalogRows<MithronProductShellRow>(
       `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&slug=neq.${encodeURIComponent(slug)}&order=sort_order.asc&limit=${limit}`
     );
-    return mapRowsWithPrimaryMedia(rows, mapProductShellRow);
+    return mapRowsWithCatalogMedia(rows, mapProductShellRow);
   }
 
   const categoryRows = await fetchCatalogRows<MithronProductShellRow>(
@@ -847,17 +806,20 @@ export async function getRelatedProductShellItems(slug: string, limit = 4): Prom
     const fallbackRows = await fetchCatalogRows<MithronProductShellRow>(
       `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&slug=neq.${encodeURIComponent(slug)}&order=sort_order.asc&limit=${limit}`
     );
-    return mapRowsWithPrimaryMedia(fallbackRows, mapProductShellRow);
+    return mapRowsWithCatalogMedia(fallbackRows, mapProductShellRow);
   }
 
-  return mapRowsWithPrimaryMedia(candidateRows, mapProductShellRow);
+  return mapRowsWithCatalogMedia(candidateRows, mapProductShellRow);
 }
 
 function getCatalogConfig(useServiceRole = false) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publicKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const key = useServiceRole ? serviceRoleKey ?? publicKey : publicKey;
+  if (useServiceRole && !serviceRoleKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for privileged catalog reads.");
+  }
+  const key = useServiceRole ? serviceRoleKey! : publicKey;
 
   if (!url || !key) {
     throw new Error("NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are required for the product catalog.");
@@ -1112,12 +1074,21 @@ const getCatalogCutoutMediaLookup = cache(async (): Promise<Map<string, MediaAss
   }
 });
 
-async function mapRowsWithPrimaryMedia<T extends Pick<MithronProductRow, "slug">, R>(
+async function mapRowsWithCatalogMedia<T extends Pick<MithronProductRow, "slug">, R>(
   rows: T[],
   mapper: (row: T, media?: MediaAsset) => R
 ) {
-  const mediaLookup = await getPrimaryProductMediaLookup();
-  return rows.map((row) => mapper(row, mediaLookup.get(row.slug)));
+  const primaryMedia = await getPrimaryProductMediaLookup();
+  let catalogCutouts = new Map<string, MediaAsset>();
+
+  try {
+    catalogCutouts = await getCatalogCutoutMediaLookup();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[catalog] catalog cutout media lookup failed; falling back to primary product images: ${message}`);
+  }
+
+  return rows.map((row) => mapper(row, catalogCutouts.get(row.slug) ?? primaryMedia.get(row.slug)));
 }
 
 export const getHomepageProducts = cache(async (): Promise<Product[]> => {
@@ -1160,9 +1131,11 @@ function mapHomepageProductRow(row: MithronProductRow, linkedPrimaryImage?: Medi
   };
 }
 
+
 export const getProducts = cache(async (): Promise<Product[]> => {
   const rows = await fetchAllCatalogRows<MithronProductRow>(catalogListSelect);
-  return mapRowsWithPrimaryMedia(rows, mapProductRow);
+  const products = await mapRowsWithCatalogMedia(rows, mapProductRow);
+  return dedupeProductsBySlug(products);
 });
 
 export const getEnterpriseMenuProducts = cache(async (): Promise<Product[]> => {
@@ -1180,7 +1153,7 @@ export const getEnterpriseMenuProducts = cache(async (): Promise<Product[]> => {
     offset += pageSize;
   }
 
-  return mapRowsWithPrimaryMedia(rows, mapEnterpriseMenuProduct);
+  return mapRowsWithCatalogMedia(rows, mapEnterpriseMenuProduct);
 });
 
 export const getProductAffinityRowBySlug = cache(async (slug: string): Promise<ProductAffinityRow | null> => {
@@ -1313,7 +1286,7 @@ export async function searchProducts(query: string, limit = 24) {
   const normalized = query.trim();
   if (!normalized) return [];
   const rows = await fetchCatalogSearchRows(normalized, limit);
-  return mapRowsWithPrimaryMedia(
+  return mapRowsWithCatalogMedia(
     rows.map((row) => ({
       slug: row.slug,
       product_url: null,
@@ -1374,7 +1347,7 @@ export async function searchCatalogProducts(query: string, limit = 24): Promise<
 export async function getProductsForCategorySlug(slug: string) {
   if (!isCatalogCategorySlug(slug)) return [];
   const products = await getProducts();
-  return filterProductsForCategorySlug(products, slug);
+  return dedupeProductsBySlug(filterProductsForCategorySlug(products, slug));
 }
 
 export async function getGlobalProductsForCatalog() {

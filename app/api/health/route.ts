@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
+import { authorizeBearerSecret } from "@/lib/api/bearer-auth";
 import { getSupabasePublicConfig } from "@/lib/env";
-import { safeBearerEquals } from "@/lib/auth/timing-safe-bearer";
 
 export const dynamic = "force-dynamic";
-
-function isInternalHealthRequest(request: Request) {
-  return safeBearerEquals(request, process.env.HEALTH_CHECK_SECRET);
-}
 
 async function pingSupabase(timeoutMs = 1000) {
   const config = getSupabasePublicConfig();
@@ -37,8 +33,13 @@ async function pingSupabase(timeoutMs = 1000) {
 export async function GET(request: Request) {
   const supabase = await pingSupabase();
   const status = supabase.ok ? "ok" : "degraded";
+  const auth = await authorizeBearerSecret(request, process.env.HEALTH_CHECK_SECRET);
 
-  if (!isInternalHealthRequest(request)) {
+  if (auth === "rate_limited") {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
+
+  if (auth !== "ok") {
     return NextResponse.json({ status }, { status: supabase.ok ? 200 : 503 });
   }
 

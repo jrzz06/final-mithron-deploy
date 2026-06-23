@@ -3,8 +3,8 @@
 .page {
   --pdp-float-shadow: 0 18px 48px rgba(15, 23, 42, 0.08), 0 4px 14px rgba(15, 23, 42, 0.04);
   --pdp-stage-shadow: 0 24px 60px rgba(15, 23, 42, 0.08), 0 8px 20px rgba(15, 23, 42, 0.04);
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f4f7 42%, #eef2f6 100%);
-  color: var(--text-primary, #0f172a);
+  background: var(--ds-bg);
+  color: var(--text-primary, var(--ds-ink));
 }
 
 .header {
@@ -37,7 +37,7 @@
   gap: 0.25rem;
   font-size: 0.8125rem;
   line-height: 1.4;
-  color: #64748b;
+  color: var(--ds-ink-2);
 }
 
 .breadcrumbLink {
@@ -49,7 +49,7 @@
 }
 
 .breadcrumbCurrent {
-  max-width: 14rem;
+  max-width: 10rem;
   overflow: hidden;
   font-weight: 600;
   color: var(--text-primary, #0f172a);
@@ -63,9 +63,15 @@
   }
 }
 
+@media (min-width: 768px) {
+  .breadcrumbCurrent {
+    max-width: none;
+  }
+}
+
 .heroSection {
   margin-inline: auto;
-  max-width: 1440px;
+  max-width: var(--ds-container);
   padding: 0 1rem 0.5rem;
   background: transparent;
 }
@@ -77,7 +83,10 @@
 }
 
 .contentFlow {
-  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-s3);
+  background: var(--ds-bg);
 }
 
 .heroGrid {
@@ -93,6 +102,12 @@
 @media (min-width: 1024px) {
   .heroGrid {
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 520px);
+  }
+}
+
+@media (min-width: 1280px) {
+  .heroGrid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 540px);
   }
 }
 
@@ -207,10 +222,10 @@
 
 .mediaStage {
   position: relative;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--ds-r-xl);
   background:
     radial-gradient(ellipse 78% 58% at 50% 78%, rgba(15, 23, 42, 0.1) 0%, rgba(15, 23, 42, 0.03) 38%, transparent 68%),
     linear-gradient(180deg, #ffffff 0%, #f8fafc 58%, #f1f5f9 100%);
@@ -373,7 +388,7 @@
     margin: 2rem 2rem 2rem 0;
     max-width: none;
     border: 1px solid rgba(226, 232, 240, 0.92);
-    border-radius: 24px;
+    border-radius: var(--ds-r-xl);
     background: rgba(255, 255, 255, 0.98);
     box-shadow: var(--pdp-float-shadow);
     padding: 2rem 1.75rem;
@@ -415,11 +430,11 @@
   margin-top: 1rem;
   max-width: none;
   font-family: var(--type-display);
-  font-size: clamp(1.65rem, 2.6vw, 2.1rem);
+  font-size: var(--ds-t-section);
   font-weight: 600;
   line-height: 1.12;
   letter-spacing: -0.035em;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary, var(--ds-ink));
 }
 
 .buyBoxRating {
@@ -464,10 +479,20 @@
 }
 
 .priceCurrent {
-  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-size: clamp(1.5rem, 6vw, 2.25rem);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary, #0f172a);
+}
+
+@media (min-width: 768px) {
+  .mediaStage {
+    aspect-ratio: 1 / 1;
+  }
+
+  .priceCurrent {
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+  }
 }
 
 .priceCompare {
@@ -548,7 +573,7 @@
 .optionCard {
   min-height: 2.75rem;
   border: 1px solid rgba(226, 232, 240, 0.95);
-  border-radius: 16px;
+  border-radius: var(--ds-r-md);
   background: #fff;
   box-shadow: var(--pdp-float-shadow);
   text-align: left;
@@ -710,7 +735,7 @@
 .storyInner {
   margin-inline: auto;
   display: grid;
-  max-width: 1200px;
+  max-width: var(--ds-container);
   gap: 2.5rem;
   padding: 3.5rem 1.5rem;
 }
@@ -726,6 +751,7 @@
 
 .storyCopy {
   min-width: 0;
+  max-width: 900px;
 }
 
 .storyKicker {
@@ -796,7 +822,12 @@
 
 .supportInner {
   margin-inline: auto;
-  max-width: 1200px;
+  max-width: var(--ds-container);
+}
+
+.supportHeader,
+.supportTitle {
+  max-width: 900px;
 }
 
 .supportHeader {
@@ -1463,7 +1494,7 @@
 
 .sectionNav {
   position: sticky;
-  top: 104px;
+  top: var(--store-nav-offset);
   z-index: 30;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(10px);

@@ -14,6 +14,9 @@ const baseUrl = process.argv.find((arg) => arg.startsWith("--base-url="))?.slice
 
 const marker = `audit-trace-${Date.now()}`;
 const productSlug = process.env.AUTH_VALIDATION_PRODUCT_SLUG ?? "source-agri-kisan-drone-small-8-liter";
+const inventoryProductSlug = process.env.AUTH_VALIDATION_INVENTORY_PRODUCT_SLUG ?? productSlug;
+const traceWarehouseCode = process.env.AUTH_VALIDATION_WAREHOUSE_CODE ?? "IN-WEST-01";
+const traceVariantId = "audit-trace-base";
 const cleanup = [];
 const debugTraceability = process.env.AUDIT_TRACEABILITY_DEBUG === "1";
 
@@ -48,7 +51,9 @@ const personas = [
   { key: "unauthorized", role: null, authMetadataRole: "unauthorized", email: "unauthorized.validation@example.com", displayName: "Audit Trace Unauthorized" }
 ].map((persona) => ({
   ...persona,
-  password: process.env.AUDIT_TRACEABILITY_PASSWORD ?? `Mithron-${persona.key}-${crypto.randomUUID()}-Aa1!`
+  password: process.env.AUDIT_TRACEABILITY_PASSWORD
+    ?? process.env.SECURITY_BOUNDARY_PASSWORD
+    ?? `Mithron-${persona.key}-${crypto.randomUUID()}-Aa1!`
 }));
 
 function authClient() {
@@ -234,20 +239,61 @@ async function signInPersona(persona) {
   return { ...persona, client, session: data.session, fetchedRole: role ?? null };
 }
 
+async function establishBrowserSession(page, persona, nextPath) {
+  const response = await page.request.post(`${baseUrl}/api/auth/login`, {
+    data: {
+      email: persona.email,
+      password: persona.password,
+      next: nextPath
+    }
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok()) {
+    const message = typeof payload.error === "string" ? payload.error : JSON.stringify(payload);
+    throw new Error(`Browser session login failed for ${persona.email}: ${response.status()} ${message}`);
+  }
+
+  const redirectPath = typeof payload.redirectPath === "string" ? payload.redirectPath : nextPath;
+  await page.goto(`${baseUrl}${redirectPath.startsWith("/") ? redirectPath : `/${redirectPath}`}`, {
+    waitUntil: "domcontentloaded"
+  });
+
+  const current = new URL(page.url());
+  if (
+    current.pathname === "/login"
+    && current.searchParams.get("admin_status") !== "forbidden"
+    && current.searchParams.get("access_status") !== "forbidden"
+    && current.searchParams.get("auth_status") !== "role_required"
+  ) {
+    const alert = await page.locator("[role='alert']").first().textContent().catch(() => null);
+    throw new Error(`Browser session still on login for ${persona.email}. alert=${alert ?? "none"}`);
+  }
+}
+
 async function loginBrowser(page, persona, nextPath) {
-  await page.goto(`${baseUrl}/login?next=${encodeURIComponent(nextPath)}`, { waitUntil: "domcontentloaded" });
-  await page.locator("input[type='email']").fill(persona.email);
-  await page.locator("input[type='password']").fill(persona.password);
-  await Promise.all([
-    page.waitForURL((target) => {
-      if (target.pathname !== "/login") return true;
-      return target.searchParams.get("admin_status") === "forbidden"
-        || target.searchParams.get("access_status") === "forbidden"
-        || target.searchParams.get("auth_status") === "role_required";
-    }, { timeout: 30000 }),
-    page.locator("button[type='submit']").click()
-  ]);
-  await page.waitForLoadState("domcontentloaded").catch(() => {});
+  await establishBrowserSession(page, persona, nextPath);
+}
+
+async function fillControlledInput(form, fieldName, value) {
+  const field = form.locator(`[name="${fieldName}"]`).first();
+  await field.waitFor({ state: "visible", timeout: 15000 });
+  await field.click();
+  await field.fill("");
+  await field.pressSequentially(value, { delay: 10 });
+}
+
+async function assertProductActionSucceeded(page, label) {
+  const current = new URL(page.url());
+  if (current.searchParams.get("product_status") === "error") {
+    throw new Error(`${label} failed: ${current.searchParams.get("product_message") ?? "unknown product action error"}`);
+  }
+}
+
+async function assertInventoryActionSucceeded(page, label) {
+  const current = new URL(page.url());
+  if (current.searchParams.get("inventory_status") === "error") {
+    throw new Error(`${label} failed: ${current.searchParams.get("inventory_message") ?? "unknown inventory action error"}`);
+  }
 }
 
 async function setFormField(form, name, value) {
@@ -444,20 +490,24 @@ async function validateProductTrace(admin) {
   try {
     await loginBrowser(page, admin, "/admin/products?tool=create#create-product");
     trace("product.login.done", { url: page.url(), slug });
-    await page.locator('[data-product-table="mithron_products"]').waitFor({ timeout: 15000 });
-    const productForm = page.locator('[data-product-table="mithron_products"]');
+    await page.locator('[data-product-create-panel]').first().waitFor({ timeout: 15000 });
+    const productForm = page.locator('[data-product-create-panel]').first();
     await productForm.locator('[name="name"]').fill(slug);
-    const category = await selectFirstRealOption(productForm.locator('[name="category"]'), "Product category");
-    await productForm.locator('[name="price"]').fill("1000");
+    const categoryField = productForm.locator('[name="category"]');
+    if (await categoryField.count()) {
+      await selectFirstRealOption(categoryField, "Product category");
+    }
+    await fillControlledInput(productForm, "list_price", "1000");
     await productForm.locator('[name="image_src"]').fill(imageSrc);
-    trace("product.form.ready", { slug, category, imageSrc });
+    trace("product.form.ready", { slug, imageSrc });
     await submitAndWaitForAction(page, () => productForm.getByRole("button", { name: "Add product" }).click(), "product draft create");
+    await assertProductActionSucceeded(page, "product draft create");
     trace("product.row.wait.start", { slug });
     await waitForRows("mithron_products", `select=*&slug=eq.${encodeURIComponent(slug)}`, (rows) => rows.length === 1, 45000);
     trace("product.row.wait.done", { slug });
 
     await page.goto(`${baseUrl}/admin/products?tool=seo#product-seo`, { waitUntil: "domcontentloaded" });
-    const seoForm = page.locator('[data-product-seo-table="mithron_products"]');
+    const seoForm = page.locator('[data-product-seo-table="mithron_products"]').first();
     await seoForm.waitFor({ timeout: 15000 });
     await seoForm.locator('[name="product_slug"]').fill(slug);
     await seoForm.locator('[name="seo_title"]').fill(`${marker} SEO`);
@@ -470,7 +520,7 @@ async function validateProductTrace(admin) {
     await waitForRows("mithron_products", `select=*&slug=eq.${encodeURIComponent(slug)}`, (rows) => String(rows[0]?.seo_title ?? "") === `${marker} SEO`, 45000);
 
     await page.goto(`${baseUrl}/admin/products?tool=publish#publish-product`, { waitUntil: "domcontentloaded" });
-    const publishForm = page.locator('[data-product-publish-table="mithron_products"]');
+    const publishForm = page.locator('[data-product-publish-table="mithron_products"]').first();
     await publishForm.waitFor({ timeout: 15000 });
     await publishForm.locator('[name="product_slug"]').fill(slug);
     await publishForm.locator('[name="workflow_status"]').selectOption("published");
@@ -485,9 +535,11 @@ async function validateProductTrace(admin) {
     await browser.close();
   }
 
-  cleanup.push(() => serviceDeleteIfPossible("content_revisions", `entity_table=eq.mithron_products&entity_id=eq.${encodeURIComponent(slug)}`));
-  cleanup.push(() => serviceDeleteIfPossible("audit_logs", `entity_table=eq.mithron_products&entity_id=eq.${encodeURIComponent(slug)}`));
   cleanup.push(() => serviceDeleteIfPossible("mithron_products", `slug=eq.${encodeURIComponent(slug)}`));
+  cleanup.push(() => serviceDeleteIfPossible("inventory", `product_slug=eq.${encodeURIComponent(slug)}`));
+  cleanup.push(() => serviceDeleteIfPossible("warehouse_stock", `product_slug=eq.${encodeURIComponent(slug)}`));
+  cleanup.push(() => serviceDeleteIfPossible("audit_logs", `entity_table=eq.mithron_products&entity_id=eq.${encodeURIComponent(slug)}`));
+  cleanup.push(() => serviceDeleteIfPossible("content_revisions", `entity_table=eq.mithron_products&entity_id=eq.${encodeURIComponent(slug)}`));
 
   const product = (await serviceQuery("mithron_products", `select=*&slug=eq.${encodeURIComponent(slug)}`))[0];
   const auditLogs = await queryAuditLogs("mithron_products", slug);
@@ -515,72 +567,168 @@ async function validateProductTrace(admin) {
   };
 }
 
+async function resolveInventoryProbeRow() {
+  const stockRows = await serviceQuery(
+    "warehouse_stock",
+    "select=product_slug,sku,warehouse_code,available_quantity&order=updated_at.desc&limit=50"
+  );
+  const stock = stockRows.find((row) => {
+    const slug = String(row?.product_slug ?? "");
+    return slug
+      && !slug.startsWith("audit-trace-")
+      && row?.sku
+      && row?.warehouse_code;
+  });
+  if (!stock) {
+    throw new Error("No warehouse_stock row available for inventory traceability probe.");
+  }
+  return stock;
+}
+
+async function seedInventoryTraceProbe(actorId) {
+  const productSlugForProbe = `${marker}-inventory-product`;
+  const sku = `${marker.toUpperCase()}-INV`;
+  const now = new Date().toISOString();
+  const quantity = 20;
+
+  cleanup.push(() => serviceDeleteIfPossible("mithron_products", `slug=eq.${encodeURIComponent(productSlugForProbe)}`));
+  cleanup.push(() => serviceDeleteIfPossible("inventory", `product_slug=eq.${encodeURIComponent(productSlugForProbe)}&sku=eq.${encodeURIComponent(sku)}`));
+  cleanup.push(() => serviceDeleteIfPossible("warehouse_stock", `warehouse_code=eq.${encodeURIComponent(traceWarehouseCode)}&product_slug=eq.${encodeURIComponent(productSlugForProbe)}&sku=eq.${encodeURIComponent(sku)}`));
+  cleanup.push(() => serviceDeleteIfPossible("inventory_movements", `sku=eq.${encodeURIComponent(sku)}`));
+  cleanup.push(() => serviceDeleteIfPossible("activity_logs", `entity_id=eq.${encodeURIComponent(`${productSlugForProbe}:${sku}`)}`));
+  cleanup.push(() => serviceDeleteIfPossible("activity_logs", `entity_id=eq.${encodeURIComponent(`${traceWarehouseCode}:${productSlugForProbe}:${sku}`)}`));
+  cleanup.push(() => serviceDeleteIfPossible("audit_logs", `entity_id=eq.${encodeURIComponent(`${productSlugForProbe}:${sku}`)}`));
+  cleanup.push(() => serviceDeleteIfPossible("content_revisions", `entity_id=eq.${encodeURIComponent(`${productSlugForProbe}:${sku}`)}`));
+
+  await serviceUpsert("mithron_products", "slug", {
+    slug: productSlugForProbe,
+    name: `Audit Trace Inventory Probe ${marker}`,
+    tagline: "Temporary traceability validator inventory row",
+    category: "Validation",
+    price: 1,
+    product_url: `/product/${productSlugForProbe}`,
+    image: { src: "/media/mithron/catalog/mithron-drone-category.png", alt: "Audit trace inventory probe" },
+    hero: { src: "/media/mithron/catalog/mithron-drone-category.png", alt: "Audit trace inventory probe" },
+    gallery: [{ src: "/media/mithron/catalog/mithron-drone-category.png", alt: "Audit trace inventory probe" }],
+    workflow_status: "published",
+    is_visible: true,
+    source_availability: "uploaded_csv",
+    sort_order: -9999,
+    updated_at: now
+  });
+  await serviceUpsert("inventory", "product_slug,sku", {
+    product_slug: productSlugForProbe,
+    sku,
+    variant_id: traceVariantId,
+    quantity,
+    reserved_quantity: 0,
+    reorder_threshold: 5,
+    stock_status: "available",
+    updated_by: actorId,
+    updated_at: now
+  });
+  await serviceUpsert("warehouse_stock", "warehouse_code,product_slug,sku", {
+    warehouse_code: traceWarehouseCode,
+    product_slug: productSlugForProbe,
+    sku,
+    variant_id: traceVariantId,
+    available_quantity: quantity,
+    committed_quantity: 0,
+    last_counted_at: now,
+    updated_at: now
+  });
+
+  return {
+    productSlug: productSlugForProbe,
+    sku,
+    warehouseCode: traceWarehouseCode,
+    quantity
+  };
+}
+
+async function findInventoryRowForSku(page, sku, maxPages = 12) {
+  for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
+    const inventoryUrl = pageNumber === 1
+      ? `${baseUrl}/warehouse/inventory`
+      : `${baseUrl}/warehouse/inventory?page=${pageNumber}`;
+    await page.goto(inventoryUrl, { waitUntil: "domcontentloaded" });
+    await page.locator("[data-inventory-system]").waitFor({ timeout: 15000 });
+    await page.locator("[data-inventory-table]").waitFor({ timeout: 15000 });
+
+    const targetRow = page.locator("[data-inventory-row]", { hasText: String(sku) }).first();
+    if (await targetRow.count()) {
+      try {
+        await targetRow.waitFor({ state: "attached", timeout: 5000 });
+        return targetRow;
+      } catch {
+        // Continue paging when the SKU exists in markup but is not yet attached on this page.
+      }
+    }
+
+    const nextPageLink = page.locator(`a[href="/warehouse/inventory?page=${pageNumber + 1}"]`);
+    if (!(await nextPageLink.count())) break;
+  }
+
+  throw new Error(`Inventory row for SKU ${sku} not found within ${maxPages} pages.`);
+}
+
 async function validateInventoryTrace(warehouse) {
+  const probe = await seedInventoryTraceProbe(warehouse.userId);
   const { chromium } = await import("playwright");
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
-  let editedProductSlug = "";
-  let editedSku = "";
-  let editedWarehouseCode = "";
-  let originalQuantity = 0;
-  let nextQuantity = 0;
-  let inventoryQuery = "";
-  let stockQuery = "";
-  let originalInventory = null;
-  let originalStock = null;
+  const editedProductSlug = probe.productSlug;
+  const editedSku = probe.sku;
+  const editedWarehouseCode = probe.warehouseCode;
+  const originalQuantity = probe.quantity;
+  const nextQuantity = originalQuantity + 1;
+  const inventoryQuery = `product_slug=eq.${encodeURIComponent(editedProductSlug)}&sku=eq.${encodeURIComponent(editedSku)}`;
+  const stockQuery = `warehouse_code=eq.${encodeURIComponent(editedWarehouseCode)}&product_slug=eq.${encodeURIComponent(editedProductSlug)}&sku=eq.${encodeURIComponent(editedSku)}`;
+  const originalInventory = (await serviceQuery("inventory", `select=quantity,reserved_quantity,reorder_threshold,stock_status&${inventoryQuery}`))[0] ?? null;
+  const originalStock = (await serviceQuery("warehouse_stock", `select=available_quantity,committed_quantity&${stockQuery}`))[0] ?? null;
+
+  cleanup.push(() => serviceDeleteIfPossible("inventory_movements", `sku=eq.${encodeURIComponent(editedSku)}`));
+  cleanup.push(() => originalStock
+    ? servicePatch("warehouse_stock", stockQuery, {
+      available_quantity: originalStock.available_quantity,
+      committed_quantity: originalStock.committed_quantity
+    })
+    : serviceDeleteIfPossible("warehouse_stock", stockQuery));
+  cleanup.push(() => originalInventory
+    ? servicePatch("inventory", inventoryQuery, {
+      quantity: originalInventory.quantity,
+      reserved_quantity: originalInventory.reserved_quantity,
+      reorder_threshold: originalInventory.reorder_threshold,
+      stock_status: originalInventory.stock_status
+    })
+    : serviceDeleteIfPossible("inventory", inventoryQuery));
+
   try {
+    await waitForRows(
+      "inventory",
+      `select=*&product_slug=eq.${encodeURIComponent(editedProductSlug)}&sku=eq.${encodeURIComponent(editedSku)}`,
+      (rows) => rows.length === 1,
+      15000
+    );
     await loginBrowser(page, warehouse, "/warehouse/inventory");
-    await page.locator("[data-inventory-system]").waitFor({ timeout: 15000 });
-    await page.locator("[data-inventory-inline-stock] form").first().waitFor({ timeout: 15000 });
-    const actionMenuButton = page.locator("[data-inventory-action-menu] > button").first();
-    if (await actionMenuButton.count()) {
-      await actionMenuButton.scrollIntoViewIfNeeded();
-      await actionMenuButton.click();
-    }
-    const quickEditButton = page.locator("[data-inventory-quick-edit]:visible").first();
-    await quickEditButton.waitFor({ timeout: 15000 });
-    await quickEditButton.click();
+    const targetRow = await findInventoryRowForSku(page, probe.sku);
 
-    const stockForm = page.locator("[data-inventory-quick-edit-form]");
+    const stockForm = targetRow.locator("[data-inventory-inline-stock] form").first();
     await stockForm.waitFor({ timeout: 15000 });
-    editedProductSlug = await stockForm.locator('[name="product_slug"]').inputValue();
-    editedSku = await stockForm.locator('[name="sku"]').inputValue();
-    editedWarehouseCode = await stockForm.locator('[name="warehouse_code"]').inputValue();
-    originalQuantity = Number(await stockForm.locator('[name="quantity"]').inputValue());
-    if (!editedProductSlug || !editedSku || !editedWarehouseCode || !Number.isFinite(originalQuantity)) {
-      throw new Error("Warehouse inventory quick edit did not expose product, SKU, warehouse, and quantity.");
-    }
-
-    nextQuantity = originalQuantity + 1;
-    inventoryQuery = `product_slug=eq.${encodeURIComponent(editedProductSlug)}&sku=eq.${encodeURIComponent(editedSku)}`;
-    stockQuery = `warehouse_code=eq.${encodeURIComponent(editedWarehouseCode)}&product_slug=eq.${encodeURIComponent(editedProductSlug)}&sku=eq.${encodeURIComponent(editedSku)}`;
-    originalInventory = (await serviceQuery("inventory", `select=quantity,reserved_quantity,reorder_threshold,stock_status&${inventoryQuery}`))[0] ?? null;
-    originalStock = (await serviceQuery("warehouse_stock", `select=available_quantity,committed_quantity&${stockQuery}`))[0] ?? null;
-
-    cleanup.push(() => serviceDeleteIfPossible("inventory_movements", `sku=eq.${encodeURIComponent(editedSku)}&notes=eq.${encodeURIComponent(marker)}`));
-    cleanup.push(() => serviceDeleteIfPossible("content_revisions", `entity_table=eq.inventory&entity_id=eq.${encodeURIComponent(`${editedProductSlug}:${editedSku}`)}&change_summary=eq.${encodeURIComponent(marker)}`));
-    cleanup.push(() => originalStock
-      ? servicePatch("warehouse_stock", stockQuery, {
-        available_quantity: originalStock.available_quantity,
-        committed_quantity: originalStock.committed_quantity
-      })
-      : serviceDeleteIfPossible("warehouse_stock", stockQuery));
-    cleanup.push(() => originalInventory
-      ? servicePatch("inventory", inventoryQuery, {
-        quantity: originalInventory.quantity,
-        reserved_quantity: originalInventory.reserved_quantity,
-        reorder_threshold: originalInventory.reorder_threshold,
-        stock_status: originalInventory.stock_status
-      })
-      : serviceDeleteIfPossible("inventory", inventoryQuery));
-
     await stockForm.locator('[name="quantity"]').fill(String(nextQuantity));
-    const noteField = stockForm.locator('[name="note"]');
-    if (await noteField.count()) await noteField.fill(marker);
-    await stockForm.locator('button[type="submit"]').click();
-    await page.waitForLoadState("domcontentloaded").catch(() => {});
-    await waitForRows("warehouse_stock", `select=*&${stockQuery}`, (rows) => Number(rows[0]?.available_quantity ?? -1) === nextQuantity);
+    await submitAndWaitForAction(
+      page,
+      () => stockForm.locator("button").filter({ hasText: "Save" }).click(),
+      "inventory inline stock update"
+    );
+    await assertInventoryActionSucceeded(page, "inventory inline stock update");
+    await waitForRows(
+      "warehouse_stock",
+      `select=*&${stockQuery}`,
+      (rows) => Number(rows[0]?.available_quantity ?? -1) === nextQuantity,
+      45000
+    );
   } finally {
     await context.close();
     await browser.close();
@@ -588,7 +736,12 @@ async function validateInventoryTrace(warehouse) {
 
   const inventory = (await serviceQuery("inventory", `select=*&${inventoryQuery}`))[0];
   const stock = (await serviceQuery("warehouse_stock", `select=*&${stockQuery}`))[0];
-  const movements = await serviceQuery("inventory_movements", `select=*&sku=eq.${encodeURIComponent(editedSku)}&notes=eq.${encodeURIComponent(marker)}&order=created_at.asc`);
+  const movements = (await serviceQuery(
+    "inventory_movements",
+    `select=*&sku=eq.${encodeURIComponent(editedSku)}&order=created_at.desc&limit=12`
+  ))
+    .filter((row) => Number(row.quantity_before) === originalQuantity && Number(row.quantity_after) === nextQuantity)
+    .reverse();
   const movementIds = movements.map((row) => String(row.id ?? "")).filter(Boolean);
   const movementActivityRows = [];
   for (const movementId of movementIds) {
@@ -632,8 +785,8 @@ async function validateOrderTrace(admin) {
   let orderId = "";
   try {
     await loginBrowser(page, admin, "/operations/orders");
-    await page.locator('[data-order-management-table="orders"]').waitFor({ timeout: 15000 });
-    const createForm = page.locator('[data-order-management-table="orders"]');
+    await page.locator('[data-order-management-table="orders"]').first().waitFor({ timeout: 15000 });
+    const createForm = page.locator('[data-order-management-table="orders"]').first();
     await createForm.locator('[name="customer_email"]').fill(email);
     await createForm.locator('[name="region"]').fill("AUDIT");
     await createForm.locator('[name="mission_profile"]').fill("traceability");
@@ -653,7 +806,7 @@ async function validateOrderTrace(admin) {
 
     for (const status of ["processing", "packed", "shipped", "delivered"]) {
       await page.goto(`${baseUrl}/operations/orders`, { waitUntil: "domcontentloaded" });
-      const lifecycleForm = page.locator('[data-order-lifecycle-form]');
+      const lifecycleForm = page.locator('[data-order-lifecycle-form]').first();
       await lifecycleForm.locator('[name="order_id"]').fill(orderId);
       await setFormField(lifecycleForm, "status", "active");
       await setFormField(lifecycleForm, "payment_status", "not_required");
@@ -764,7 +917,7 @@ async function validateGovernanceTrace(admin) {
   try {
     await loginBrowser(page, admin, "/admin/users");
     await openHeaderForm("Add user");
-    const createForm = page.locator('[data-user-create-form]');
+    const createForm = page.locator('[data-user-create-form]').first();
     await createForm.locator('[name="email"]').fill(targetEmail);
     await createForm.locator('[name="display_name"]').fill("Audit Trace Target");
     await createForm.locator('[name="temporary_password"]').fill(targetPassword);
@@ -779,7 +932,7 @@ async function validateGovernanceTrace(admin) {
     await waitForRows("user_roles", `select=*&user_id=eq.${encodeURIComponent(targetUserId)}&role_key=eq.warehouse`, (rows) => rows.length === 1);
 
     await openHeaderForm("Invite");
-    const inviteForm = page.locator('[data-user-invite-form]');
+    const inviteForm = page.locator('[data-user-invite-form]').first();
     await inviteForm.locator('[name="email"]').fill(inviteEmail);
     await inviteForm.locator('[name="display_name"]').fill("Audit Trace Invite");
     await inviteForm.locator('[name="role_key"]').selectOption("user");

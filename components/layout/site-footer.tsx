@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { isCmsStrictMode } from "@/lib/cms/strict-mode";
 import { footerContent, type FooterContent } from "@/config/storefront-content";
+import { footerOfficialLinks } from "@/config/footer-links";
 
 const emptyFooterContent: FooterContent = {
   leadTitle: "",
   leadBody: "",
-  emailPlaceholder: "",
-  ctaLabel: "",
   columns: [],
   legalText: ""
 };
@@ -17,50 +15,72 @@ function withFooterLeadDefaults(content: FooterContent): FooterContent {
   return {
     leadTitle: content.leadTitle || footerContent.leadTitle,
     leadBody: content.leadBody || footerContent.leadBody,
-    emailPlaceholder: content.emailPlaceholder || footerContent.emailPlaceholder,
-    ctaLabel: content.ctaLabel || footerContent.ctaLabel,
+    contactEmail: content.contactEmail || footerContent.contactEmail,
+    contactPhone: content.contactPhone || footerContent.contactPhone,
     legalText: content.legalText || footerContent.legalText,
-    columns: content.columns
+    columns: content.columns.length ? content.columns : footerContent.columns
   };
+}
+
+function isExternalHref(href: string) {
+  return href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:") || href.startsWith("tel:");
+}
+
+function FooterLink({ label, href }: { label: string; href: string }) {
+  const className = "site-footer__link transition-colors hover:text-white focus-visible:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70";
+
+  if (isExternalHref(href)) {
+    return (
+      <a href={href} className={className} target="_blank" rel="noopener noreferrer">
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {label}
+    </Link>
+  );
 }
 
 export function SiteFooter({ content = emptyFooterContent }: { content?: FooterContent }) {
   const resolved = withFooterLeadDefaults(content);
+  const contactEmail = resolved.contactEmail ?? footerOfficialLinks.contactEmail;
+  const contactPhone = resolved.contactPhone ?? footerOfficialLinks.contactPhone;
+  const phoneHref = contactPhone.replace(/[^\d+]/g, "");
 
   return (
-    <footer className="site-footer ambient-section ambient-dark bg-[#0c0d10] text-white">
-      <div className="site-footer__inner mx-auto grid max-w-[1440px] gap-10 px-6 py-12 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:px-16">
-        <div className="site-footer__lead">
-          <h2 className="type-section text-4xl">{resolved.leadTitle}</h2>
-          <p className="type-body mt-3 max-w-md text-white/60">{resolved.leadBody}</p>
-          <form action="/contact" method="get" className="site-footer__form ambient-surface mt-7 flex max-w-md gap-3 rounded-full border border-white/10 bg-white/8 p-1.5">
-            <label className="sr-only" htmlFor="footer-email">Email address</label>
-            <input
-              id="footer-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              aria-label="Email address"
-              className="type-body h-12 min-w-0 flex-1 rounded-full border border-white/15 bg-white/8 px-5 text-sm outline-none placeholder:text-white/35 focus:border-white/40"
-              placeholder={resolved.emailPlaceholder}
-            />
-            <Button variant="accent" type="submit">{resolved.ctaLabel}</Button>
-          </form>
+    <footer className="site-footer ambient-section ambient-dark bg-[var(--ds-footer-bg)] pb-[max(1.25rem,env(safe-area-inset-bottom))] text-white" data-testid="site-footer">
+      <div className="site-footer__inner mx-auto grid max-w-[1440px] gap-6 px-6 py-12 md:grid-cols-2 md:gap-10 md:px-16 xl:grid-cols-[minmax(0,1.15fr)_repeat(4,minmax(0,1fr))]">
+        <div className="site-footer__lead xl:col-span-1">
+          <p className="type-meta text-white/45">Mithron India Smart Services</p>
+          <h2 className="type-section mt-3 text-3xl text-balance md:text-4xl">{resolved.leadTitle}</h2>
+          <p className="type-body mt-4 max-w-xl text-white/68">{resolved.leadBody}</p>
+          <div className="site-footer__contact mt-6 flex flex-col gap-2 text-sm text-white/72">
+            <a href={`mailto:${contactEmail}`} className="site-footer__link w-fit transition-colors hover:text-white">
+              {contactEmail}
+            </a>
+            <a href={`tel:${phoneHref}`} className="site-footer__link w-fit transition-colors hover:text-white">
+              {contactPhone}
+            </a>
+            <Link href="/contact" className="site-footer__link w-fit pt-1 text-white/88 transition-colors hover:text-white">
+              Contact Mithron
+            </Link>
+          </div>
         </div>
         {resolved.columns.map((column) => (
-          <div key={column.title} className="site-footer__column">
+          <div key={column.title} className="site-footer__column min-w-0">
             <h3 className="type-meta mb-4 text-white/45">{column.title}</h3>
-            <div className="type-body flex flex-col gap-3 text-sm text-white/72">
+            <div className="type-body flex flex-col gap-2 text-sm text-white/72">
               {column.links.map(([label, href]) => (
-                <Link key={label} href={href} className="hover:text-white">
-                  {label}
-                </Link>
+                <FooterLink key={`${column.title}-${label}`} label={label} href={href} />
               ))}
             </div>
           </div>
         ))}
       </div>
-      <div className="type-technical border-t border-white/10 px-6 py-5 text-center text-xs text-white/45">
+      <div className="type-technical mx-auto max-w-prose border-t border-white/10 px-6 py-5 text-center text-xs text-white/45">
         {resolved.legalText}
       </div>
     </footer>

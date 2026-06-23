@@ -1,22 +1,21 @@
 .root {
-  --home-ink: #0f172a;
-  --home-muted: #64748b;
-  --home-page: var(--surface-page);
-  --home-card: #ffffff;
-  --home-well: #f7f8fa;
-  --home-border: rgba(15, 23, 42, 0.08);
-  --home-border-strong: rgba(15, 23, 42, 0.16);
+  --home-ink: var(--ds-ink);
+  --home-muted: var(--ds-ink-2);
+  --home-page: var(--ds-bg);
+  --home-card: var(--ds-card);
+  --home-well: var(--ds-bg-2);
+  --home-border: var(--ds-border);
+  --home-border-strong: var(--ds-border-strong);
   --home-accent: var(--brand-accent);
   position: relative;
-  overflow-x: clip;
-  background:
-    linear-gradient(180deg, #ffffff 0%, var(--home-page) 16%, #ffffff 38%, var(--home-page) 72%, #ffffff 100%);
+  overflow-x: hidden;
+  background: var(--ds-bg);
   color: var(--home-ink);
   font-family: var(--type-ui);
 }
 
 .container {
-  width: min(100%, 1560px);
+  width: min(100%, var(--ds-container));
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 64px);
 }
@@ -25,7 +24,6 @@
   overflow: hidden;
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   background: #ffffff;
-  min-height: 142px;
   padding: 14px 0 18px;
 }
 
@@ -200,7 +198,8 @@
   position: relative;
   display: block;
   width: 100%;
-  min-height: clamp(260px, 19vw, 360px);
+  aspect-ratio: 16 / 10;
+  min-height: 0;
   margin: 0;
   overflow: hidden;
   border-radius: 8px;
@@ -255,14 +254,14 @@
 
 .chapter {
   position: relative;
-  padding: clamp(44px, 6vw, 82px) 0;
+  padding: var(--ds-s8) 0;
   scroll-margin-top: 96px;
 }
 
 .productShelfSection {
   background: var(--home-page);
   border-top: 0;
-  padding: clamp(20px, 2.8vw, 32px) 0;
+  padding: var(--ds-s5) 0;
 }
 
 .productShelfSection .container {
@@ -521,7 +520,6 @@
   border: 1px solid rgba(15, 23, 42, 0.055);
   border-radius: 14px;
   gap: 8px;
-  overflow: hidden;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.94),
     0 12px 32px -24px rgba(15, 23, 42, 0.1);
@@ -551,14 +549,13 @@
 .productCard {
   position: relative;
   min-width: 0;
-  min-height: 470px;
   display: grid;
   grid-template-rows: 58% 42%;
   overflow: hidden;
   scroll-snap-align: start;
-  border: 1px solid rgba(15, 23, 42, 0.07);
-  border-radius: 12px;
-  background: #ffffff;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  background: var(--ds-card);
   color: var(--home-ink);
   text-decoration: none;
   isolation: isolate;
@@ -814,11 +811,10 @@
   position: relative;
   display: grid;
   grid-template-rows: auto minmax(210px, 1fr);
-  min-height: 470px;
   overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 12px;
-  background: #ffffff;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-xl);
+  background: var(--ds-card);
   color: var(--home-ink);
   padding: 0;
   text-decoration: none;
@@ -1582,16 +1578,31 @@
     width: min(360px, 48%);
   }
 
+  .productShelfSection .shelfBoard {
+    margin-inline: calc(-1 * clamp(16px, 4vw, 64px));
+    width: calc(100% + (2 * clamp(16px, 4vw, 64px)));
+    max-width: 100vw;
+  }
+
+  .productShelfSection[data-shelf-tone="world"] .productShelfGrid,
+  .productShelfSection[data-shelf-tone="care"] .productShelfGrid,
+  .productShelfSection[data-shelf-tone="global"] .productShelfGrid {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
   .productShelfGrid {
     grid-auto-columns: minmax(214px, 39vw);
     grid-auto-flow: column;
     grid-template-columns: none;
     overflow-x: auto;
     overscroll-behavior-x: contain;
+    padding-inline: clamp(16px, 4vw, 64px);
     padding-bottom: 12px;
-    scroll-padding-inline: 2px;
+    scroll-padding-inline: clamp(16px, 4vw, 64px);
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
 
   .productShelfGrid::-webkit-scrollbar {
@@ -1604,9 +1615,8 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .miniCarousel {
-    min-height: 148px;
     padding: 12px 0 16px;
   }
 
@@ -1676,7 +1686,6 @@
 
 @media (max-width: 640px) {
   .miniCarousel {
-    min-height: 148px;
     padding: 12px 0 16px;
   }
 
@@ -1694,7 +1703,8 @@
   }
 
   .promoImageCard {
-    min-height: 260px;
+    aspect-ratio: 4 / 3;
+    min-height: 0;
   }
 
   .promoImage {
@@ -1702,11 +1712,11 @@
   }
 
   .chapter {
-    padding: 42px 0;
+    padding: var(--ds-s6) 0;
   }
 
   .productShelfSection {
-    padding: 18px 0;
+    padding: var(--ds-s5) 0;
   }
 
   .productShelfSection+.missionWorldSection {

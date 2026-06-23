@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseEnquiryRequestBody } from "@/lib/api/enquiries-schema";
+import { requireClientAuditToken } from "@/lib/api/require-client-audit-token";
 import { checkDistributedRateLimit } from "@/lib/rate-limit-redis";
 import { createClient } from "@/lib/server";
 import { submitEnquiry } from "@/services/enquiries";
@@ -23,6 +24,13 @@ export async function POST(request: Request) {
   const limit = await checkDistributedRateLimit(`enquiries:${rateKey}`, 10, 60_000);
   if (!limit.allowed) {
     return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
+
+  if (!userId) {
+    const audit = requireClientAuditToken(request);
+    if (!audit.ok) {
+      return NextResponse.json({ error: audit.error }, { status: 401 });
+    }
   }
 
   const enquiry = await submitEnquiry(

@@ -82,7 +82,8 @@ describe("admin Supabase-only workflow recovery", () => {
     expect(mediaManager).toContain("video/mp4");
     expect(mediaManager).toContain("video/webm");
     expect(mediaManager).toContain("video/quicktime");
-    expect(uploadPanel).toContain("video/mp4,video/webm,video/quicktime");
+    expect(uploadPanel).toContain("ALLOWED_MEDIA_MIME_TYPES");
+    expect(uploadPanel).toContain("acceptedMimeList");
     expect(uploadPanel).toContain("VideoIcon");
     expect(uploadPanel).toContain("file.type.startsWith(\"video/\")");
   });

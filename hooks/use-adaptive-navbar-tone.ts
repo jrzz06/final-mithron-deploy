@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { getNavbarSampleY, isNavbarWithinSection, inkFromHexColor, toneFromHeroMediaSampling, type NavbarInkTone } from "@/lib/navbar-ink-sampling";
 
-export type NavbarInkTone = "light" | "dark";
+export type { NavbarInkTone } from "@/lib/navbar-ink-sampling";
 
 const navbarToneStyles = {
   light: {
@@ -36,6 +37,8 @@ const navbarToneStyles = {
 } satisfies Record<NavbarInkTone, CSSProperties & Record<`--${string}`, string>>;
 
 const NAVBAR_ROOT_SELECTOR = ".TOP_NAVBAR, .adaptive-mobile-menu, .adaptive-mobile-menu__backdrop";
+const NAVBAR_SURFACE_SELECTOR =
+  ".catalog-hero-section--showcase, #hero, [data-testid='home-hero'], .productShelfHero, [data-navbar-ink-surface]";
 const MIN_CHECK_INTERVAL_MS = 100;
 
 function isInteractionPaused() {
@@ -50,38 +53,38 @@ function isMobileViewport() {
   return window.matchMedia("(max-width: 767px)").matches;
 }
 
+function toneFromSurfaceElement(surface: Element): NavbarInkTone | null {
+  const navbarInk = surface.getAttribute("data-navbar-ink");
+  if (navbarInk === "light" || navbarInk === "dark") return navbarInk;
+
+  const backgroundTone = surface.getAttribute("data-navbar-tone");
+  if (backgroundTone === "dark") return "light";
+  if (backgroundTone === "light") return "dark";
+
+  return null;
+}
+
 function toneFromExplicitAttributes(element: Element): NavbarInkTone | null {
+  const surface = element.closest(NAVBAR_SURFACE_SELECTOR);
+  if (surface) {
+    const surfaceTone = toneFromSurfaceElement(surface);
+    if (surfaceTone) return surfaceTone;
+  }
+
   let current: Element | null = element;
 
   while (current && current !== document.documentElement) {
-    const navbarInk = current.getAttribute("data-navbar-ink");
-    if (navbarInk === "light" || navbarInk === "dark") return navbarInk;
+    const tone = toneFromSurfaceElement(current);
+    if (tone) return tone;
 
     const activeHeroTheme = current.getAttribute("data-active-hero-theme");
     if (activeHeroTheme === "dark") return "light";
     if (activeHeroTheme === "light") return "dark";
 
-    const backgroundTone = current.getAttribute("data-navbar-tone");
-    if (backgroundTone === "dark") return "light";
-    if (backgroundTone === "light") return "dark";
-
     current = current.parentElement;
   }
 
   return null;
-}
-
-function getNavbarSampleY() {
-  const navRoot = document.querySelector(".TOP_NAVBAR");
-  const bar = navRoot?.querySelector(".adaptive-navbar__bar");
-  const barRect = bar?.getBoundingClientRect();
-
-  if (barRect && barRect.height > 0) {
-    return Math.min(Math.max(barRect.top + barRect.height * 0.52, 16), window.innerHeight - 1);
-  }
-
-  const navRect = navRoot?.getBoundingClientRect();
-  return Math.min(Math.max((navRect?.bottom ?? 76) - 24, 16), window.innerHeight - 1);
 }
 
 function toneFromSurfaceAtNav(): NavbarInkTone | null {
@@ -93,7 +96,7 @@ function toneFromSurfaceAtNav(): NavbarInkTone | null {
     if (isNavbarElement(element)) continue;
 
     if (isMobileViewport() && element.closest('[data-testid="home-hero"]')) {
-      return "light";
+      return toneFromHeroMediaSampling(sampleY) ?? toneFromExplicitAttributes(element) ?? "dark";
     }
 
     const tone = toneFromExplicitAttributes(element);
@@ -104,16 +107,36 @@ function toneFromSurfaceAtNav(): NavbarInkTone | null {
 }
 
 function measureNavbarTone(currentTone: NavbarInkTone): NavbarInkTone {
+  const sampleY = getNavbarSampleY();
+
+  const catalogSection = document.querySelector(".catalog-hero-section--showcase");
+  if (catalogSection && isNavbarWithinSection(catalogSection, sampleY)) {
+    const catalogInk = toneFromSurfaceElement(catalogSection);
+    if (catalogInk) return catalogInk;
+  }
+
+  const homeHero = document.querySelector("#hero");
+  if (homeHero && isNavbarWithinSection(homeHero, sampleY)) {
+    const heroInk = toneFromSurfaceElement(homeHero);
+    if (heroInk) return heroInk;
+  }
+
+  const sampledTone = toneFromHeroMediaSampling(sampleY);
+  if (sampledTone) return sampledTone;
+
   const surfaceTone = toneFromSurfaceAtNav();
   if (surfaceTone) return surfaceTone;
 
-  const hero = document.querySelector("#hero");
-  if (hero) {
-    const sampleY = getNavbarSampleY();
+  const heroSurfaces = [
+    document.querySelector("#hero"),
+    document.querySelector(".catalog-hero-section--showcase")
+  ];
+
+  for (const hero of heroSurfaces) {
+    if (!hero) continue;
     const heroRect = hero.getBoundingClientRect();
     if (heroRect.top <= sampleY && heroRect.bottom >= sampleY) {
-      if (isMobileViewport()) return "light";
-      return toneFromExplicitAttributes(hero) ?? currentTone;
+      return toneFromSurfaceElement(hero) ?? toneFromExplicitAttributes(hero) ?? currentTone;
     }
   }
 
@@ -159,7 +182,7 @@ export function useAdaptiveNavbarTone(initialTone: NavbarInkTone = "dark") {
     let mountAttempts = 0;
     const retryUntilHeroReady = () => {
       scheduleToneCheck(true);
-      if (!document.querySelector("#hero") && mountAttempts < 24) {
+      if (!document.querySelector("#hero") && !document.querySelector(".catalog-hero-section--showcase") && mountAttempts < 24) {
         mountAttempts += 1;
         window.requestAnimationFrame(retryUntilHeroReady);
       }
@@ -172,15 +195,25 @@ export function useAdaptiveNavbarTone(initialTone: NavbarInkTone = "dark") {
     };
 
     const onScroll = () => scheduleToneCheck();
+    const onMediaReady = (event: Event) => {
+      const target = event.target;
+      if (target instanceof HTMLImageElement || target instanceof HTMLVideoElement) {
+        scheduleToneCheck(true);
+      }
+    };
 
     window.addEventListener("resize", onResize);
     window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("load", onMediaReady, true);
 
-    const hero = document.querySelector("#hero");
-    const heroObserver = hero
-      ? new IntersectionObserver(() => scheduleToneCheck(true), { threshold: [0, 0.25, 0.5, 0.75, 1] })
-      : null;
-    if (hero && heroObserver) heroObserver.observe(hero);
+    const heroSurfaces = [
+      document.querySelector("#hero"),
+      document.querySelector(".catalog-hero-section--showcase")
+    ];
+    const heroObserver = new IntersectionObserver(() => scheduleToneCheck(true), { threshold: [0, 0.25, 0.5, 0.75, 1] });
+    for (const hero of heroSurfaces) {
+      if (hero) heroObserver.observe(hero);
+    }
 
     const mutationObserver = new MutationObserver(() => scheduleToneCheck());
     mutationObserver.observe(document.documentElement, {
@@ -192,9 +225,10 @@ export function useAdaptiveNavbarTone(initialTone: NavbarInkTone = "dark") {
     return () => {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("load", onMediaReady, true);
       if (resizeTimerRef.current) window.clearTimeout(resizeTimerRef.current);
       if (rafIdRef.current !== null) window.cancelAnimationFrame(rafIdRef.current);
-      heroObserver?.disconnect();
+      heroObserver.disconnect();
       mutationObserver.disconnect();
     };
   }, []);

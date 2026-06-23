@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { ReactNode } from "react";
 import type { HeroSlide } from "@/config/types";
@@ -16,6 +16,8 @@ const HERO_EXTERNAL_CTA = {
   href: "https://www.mithronsmart.com",
   label: "Visit Mithron Smart"
 } as const;
+
+const HERO_ADVANCE_MS = 5000;
 
 const heroSlideCopyById: Record<string, { title: string; subtitle: string }> = {
   "ag10-arrival": {
@@ -156,8 +158,6 @@ function getHeroContentInk(slide: HeroSlide, slideIndex: number): HeroInkTone {
 }
 
 function getHeroNavbarInk(slide: HeroSlide, slideIndex: number): HeroInkTone {
-  if (slide.theme === "dark") return "light";
-  if (slide.theme === "light") return "dark";
   return resolveHeroTextInk(slide, slideIndex);
 }
 
@@ -192,7 +192,9 @@ export function HeroCarousel({
 }) {
   const safeSlides = resolveHeroCarouselSlides(slides);
   const [index, setIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const reducedMotion = useReducedMotionPreference();
+  const advanceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeIndex = Math.min(index, Math.max(safeSlides.length - 1, 0));
   const slide = safeSlides[activeIndex];
   const contentInk = slide ? getHeroContentInk(slide, activeIndex) : "light";
@@ -205,10 +207,26 @@ export function HeroCarousel({
     return "inactive";
   };
 
-  const goToSlide = (nextIndex: number) => {
+  const goToSlide = useCallback((nextIndex: number) => {
     if (!safeSlides.length) return;
     setIndex((nextIndex + safeSlides.length) % safeSlides.length);
-  };
+  }, [safeSlides.length]);
+
+  useEffect(() => {
+    if (reducedMotion || safeSlides.length < 2 || isHovered) return;
+
+    advanceTimerRef.current = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      setIndex((current) => (current + 1) % safeSlides.length);
+    }, HERO_ADVANCE_MS);
+
+    return () => {
+      if (advanceTimerRef.current) {
+        clearInterval(advanceTimerRef.current);
+        advanceTimerRef.current = null;
+      }
+    };
+  }, [activeIndex, isHovered, reducedMotion, safeSlides.length]);
 
   if (!slide) {
     return (
@@ -245,6 +263,14 @@ export function HeroCarousel({
       data-active-hero-theme={slide.theme}
       data-hero-content-ink={contentInk}
       data-navbar-ink={navbarInk}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onFocusCapture={() => setIsHovered(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setIsHovered(false);
+        }
+      }}
       className={cn(
         "hero-premium-field relative isolate h-[80svh] min-h-[580px] w-full overflow-hidden",
         tone.section

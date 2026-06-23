@@ -32,6 +32,7 @@ export const ProductHoverCard = memo(function ProductHoverCard({
   showCategory = false,
   cta = "pill",
   presentation = "standard",
+  priority = false,
   className
 }: {
   product: Product;
@@ -39,6 +40,7 @@ export const ProductHoverCard = memo(function ProductHoverCard({
   showCategory?: boolean;
   cta?: ProductHoverCardCta;
   presentation?: ProductHoverCardPresentation;
+  priority?: boolean;
   className?: string;
 }) {
   const isShowroomCatalog = variant === "catalog" && presentation === "showroom";
@@ -63,6 +65,7 @@ export const ProductHoverCard = memo(function ProductHoverCard({
                 src={product.image.src}
                 alt={product.image.alt}
                 fill
+                priority={priority}
                 responsive={product.image.responsive}
                 className={styles.image}
                 sizes={imageSizes.catalog}
@@ -98,7 +101,7 @@ export const ProductHoverCard = memo(function ProductHoverCard({
     >
       <Link
         href={`/product/${product.slug}`}
-        className="premium-product-card group flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-[18px] border-0 bg-white outline-none focus-visible:ring-2 focus-visible:ring-[#1f6b46]/30 focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface-page)]"
+        className="premium-product-card group flex h-full min-w-0 flex-1 flex-col overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-[#1f6b46]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ds-card)]"
       >
         <div
           className={cn("premium-product-card__media relative overflow-hidden", imageHeights[variant])}
@@ -110,6 +113,7 @@ export const ProductHoverCard = memo(function ProductHoverCard({
               src={product.image.src}
               alt={product.image.alt}
               fill
+              priority={priority}
               responsive={product.image.responsive}
               className="premium-product-card__image-asset object-contain"
               sizes={imageSizes[variant]}

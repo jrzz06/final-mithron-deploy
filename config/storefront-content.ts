@@ -1,3 +1,5 @@
+import { footerColumns } from "@/config/footer-links";
+
 export type FooterColumn = {
   title: string;
   links: Array<[label: string, href: string]>;
@@ -6,47 +8,22 @@ export type FooterColumn = {
 export type FooterContent = {
   leadTitle: string;
   leadBody: string;
-  emailPlaceholder: string;
-  ctaLabel: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  emailPlaceholder?: string;
+  ctaLabel?: string;
   columns: FooterColumn[];
   legalText: string;
 };
 
 export const footerContent = {
-  leadTitle: "Enter the flight stack",
-  leadBody: "Get Mithron agri-drone updates, pilot-network notes, Drone Care intelligence, and field deployment direction.",
-  emailPlaceholder: "Enter your email address",
-  ctaLabel: "Subscribe",
-  columns: [
-    {
-      title: "Products",
-      links: [
-        ["Agri Drones", "/agriculture"],
-        ["Survey Drones", "/mapping"],
-        ["Surveillance Drones", "/surveillance"],
-        ["Drone Spares", "/accessories"]
-      ]
-    },
-    {
-      title: "Operations",
-      links: [
-        ["Aggregator App", "/accessories"],
-        ["Academics", "/accessories"],
-        ["Troubleshoot", "/accessories"],
-        ["Franchise & Export", "/industrial"]
-      ]
-    },
-    {
-      title: "Company",
-      links: [
-        ["Drone Care Centers", "/product/mithron-care-plus"],
-        ["Pilot Connect", "/login"],
-        ["Partner Network", "/industrial"],
-        ["Privacy", "#"]
-      ]
-    }
-  ],
-  legalText: "Mithron autonomous drone ecosystem. Aircraft, spares, Drone Care, academics, pilot connection, franchise, export, and field deployment support for modern aerial operations."
+  leadTitle: "Mithron drone ecosystem",
+  leadBody:
+    "India's drone commerce, service aggregation, and field operations platform — connecting aircraft, pilots, farmers, and businesses through Mithron Smart, AGRONE, ZRONEO, and the Mithron Store.",
+  contactEmail: "dronecare@mithronsmart.com",
+  contactPhone: "+91 89391 23421",
+  columns: footerColumns,
+  legalText: "© 2026 Mithron India Smart Services Private Limited. All rights reserved."
 } satisfies FooterContent;
 
 export type ProductReviewContent = {

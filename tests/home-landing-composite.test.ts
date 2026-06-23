@@ -331,7 +331,7 @@ describe("home landing composite contract", () => {
     expect(component).toContain("City Drone Rental Services App");
     expect(component).toContain("Dronelancer Model");
     expect(component).toContain("Drone FranchiseCare Center");
-    expect(component).toContain("All Drone Acadamic");
+    expect(component).toContain("All Drone Academic");
     expect(component).toContain("Drone Technician Aggregation");
     expect(component).toContain("localMedia.cityTrafficAnalytics");
     expect(component).toContain("localMedia.citySmartMonitoring");
@@ -350,15 +350,15 @@ describe("home landing composite contract", () => {
     expect(component).not.toContain("Representative agriculture mission gallery");
   });
 
-  it("keeps hero navigation manual without autoplay timers", () => {
+  it("auto-advances hero slides with hover pause and reduced-motion guard", () => {
     const hero = source("sections/home/hero-carousel.tsx");
 
     expect(hero).toContain("function resolveHeroCarouselSlides");
     expect(hero).toContain("goToSlide");
-    expect(hero).not.toContain("scheduleNextAdvance");
-    expect(hero).not.toContain("autoplayMs");
-    expect(hero).not.toContain("document.visibilityState === \"visible\"");
-    expect(hero).not.toContain("if (liveReducedMotion) return");
+    expect(hero).toContain("HERO_ADVANCE_MS");
+    expect(hero).toContain("setInterval");
+    expect(hero).toContain('document.visibilityState !== "visible"');
+    expect(hero).toContain("setIsHovered(true)");
   });
 
   it("defaults the reduced-motion hook to motion-enabled SSR before reading browser prefs", () => {

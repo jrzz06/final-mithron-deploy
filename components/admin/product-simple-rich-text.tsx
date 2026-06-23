@@ -53,6 +53,7 @@ export function ProductSimpleRichText({
       Underline,
       LinkExtension.configure({
         openOnClick: false,
+        validate: (url) => /^https?:\/\//i.test(url),
         HTMLAttributes: {
           rel: "noopener noreferrer",
           target: "_blank"

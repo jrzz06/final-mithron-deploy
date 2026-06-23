@@ -35,12 +35,14 @@ reports/*.md
 # test outputs
 test-results/
 playwright-report/
+playwright-report-production/
 
 # misc
 .DS_Store
 Thumbs.db
 tsconfig.tsbuildinfo
 tools/realesrgan-bin/
+tools/weights/
 
 # supabase
 supabase/.temp/

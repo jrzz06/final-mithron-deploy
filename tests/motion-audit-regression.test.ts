@@ -122,15 +122,16 @@ describe("storefront motion audit regressions", () => {
     expect(component).not.toContain("mithron-drone-showcase.glb");
   });
 
-  it("prevents mobile catalog card CLS from content-visibility placeholders", () => {
+  it("keeps catalog product images visible without deferred reveal or content-visibility", () => {
     const globals = source("app/globals.css");
 
     expect(globals).toMatch(/\.catalog-hero-section--showcase\s*{[^}]*overflow:\s*hidden/s);
     expect(globals).toMatch(/\.catalog-hero-image-section__asset\s*{[^}]*width:\s*100%[^}]*max-width:\s*100%/s);
-    expect(globals).toMatch(/\.catalog-page-shell\s+\.premium-product-card-shell\s*{[^}]*contain-intrinsic-size:\s*1px 520px/s);
-    expect(globals).toMatch(/\.catalog-page-shell\s+\.premium-product-card\s*{[^}]*min-height:\s*520px/s);
+    expect(globals).toMatch(/\.catalog-page-shell\s+\.premium-product-card__media\s+\.mithron-responsive-image\s*{[^}]*opacity:\s*1/s);
+    expect(globals).not.toMatch(/\.catalog-page-shell\s+\.premium-product-card-shell\s*{[^}]*content-visibility:\s*auto/s);
+    expect(globals).toMatch(/\.catalog-page-shell\s+\.premium-product-card\s*{[^}]*min-height:\s*0/s);
     expect(globals).toContain("@media (max-width: 640px)");
-    expect(globals).toMatch(/@media \(max-width: 640px\)[\s\S]*\.catalog-page-shell \.premium-product-card\s*\{[^}]*min-height:\s*520px/s);
+    expect(globals).toMatch(/@media \(max-width: 640px\)[\s\S]*\.catalog-page-shell \.premium-product-card\s*\{[^}]*min-height:\s*0/s);
   });
 
   it("keeps public storefront chrome free of heavy live backdrop blur", () => {

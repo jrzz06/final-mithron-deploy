@@ -1,4 +1,5 @@
 import type { Product } from "@/config/types";
+import { sanitizeProductHtml } from "@/lib/sanitize-html";
 import { sanitizeProductPreviewText } from "@/lib/product-preview-text";
 import { isSpecLikeBlob, sortSpecEntries, expandSpecEntries, isHighlightSpecValue } from "@/lib/product-spec-text";
 
@@ -58,7 +59,7 @@ export function getHighlightSpecs(product: Product, limit = 6) {
 export function getProductOverviewHtml(product: Product) {
   const description = product.description?.trim();
   if (!description) return null;
-  if (/<[^>]+>/.test(description)) return description;
+  if (/<[^>]+>/.test(description)) return sanitizeProductHtml(description);
   return null;
 }
 

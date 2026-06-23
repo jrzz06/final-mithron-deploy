@@ -54,8 +54,8 @@ describe("hero carousel premium composition", () => {
     expect(hero).toContain("key={item.id}");
     expect(hero).toContain('className="absolute inset-0 hero-slide-frame"');
     expect(hero).toContain('data-hero-motion="static"');
-    expect(hero).not.toContain("scheduleNextAdvance");
-    expect(hero).not.toContain("autoplayMs");
+    expect(hero).toContain("HERO_ADVANCE_MS");
+    expect(hero).toContain("setInterval");
     expect(hero).toContain("goToSlide");
     expect(hero).toContain("safeSlides.map");
     expect(hero).toContain('label="Previous hero"');
@@ -104,6 +104,6 @@ describe("hero carousel premium composition", () => {
     expect(layout).not.toContain("Montserrat");
 
     expect(nav).toContain("adaptive-navbar absolute left-0 top-0 z-[999] w-full");
-    expect(nav).toContain('position: "absolute"');
+    expect(nav).toContain("style={style}");
   });
 });

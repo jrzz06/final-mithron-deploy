@@ -503,8 +503,8 @@ export default async function CmsPage({ searchParams }: CmsPageProps) {
   const footerLead = {
     leadTitle: footerContent.leadTitle,
     leadBody: footerContent.leadBody,
-    emailPlaceholder: footerContent.emailPlaceholder,
-    ctaLabel: footerContent.ctaLabel,
+    contactEmail: footerContent.contactEmail,
+    contactPhone: footerContent.contactPhone,
     legalText: footerContent.legalText
   };
 

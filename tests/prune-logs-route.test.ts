@@ -9,6 +9,7 @@ describe("observability log pruning route", () => {
 
     expect(route).toContain("export async function GET");
     expect(route).toContain("export async function POST");
+    expect(route).toContain("authorizeBearerSecret");
     expect(route).toContain("CRON_SECRET");
     expect(route).toContain("prune_observability_logs");
     expect(vercel).toContain("/api/admin/prune-logs");

@@ -45,6 +45,7 @@ import { getCurrentAuthContext, requireAdminPermission, requirePermission } from
 import {
   assertAllowedMediaBucket,
   assertAllowedMediaMimeType,
+  assertMediaUploadSize,
   buildMediaAssetId,
   buildMediaAssetRecordFromFormData,
   buildStorageObjectPath
@@ -391,14 +392,14 @@ export async function saveHomepageAboutFormAction(formData: FormData) {
 }
 
 export async function saveHomepageFooterLeadFormAction(formData: FormData) {
-  await runCmsFormMutation("footer", "Footer newsletter copy updated on the live homepage.", async () => {
+  await runCmsFormMutation("footer", "Footer lead copy updated on the live homepage.", async () => {
     const actorId = await currentActorId();
     const current = await loadAdminSettingsPayload();
     const footer = {
       leadTitle: readText(formData, "footer_lead_title", footerContent.leadTitle),
       leadBody: readText(formData, "footer_lead_body"),
-      emailPlaceholder: readText(formData, "footer_email_placeholder"),
-      ctaLabel: readText(formData, "footer_cta_label"),
+      contactEmail: readText(formData, "footer_contact_email", footerContent.contactEmail ?? ""),
+      contactPhone: readText(formData, "footer_contact_phone", footerContent.contactPhone ?? ""),
       legalText: readText(formData, "footer_legal_text")
     };
     const nextPayload = {
@@ -605,6 +606,7 @@ export async function saveCmsMediaUploadFormAction(formData: FormData) {
     for (let index = 0; index < uploadedFiles.length; index += 1) {
       const file = uploadedFiles[index];
       const mimeType = assertAllowedMediaMimeType(file.type || "application/octet-stream", bucket);
+      assertMediaUploadSize(file);
       const uploadAt = new Date(Date.parse(now) + index).toISOString();
       const storagePath = buildStorageObjectPath({
         bucket,

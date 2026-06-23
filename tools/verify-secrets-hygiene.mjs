@@ -10,6 +10,7 @@ let exitCode = 0;
 const FORBIDDEN_TRACKED = [".env.local", ".env", ".cursor/mcp.json"];
 const SECRET_PATTERNS = [
   { name: "Supabase JWT", regex: /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g },
+  { name: "Supabase PAT", regex: /sbp_[a-f0-9]{40,}/gi },
   { name: "Wix API key", regex: /IST\.ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g },
   { name: "GitHub token", regex: /gho_[A-Za-z0-9]{20,}/g },
   { name: "Hardcoded live password", regex: /password:\s*["'][^"']{8,}["']/g }

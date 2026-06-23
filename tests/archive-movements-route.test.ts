@@ -13,6 +13,7 @@ describe("inventory movement archival route", () => {
 
     expect(route).toContain("export async function GET");
     expect(route).toContain("export async function POST");
+    expect(route).toContain("authorizeBearerSecret");
     expect(route).toContain("CRON_SECRET");
     expect(route).toContain("archive_inventory_movements");
     expect(vercel).toContain("/api/admin/archive-movements");

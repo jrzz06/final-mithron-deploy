@@ -5,6 +5,14 @@ export const catalogShowcaseFrame = {
   height: 821
 } as const;
 
+/** Unified cinematic category banner frame — matches agriculture showcase proportions. */
+export const catalogCinematicBannerFrame = {
+  width: 1834,
+  height: 858,
+  mobileAspectRatio: "1.55 / 1",
+  mobileObjectPosition: "center center"
+} as const;
+
 type CatalogRouteConfig = {
   title: string;
   subtitle: string;
@@ -16,6 +24,8 @@ type CatalogRouteConfig = {
     height: number;
     navbarInk: "light" | "dark";
     fit?: "cinematic" | "native";
+    mobileAspectRatio?: string;
+    mobileObjectPosition?: string;
   };
 };
 
@@ -29,7 +39,9 @@ export const catalogRoutes = {
       alt: "Agri drone cinematic category showcase",
       width: 1834,
       height: 858,
-      navbarInk: "dark"
+      navbarInk: "light",
+      mobileAspectRatio: "1.55 / 1",
+      mobileObjectPosition: "center center"
     }
   },
   videoDrones: {
@@ -41,7 +53,9 @@ export const catalogRoutes = {
       alt: "Video drone cinematic category showcase",
       width: 1672,
       height: 941,
-      navbarInk: "light"
+      navbarInk: "light",
+      mobileAspectRatio: "1.55 / 1",
+      mobileObjectPosition: "center center"
     }
   },
   creativeDrones: {
@@ -53,7 +67,9 @@ export const catalogRoutes = {
       alt: "Creative drone cinematic category showcase",
       width: 1915,
       height: 821,
-      navbarInk: "dark"
+      navbarInk: "light",
+      mobileAspectRatio: "1.55 / 1",
+      mobileObjectPosition: "center center"
     }
   },
   accessories: {
@@ -90,7 +106,7 @@ export const catalogRoutes = {
       alt: "Survey drone cinematic category showcase",
       width: 1915,
       height: 821,
-      navbarInk: "dark"
+      navbarInk: "light"
     }
   },
   surveillance: {

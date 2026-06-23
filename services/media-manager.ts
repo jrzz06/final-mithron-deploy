@@ -34,6 +34,8 @@ const videoMimeTypes = new Set([
   "video/quicktime"
 ]);
 
+export const ALLOWED_MEDIA_MIME_TYPES = new Set([...imageMimeTypes, ...videoMimeTypes]);
+
 const allowedBuckets = new Set<string>(CANONICAL_MEDIA_BUCKETS);
 
 function readRequiredString(formData: FormData, key: string, label: string) {
@@ -125,11 +127,30 @@ export function assertAllowedMediaBucket(bucket: string): CanonicalMediaBucket {
 
 export function assertAllowedMediaMimeType(mimeType: string, bucket: string) {
   const normalizedMimeType = mimeType.trim().toLowerCase();
-  const allowed = new Set([...imageMimeTypes, ...videoMimeTypes]);
+  const allowed = ALLOWED_MEDIA_MIME_TYPES;
   if (!allowed.has(normalizedMimeType)) {
     throw new Error(`Media MIME type ${mimeType} is not allowed for ${bucket}.`);
   }
   return normalizedMimeType;
+}
+
+type EnvSource = Record<string, string | undefined>;
+
+type UploadSizeInput = {
+  size: number;
+  name?: string;
+};
+
+export function resolveMaxUploadBytes(env: EnvSource = process.env) {
+  return Number(env.MEDIA_MAX_UPLOAD_BYTES?.trim() || 0) || 50 * 1024 * 1024;
+}
+
+export function assertMediaUploadSize(file: UploadSizeInput, env: EnvSource = process.env) {
+  const maxUploadBytes = resolveMaxUploadBytes(env);
+  if (file.size > maxUploadBytes) {
+    const label = file.name ? `File "${file.name}"` : "File";
+    throw new Error(`${label} exceeds the maximum upload size of ${Math.round(maxUploadBytes / 1024 / 1024)} MB.`);
+  }
 }
 
 export function buildStorageObjectPath(input: BuildObjectPathInput) {

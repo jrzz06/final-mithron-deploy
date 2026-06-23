@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
-import { safeBearerEquals } from "@/lib/auth/timing-safe-bearer";
+import { authorizeBearerSecret } from "@/lib/api/bearer-auth";
 import { assertSupabaseAdminConfig } from "@/lib/env";
 import { dispatchEmailNotification } from "@/services/email/resend";
 
 export async function POST(request: Request) {
   const secret = process.env.NOTIFICATION_DISPATCH_SECRET;
-  if (!secret) {
+  const auth = await authorizeBearerSecret(request, secret);
+  if (auth === "rate_limited") {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
+  if (auth === "misconfigured") {
     return NextResponse.json({ error: "Notification dispatch is not configured." }, { status: 503 });
   }
-  if (!safeBearerEquals(request, secret)) {
+  if (auth === "unauthorized") {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 

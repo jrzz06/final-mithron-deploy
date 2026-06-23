@@ -170,11 +170,11 @@ export default async function AdminSettingsPage({ searchParams }: { searchParams
           </div>
         </SettingsCard>
 
-        <SettingsCard title="Footer lead" description="Newsletter headline, body copy, and CTA labels shown in the site footer lead column.">
+        <SettingsCard title="Footer lead" description="Footer headline, body copy, contact details, and legal line shown in the site footer.">
           <div className="grid gap-3 md:grid-cols-2">
             <Field label="Lead title" name="footer_lead_title" defaultValue={text(footer, "leadTitle", footerContent.leadTitle)} />
-            <Field label="CTA label" name="footer_cta_label" defaultValue={text(footer, "ctaLabel", footerContent.ctaLabel)} />
-            <Field label="Email placeholder" name="footer_email_placeholder" defaultValue={text(footer, "emailPlaceholder", footerContent.emailPlaceholder)} />
+            <Field label="Contact email" name="footer_contact_email" defaultValue={text(footer, "contactEmail", footerContent.contactEmail ?? "")} />
+            <Field label="Contact phone" name="footer_contact_phone" defaultValue={text(footer, "contactPhone", footerContent.contactPhone ?? "")} />
             <Field label="Legal text" name="footer_legal_text" defaultValue={text(footer, "legalText", footerContent.legalText)} />
           </div>
           <label className="grid gap-1.5 text-sm text-slate-300">

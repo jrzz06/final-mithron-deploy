@@ -12,7 +12,8 @@ function decodeHtmlEntities(value: string) {
 
 export function sanitizeProductPreviewText(value: string) {
   return decodeHtmlEntities(value)
-    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<br[^>]*>?/gi, " ")
+    .replace(/<[^>]*$/g, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/\p{Extended_Pictographic}/gu, "")
     .replace(/\s+imported from\s+[a-z]:\\.*$/i, "")

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { safeBearerEquals } from "@/lib/auth/timing-safe-bearer";
+import { authorizeBearerSecret } from "@/lib/api/bearer-auth";
 import { assertSupabaseAdminConfig } from "@/lib/env";
 import { releaseCheckoutStock } from "@/services/checkout-stock";
 import { updateAdminRecord } from "@/services/admin-actions";
@@ -7,7 +7,14 @@ import { updateAdminRecord } from "@/services/admin-actions";
 const PENDING_MAX_MINUTES = 30;
 
 export async function POST(request: Request) {
-  if (!safeBearerEquals(request, process.env.PAYMENT_EXPIRE_SECRET)) {
+  const auth = await authorizeBearerSecret(request, process.env.PAYMENT_EXPIRE_SECRET);
+  if (auth === "rate_limited") {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
+  if (auth === "misconfigured") {
+    return NextResponse.json({ error: "Payment expire secret is not configured." }, { status: 503 });
+  }
+  if (auth === "unauthorized") {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 

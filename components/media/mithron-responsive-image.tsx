@@ -1,4 +1,6 @@
-import type { CSSProperties, ImgHTMLAttributes } from "react";
+"use client";
+
+import { useCallback, useState, type CSSProperties, type ImgHTMLAttributes } from "react";
 import { getMediaDeliveryProfile, type MediaDeliveryRole } from "@/config/media-delivery-profiles";
 import type { ResponsiveMediaAsset } from "@/config/types";
 import { MithronResponsiveImageImg } from "@/components/media/mithron-responsive-image-img";
@@ -45,6 +47,11 @@ export function MithronResponsiveImage({
   onLoad,
   ...props
 }: MithronResponsiveImageProps) {
+  const [plainFallbackActive, setPlainFallbackActive] = useState(false);
+  const handleFallbackActivate = useCallback((active: boolean) => {
+    setPlainFallbackActive(active);
+  }, []);
+
   const profile = imageRole ? getMediaDeliveryProfile(imageRole) : undefined;
   const model = buildResponsiveImageModel({
     src,
@@ -61,31 +68,35 @@ export function MithronResponsiveImage({
   });
 
   const backgroundStyle = model.backgroundStyle as CSSProperties;
+  const usePlainPicture = model.mode === "source" || model.mode === "remote" || plainFallbackActive;
+  const imageProps = {
+    ...props,
+    model,
+    alt,
+    fill,
+    priority,
+    loading,
+    className,
+    imageClassName,
+    style,
+    width: widthProp,
+    height: heightProp,
+    onError,
+    onLoad,
+    onFallbackActivate: handleFallbackActivate
+  };
 
-  if (model.mode === "source" || model.mode === "remote") {
+  if (usePlainPicture) {
     return (
       <picture
         data-mithron-asset-id={model.assetId}
         data-mithron-asset-status={model.assetStatus}
         data-mithron-asset-bucket={model.assetBucket}
+        data-mithron-image-fallback={plainFallbackActive ? "plain" : "native"}
         className={cn("mithron-responsive-image-frame", fill ? "absolute inset-0 block" : "block", wrapperClassName)}
         style={backgroundStyle}
       >
-        <MithronResponsiveImageImg
-          {...props}
-          model={model}
-          alt={alt}
-          fill={fill}
-          priority={priority}
-          loading={loading}
-          className={className}
-          imageClassName={imageClassName}
-          style={style}
-          width={widthProp}
-          height={heightProp}
-          onError={onError}
-          onLoad={onLoad}
-        />
+        <MithronResponsiveImageImg {...imageProps} />
       </picture>
     );
   }
@@ -102,21 +113,7 @@ export function MithronResponsiveImage({
       {model.avifSrcSet ? <source type="image/avif" srcSet={model.avifSrcSet} sizes={model.resolvedSizes} /> : null}
       {model.webpSrcSet ? <source type="image/webp" srcSet={model.webpSrcSet} sizes={model.resolvedSizes} /> : null}
       {model.pngSrcSet ? <source type="image/png" srcSet={model.pngSrcSet} sizes={model.resolvedSizes} /> : null}
-      <MithronResponsiveImageImg
-        {...props}
-        model={model}
-        alt={alt}
-        fill={fill}
-        priority={priority}
-        loading={loading}
-        className={className}
-        imageClassName={imageClassName}
-        style={style}
-        width={widthProp}
-        height={heightProp}
-        onError={onError}
-        onLoad={onLoad}
-      />
+      <MithronResponsiveImageImg {...imageProps} />
     </picture>
   );
 }

@@ -160,11 +160,14 @@ describe("enterprise auth and RBAC workflow validation contract", () => {
     expect(script).toContain("prepared.user");
     expect(script).toContain("validateOrderTrace(prepared.admin)");
     expect(script).toContain("/admin/products?tool=create#create-product");
-    expect(script).toContain("acceptNextDialog(page);");
-    expect(script).toContain("product publish update");
-    expect(script).toContain("submitAndWaitForAction(page, () => reactivateDialog.locator('[data-user-reactivate-form] button[type=\"submit\"]').click(), \"managed user reactivation\")");
+    expect(script).toContain("establishBrowserSession");
+    expect(script).toContain("/api/auth/login");
+    expect(script).toContain("seedInventoryTraceProbe");
+    expect(script).toContain("resolveInventoryProbeRow");
+    expect(script).toContain("findInventoryRowForSku");
+    expect(script).toContain("assertInventoryActionSucceeded");
     expect(script).toContain("[data-inventory-inline-stock] form");
-    expect(script).toContain("[data-inventory-quick-edit]:visible");
+    expect(script).toContain("acceptNextDialog(page);");
     expect(script).toContain("/admin/users");
     expect(script).toContain("[data-user-access-table]");
     expect(script).toContain("role_key=eq.user");

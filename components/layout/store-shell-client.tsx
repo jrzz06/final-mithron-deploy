@@ -154,7 +154,7 @@ export function StoreShellClient({
         id="g-main"
         data-testid={isHome ? "home-page-canvas" : undefined}
         data-homepage-contract={isHome ? "NAV_HERO_CAROUSEL_COMPOSITE" : undefined}
-        className={cn(isHome && "home-page-canvas", !flushesUnderNav && "pt-16 md:pt-[104px]")}
+        className={cn(isHome && "home-page-canvas", !flushesUnderNav && "store-main-offset")}
       >
         {children}
       </main>

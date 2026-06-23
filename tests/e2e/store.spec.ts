@@ -476,8 +476,54 @@ test.describe("Mithron cinematic storefront", () => {
     });
 
     expect(layout.navTop).toBe(0);
-    expect(layout.heroTop).toBeLessThanOrEqual(8);
-    expect(layout.heroCoversNavBand || layout.heroTop <= 8).toBe(true);
+
+    if (isMobile) {
+      expect(layout.heroTop).toBeLessThanOrEqual(8);
+      const mobileHero = await page.evaluate(() => {
+        const section = document.querySelector<HTMLElement>(".catalog-hero-section--showcase");
+        const media = document.querySelector<HTMLElement>(".catalog-hero-immersive__media");
+        const frame = document.querySelector<HTMLElement>(".catalog-hero-immersive__media .catalog-hero-image-section__frame");
+        const asset = document.querySelector<HTMLElement>(".catalog-hero-immersive__media .catalog-hero-image-section__asset");
+        if (!section || !media || !frame || !asset) return null;
+        const mediaRect = media.getBoundingClientRect();
+        const frameRect = frame.getBoundingClientRect();
+        const assetStyle = getComputedStyle(asset);
+        const frameStyle = getComputedStyle(frame);
+        const aspectRatio = frameStyle.aspectRatio;
+        const aspectParts = aspectRatio.split(" / ").map((value) => Number.parseFloat(value.trim()));
+        const expectedHeight =
+          aspectParts.length === 2 && aspectParts.every((value) => Number.isFinite(value) && value > 0)
+            ? Math.round(mediaRect.width * (aspectParts[1] / aspectParts[0]))
+            : null;
+
+        return {
+          mediaHeight: Math.round(mediaRect.height),
+          frameHeight: Math.round(frameRect.height),
+          viewportWidth: Math.round(window.innerWidth),
+          expectedHeight,
+          aspectRatio,
+          objectFit: assetStyle.objectFit,
+          objectPosition: assetStyle.objectPosition,
+          transform: assetStyle.transform
+        };
+      });
+      expect(mobileHero).not.toBeNull();
+      expect(mobileHero!.objectFit).toBe("cover");
+      expect(mobileHero!.objectPosition).toBe("center center");
+      expect(mobileHero!.transform === "none" || mobileHero!.transform === "matrix(1, 0, 0, 1, 0, 0)").toBe(true);
+      expect(mobileHero!.mediaHeight).toBeGreaterThan(200);
+      expect(mobileHero!.mediaHeight).toBeLessThan(340);
+      if (mobileHero!.expectedHeight) {
+        expect(Math.abs(mobileHero!.frameHeight - mobileHero!.expectedHeight)).toBeLessThanOrEqual(4);
+      }
+      const aspectParts = mobileHero!.aspectRatio.split(" / ").map((value) => Number.parseFloat(value.trim()));
+      if (aspectParts.length === 2 && aspectParts.every((value) => Number.isFinite(value) && value > 0)) {
+        expect(aspectParts[0] / aspectParts[1]).toBeCloseTo(1.55, 1);
+      }
+    } else {
+      expect(layout.heroTop).toBeLessThanOrEqual(8);
+      expect(layout.heroCoversNavBand || layout.heroTop <= 8).toBe(true);
+    }
 
     if (!isMobile) {
       expect(layout.activeBackground).toBe("rgba(0, 0, 0, 0)");

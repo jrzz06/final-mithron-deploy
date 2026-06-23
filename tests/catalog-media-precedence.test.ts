@@ -9,12 +9,10 @@ function source(path: string) {
 }
 
 describe("catalog media precedence", () => {
-  it("prefers canonical product_media_assets links over inline JSON images", () => {
+  it("keeps Supabase product_media_assets as the sole runtime source of truth", () => {
     const catalog = source("services/catalog.ts");
-    const linkedMediaIndex = catalog.indexOf("if (linkedMedia) return linkedMedia;");
-    const rowImageIndex = catalog.indexOf("selectPrimaryProductImage(row, name)");
-    expect(linkedMediaIndex).toBeGreaterThan(-1);
-    expect(rowImageIndex).toBeGreaterThan(linkedMediaIndex);
+    expect(catalog).toContain("isSupabaseStorageSrc");
+    expect(catalog).not.toContain("wixstatic");
     expect(catalog).toContain("inline JSON image fallback");
   });
 

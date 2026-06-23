@@ -6,9 +6,9 @@
   --catalog-secondary: #475569;
   --catalog-muted: #64748b;
   --catalog-accent: var(--brand-accent-bright);
-  --product-stage-floor: radial-gradient(ellipse 78% 54% at 50% 96%, rgba(15, 23, 42, 0.11) 0%, rgba(31, 107, 70, 0.04) 46%, transparent 78%);
-  --product-stage-halo: radial-gradient(ellipse 88% 68% at 50% 46%, rgba(226, 232, 240, 0.48) 0%, rgba(241, 245, 249, 0.14) 50%, transparent 88%);
-  --product-stage-radial: radial-gradient(ellipse at center, rgba(23, 77, 51, 0.06) 0%, rgba(148, 163, 184, 0.05) 56%, transparent 88%);
+  --product-stage-floor: radial-gradient(ellipse 76% 48% at 50% 88%, rgba(15, 23, 42, 0.07) 0%, rgba(148, 163, 184, 0.035) 52%, transparent 78%);
+  --product-stage-halo: radial-gradient(ellipse 84% 74% at 50% 50%, rgba(226, 232, 240, 0.44) 0%, rgba(241, 245, 249, 0.16) 46%, transparent 84%);
+  --product-stage-radial: radial-gradient(ellipse 80% 68% at 50% 50%, rgba(23, 77, 51, 0.05) 0%, rgba(148, 163, 184, 0.04) 54%, transparent 82%);
   min-height: 100vh;
   position: relative;
   isolation: isolate;

@@ -11,6 +11,14 @@ function resolvePublishableKey() {
   )!
 }
 
+function resolveCookieOptions(): CookieOptions {
+  return {
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/"
+  }
+}
+
 /**
  * If using Fluid compute: Don't put this client in a global variable. Always create a new client within each
  * function when using it.
@@ -21,6 +29,7 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     resolvePublishableKey(),
     {
+      cookieOptions: resolveCookieOptions(),
       cookies: {
         getAll() {
           return cookieStore.getAll()
@@ -54,6 +63,7 @@ export async function createAuthRouteClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     resolvePublishableKey(),
     {
+      cookieOptions: resolveCookieOptions(),
       cookies: {
         getAll() {
           return cookieStore.getAll()

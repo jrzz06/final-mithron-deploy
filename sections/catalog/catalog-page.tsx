@@ -8,9 +8,13 @@ import { StorefrontRevealImage } from "@/components/media/storefront-reveal-imag
 import { MithronCardImage } from "@/components/media/mithron-card-image";
 import { MithronPageHeroImage } from "@/components/media/mithron-page-hero-image";
 import type { Product } from "@/config/types";
+import { getResponsiveAssetForSrc } from "@/config/generated-assets";
 import { getCatalogShowcaseMedia } from "@/lib/catalog-showcase-media";
+import { resolveNavbarInkFromShowcase } from "@/lib/navbar-ink-sampling";
 import { clipProductPreviewText } from "@/lib/product-preview-text";
 import { cn } from "@/lib/utils";
+import { catalogCinematicBannerFrame } from "@/config/catalog-routes";
+import { buildCatalogShelfLayout } from "@/lib/catalog-shelf-layout";
 import styles from "./catalog-page.module.css";
 
 type CatalogShowcaseImage = {
@@ -20,6 +24,8 @@ type CatalogShowcaseImage = {
   height: number;
   navbarInk?: "light" | "dark";
   fit?: "cinematic" | "native";
+  mobileAspectRatio?: string;
+  mobileObjectPosition?: string;
 };
 
 export function CatalogPage({
@@ -39,45 +45,77 @@ export function CatalogPage({
 }) {
   const isShowroom = presentation === "showroom";
   const optimizedShowcase = showcaseImage ? getCatalogShowcaseMedia(showcaseImage.src) : null;
+  const showcaseAsset = showcaseImage ? getResponsiveAssetForSrc(showcaseImage.src) : null;
+  const catalogNavbarInk = showcaseImage
+    ? resolveNavbarInkFromShowcase(showcaseImage, showcaseAsset?.dominantColor)
+    : null;
   const heroProduct = products[0];
   const heroMetrics = products.slice(0, 3);
-  const leadProducts = products.slice(0, 8);
-  const remainingProducts = products.slice(8);
-  const featuredProduct = products[1] ?? heroProduct;
-  const catalogTitle = title ?? heroProduct?.category ?? "Mithron systems";
-  const catalogSubtitle = subtitle ?? (heroProduct ? `Source-backed ${heroProduct.category.toLowerCase()} selected for mission planning and field deployment.` : "Source-backed systems selected for mission planning and field deployment.");
+  const { featuredProduct, leadProducts, remainingProducts } = buildCatalogShelfLayout(products);
+  const occupiedSlugs = new Set([
+    ...leadProducts.map((product) => product.slug),
+    ...(featuredProduct ? [featuredProduct.slug] : [])
+  ]);
+  const safeRemainingProducts = remainingProducts.filter((product) => !occupiedSlugs.has(product.slug));
+  const catalogProductCount = leadProducts.length + safeRemainingProducts.length + (featuredProduct ? 1 : 0);
+  const catalogTitle = title ?? heroProduct?.category ?? "Mithron catalog";
+  const catalogSubtitle = subtitle ?? (heroProduct ? `Browse ${heroProduct.category.toLowerCase()} selected for field-ready deployment and mission planning.` : "Browse drones, accessories, and field-ready products from the Mithron catalog.");
   const shouldRenderFallbackHero = !showcaseImage && title && subtitle && heroImage;
   const cardPresentation = isShowroom ? "showroom" : "standard";
+  const showcaseFit = showcaseImage?.fit ?? "cinematic";
+  const showcaseFrame =
+    showcaseFit === "cinematic"
+      ? catalogCinematicBannerFrame
+      : showcaseImage
+        ? {
+            width: showcaseImage.width,
+            height: showcaseImage.height,
+            mobileAspectRatio: showcaseImage.mobileAspectRatio ?? "1.55 / 1",
+            mobileObjectPosition: showcaseImage.mobileObjectPosition ?? "center center"
+          }
+        : null;
 
   return (
     <div className={isShowroom ? styles.shell : "catalog-page-shell surface-page"}>
       {showcaseImage ? (
         <section
           className="catalog-hero-section catalog-hero-section--showcase"
-          data-navbar-ink={showcaseImage.navbarInk}
-          data-showcase-fit={showcaseImage.fit ?? "cinematic"}
+          data-navbar-ink={catalogNavbarInk ?? "light"}
+          data-navbar-tone={catalogNavbarInk === "dark" ? "light" : "dark"}
+          data-hero-dominant-color={showcaseAsset?.dominantColor}
+          data-navbar-ink-surface=""
+          data-showcase-fit={showcaseFit}
           style={
-            {
-              "--showcase-aspect-ratio": `${showcaseImage.width} / ${showcaseImage.height}`,
-              "--showcase-max-width": `${showcaseImage.width}px`
-            } as CSSProperties
+            showcaseFrame
+              ? ({
+                  "--showcase-aspect-ratio": `${showcaseFrame.width} / ${showcaseFrame.height}`,
+                  "--showcase-max-width": `${showcaseFrame.width}px`,
+                  "--showcase-mobile-aspect-ratio": showcaseFrame.mobileAspectRatio,
+                  "--showcase-mobile-object-position": showcaseFrame.mobileObjectPosition
+                } as CSSProperties)
+              : undefined
           }
           aria-label={showcaseImage.alt}
         >
-          <picture className="catalog-hero-image-section__frame">
-            {optimizedShowcase?.avifSrcSet ? <source type="image/avif" srcSet={optimizedShowcase.avifSrcSet} sizes="(min-width: 1440px) 1440px, 100vw" /> : null}
-            {optimizedShowcase?.webpSrcSet ? <source type="image/webp" srcSet={optimizedShowcase.webpSrcSet} sizes="(min-width: 1440px) 1440px, 100vw" /> : null}
-            <StorefrontRevealImage
-              src={optimizedShowcase?.src ?? showcaseImage.src}
-              alt={showcaseImage.alt}
-              width={optimizedShowcase?.width ?? showcaseImage.width}
-              height={optimizedShowcase?.height ?? showcaseImage.height}
-              loading="eager"
-              decoding="async"
-              sizes="(min-width: 1440px) 1440px, 100vw"
-              className="catalog-hero-image-section__asset"
-            />
-          </picture>
+          <div className="catalog-hero-immersive" data-testid="catalog-mobile-hero">
+            <div className="catalog-hero-immersive__media">
+              <picture className="catalog-hero-image-section__frame">
+                {optimizedShowcase?.avifSrcSet ? <source type="image/avif" srcSet={optimizedShowcase.avifSrcSet} sizes="(min-width: 1440px) 1440px, 100vw" /> : null}
+                {optimizedShowcase?.webpSrcSet ? <source type="image/webp" srcSet={optimizedShowcase.webpSrcSet} sizes="(min-width: 1440px) 1440px, 100vw" /> : null}
+                <StorefrontRevealImage
+                  src={optimizedShowcase?.src ?? showcaseImage.src}
+                  alt={showcaseImage.alt}
+                  width={optimizedShowcase?.width ?? showcaseImage.width}
+                  height={optimizedShowcase?.height ?? showcaseImage.height}
+                  loading="eager"
+                  decoding="async"
+                  crossOrigin="anonymous"
+                  sizes="(min-width: 1440px) 1440px, 100vw"
+                  className="catalog-hero-image-section__asset"
+                />
+              </picture>
+            </div>
+          </div>
         </section>
       ) : shouldRenderFallbackHero ? (
         <section className="catalog-hero-section ambient-section ambient-dark relative -mt-16 overflow-hidden bg-black px-6 pb-12 pt-32 text-white md:min-h-[560px] md:px-16 md:pb-16" data-navbar-ink="light">
@@ -92,11 +130,11 @@ export function CatalogPage({
               <div className="catalog-hero__actions mt-8 flex flex-wrap gap-3">
                 {heroProduct ? (
                   <Button asChild variant="accent">
-                    <Link href={`/product/${heroProduct.slug}`}>Plan field deployment</Link>
+                    <Link href={`/product/${heroProduct.slug}`}>View product</Link>
                   </Button>
                 ) : null}
                 <Button asChild variant="glass">
-                  <Link href="#catalog-grid">Compare systems</Link>
+                  <Link href="#catalog-grid">Browse catalog</Link>
                 </Button>
               </div>
               {heroMetrics.length ? (
@@ -114,7 +152,7 @@ export function CatalogPage({
       ) : null}
       <section
         id="catalog-grid"
-        className={isShowroom ? styles.gridSection : "catalog-grid-section mx-auto max-w-[1440px] scroll-mt-28 px-6 py-12 md:px-16"}
+        className={isShowroom ? styles.gridSection : "catalog-grid-section mx-auto max-w-[1440px] scroll-mt-28 px-6 md:px-16"}
         data-navbar-ink="dark"
       >
         <div className={isShowroom ? styles.intro : "catalog-intro"} data-testid="catalog-intro">
@@ -125,19 +163,27 @@ export function CatalogPage({
           <div className={isShowroom ? styles.introCopy : "catalog-intro__copy"}>
             <p className={isShowroom ? styles.subtitle : "catalog-intro__subtitle type-subtitle"}>{catalogSubtitle}</p>
             <div className={isShowroom ? styles.meta : "catalog-intro__meta type-technical"}>
-              <span>{products.length} systems</span>
+              <span>{catalogProductCount} products</span>
               {heroProduct ? <span>{heroProduct.category}</span> : null}
             </div>
           </div>
         </div>
 
-        <div className={isShowroom ? styles.productGrid : "catalog-product-grid grid min-w-0 md:grid-cols-3 xl:grid-cols-4"}>
-          {leadProducts.map((product) => (
-            <ProductHoverCard key={product.slug} product={product} variant="catalog" showCategory cta="catalog" presentation={cardPresentation} />
+        <div className={isShowroom ? styles.productGrid : "catalog-product-grid min-w-0"}>
+          {leadProducts.map((product, index) => (
+            <ProductHoverCard
+              key={product.slug}
+              product={product}
+              variant="catalog"
+              showCategory
+              cta="catalog"
+              presentation={cardPresentation}
+              priority={index < 8}
+            />
           ))}
         </div>
 
-        {featuredProduct && remainingProducts.length > 0 ? (
+        {featuredProduct && safeRemainingProducts.length > 0 ? (
           <Link
             href={`/product/${featuredProduct.slug}`}
             className={isShowroom ? styles.editorialBand : "catalog-editorial-band"}
@@ -167,15 +213,15 @@ export function CatalogPage({
           </Link>
         ) : null}
 
-        {remainingProducts.length > 0 ? (
+        {safeRemainingProducts.length > 0 ? (
           <>
             <div className={isShowroom ? styles.separator : "catalog-section-separator"}>
               <p className={isShowroom ? styles.separatorLabel : "type-meta"}>Complete ecosystem</p>
               <span className={isShowroom ? styles.separatorRule : "catalog-section-separator__rule"} aria-hidden />
             </div>
             <CatalogVirtualizedGrid
-              products={remainingProducts}
-              className={isShowroom ? cn(styles.productGrid, styles.productGridContinued) : "catalog-product-grid catalog-product-grid--continued grid md:grid-cols-3 xl:grid-cols-4"}
+              products={safeRemainingProducts}
+              className={isShowroom ? cn(styles.productGrid, styles.productGridContinued) : "catalog-product-grid catalog-product-grid--continued min-w-0"}
               presentation={cardPresentation}
             />
           </>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { safeBearerEquals } from "@/lib/auth/timing-safe-bearer";
+import { authorizeBearerSecret } from "@/lib/api/bearer-auth";
 import { assertSupabaseAdminConfig } from "@/lib/env";
 
 const DEFAULT_RETENTION_DAYS = 395;
@@ -13,14 +13,23 @@ function parseRetentionDays(value: string | null) {
   return Math.min(MAX_RETENTION_DAYS, Math.max(MIN_RETENTION_DAYS, parsed));
 }
 
-function isAuthorized(request: Request) {
-  return safeBearerEquals(request, process.env.CRON_SECRET);
+function bearerAuthResponse(auth: Awaited<ReturnType<typeof authorizeBearerSecret>>) {
+  if (auth === "rate_limited") {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
+  if (auth === "misconfigured") {
+    return NextResponse.json({ error: "Cron secret is not configured." }, { status: 503 });
+  }
+  if (auth === "unauthorized") {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+  return null;
 }
 
 async function runArchive(request: Request) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const auth = await authorizeBearerSecret(request, process.env.CRON_SECRET);
+  const denied = bearerAuthResponse(auth);
+  if (denied) return denied;
 
   const url = new URL(request.url);
   const retentionDays = parseRetentionDays(url.searchParams.get("retention_days"));

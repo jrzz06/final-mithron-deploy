@@ -18,7 +18,6 @@ import { useUiStore } from "@/store/ui";
 
 function getInitialNavbarTone(pathname: string | null): NavbarInkTone {
   const normalized = normalizePath(pathname);
-  // Homepage opens on a bright hero slide — start with dark ink (dark text on light imagery).
   if (normalized === "/") return "dark";
   return "dark";
 }
@@ -236,14 +235,7 @@ export function StoreNav({
   return (
     <div
       className="TOP_NAVBAR adaptive-navbar absolute left-0 top-0 z-[999] w-full"
-      style={{
-        ...style,
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 999
-      }}
+      style={style}
       data-nav-state="adaptive"
       data-nav-ink={tone}
       onMouseEnter={clearCloseTimer}
@@ -276,25 +268,17 @@ export function StoreNav({
           </p>
           <div className="mithron-topbar__locale" aria-label="Store region and currency">
             <Globe2 className="size-3.5" aria-hidden="true" />
-            <span>India (English / â‚¹ INR)</span>
+            <span>India (English / ₹ INR)</span>
           </div>
         </div>
       </div>
-      <header className="adaptive-navbar__bar relative h-[62px] font-[var(--type-ui)] md:h-[66px]">
+      <header className="adaptive-navbar__bar relative h-16 font-[var(--type-ui)] md:h-[66px]">
         <div className="relative z-10 mx-auto grid h-full w-full max-w-[1680px] grid-cols-[auto_1fr_auto] items-center pl-2 pr-4 md:pl-3 md:pr-8 lg:pl-5 lg:pr-[clamp(2.5rem,6.4vw,7.5rem)]">
-          <div className="flex items-center gap-3 justify-self-start md:gap-2.5">
+          <div className="flex items-center justify-self-start md:gap-2.5">
             <Link href="/" aria-label="Go to Mithron home" className="adaptive-navbar__brand nav-interactive inline-flex shrink-0 items-center text-current">
               <MithronBrandMark />
               <span className="sr-only">Mithron</span>
             </Link>
-            <button
-              type="button"
-              className="adaptive-navbar__icon adaptive-navbar__menu-toggle nav-interactive nav-interactive--subtle -mr-0.5 flex size-10 items-center justify-center rounded-full text-current lg:hidden"
-              aria-label="Open menu"
-              onClick={() => setOverlay("mobile-menu")}
-            >
-              <Menu className="size-[21px]" />
-            </button>
           </div>
 
           <nav className="absolute left-1/2 top-1/2 z-[1] hidden -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-4 whitespace-nowrap lg:flex xl:gap-7 2xl:gap-8">
@@ -325,7 +309,7 @@ export function StoreNav({
             })}
           </nav>
 
-          <div className="ml-auto flex items-center justify-end gap-1.5 justify-self-end md:gap-2.5">
+          <div className="ml-auto flex items-center justify-end gap-1 justify-self-end md:gap-2.5">
             <button
               className="adaptive-navbar__icon nav-interactive nav-interactive--subtle inline-flex size-10 items-center justify-center rounded-full text-current"
               aria-label="Search Mithron systems"
@@ -347,6 +331,14 @@ export function StoreNav({
                 <UserRound className="size-[18px]" />
               </Link>
             ) : null}
+            <button
+              type="button"
+              className="adaptive-navbar__icon adaptive-navbar__menu-toggle nav-interactive nav-interactive--subtle flex size-10 items-center justify-center rounded-full text-current lg:hidden"
+              aria-label="Open menu"
+              onClick={() => setOverlay("mobile-menu")}
+            >
+              <Menu className="size-[18px]" />
+            </button>
           </div>
         </div>
       </header>
@@ -627,7 +619,7 @@ function MobileMenu({
       <div
         data-testid="mobile-menu"
         aria-hidden={!open}
-        className={`adaptive-mobile-menu fixed inset-x-4 top-[104px] z-[1000] overflow-hidden rounded-[20px] border p-4 md:top-[110px] lg:hidden ${open ? "is-open" : ""}`}
+        className={`adaptive-mobile-menu fixed inset-x-4 top-[calc(var(--store-nav-offset)+8px)] z-[1000] overflow-hidden rounded-[20px] border p-4 md:top-[calc(var(--store-nav-offset)+8px)] lg:hidden ${open ? "is-open" : ""}`}
       >
         <div className="mb-4 flex items-center justify-between">
           <p className="adaptive-mobile-menu__label text-[11px] font-medium uppercase tracking-[0.14em]">Navigation</p>

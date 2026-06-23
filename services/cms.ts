@@ -1,7 +1,9 @@
 import { cache } from "react";
 import { isCmsStrictMode } from "@/lib/cms/strict-mode";
 import { catalogRoutes } from "@/config/catalog-routes";
+import { getResponsiveAssetForSrc } from "@/config/generated-assets";
 import { navigation } from "@/config/navigation";
+import { inkFromHexColor } from "@/lib/navbar-ink-sampling";
 import {
   footerContent,
   productSupportContent,
@@ -34,7 +36,7 @@ type CategoryMetadata = {
   };
 };
 
-type FooterLeadContent = Pick<FooterContent, "leadTitle" | "leadBody" | "emailPlaceholder" | "ctaLabel" | "legalText">;
+type FooterLeadContent = Pick<FooterContent, "leadTitle" | "leadBody" | "contactEmail" | "contactPhone" | "legalText">;
 
 type CmsSurfaceName =
   | "navigation"
@@ -129,8 +131,6 @@ const publicCmsQueries = {
 const emptyFooterContent: FooterContent = {
   leadTitle: "",
   leadBody: "",
-  emailPlaceholder: "",
-  ctaLabel: "",
   columns: [],
   legalText: ""
 };
@@ -184,13 +184,23 @@ function mergeCategoryMetadata(routeKey: string, cms?: CategoryMetadata): Catego
 
   const cmsShowcase = cms?.showcaseImage?.src?.trim() ? cms.showcaseImage : undefined;
   const fallbackShowcase = fallback?.showcaseImage;
-  const showcaseImage = cmsShowcase
+  const mergedShowcase = cmsShowcase
     ? {
         ...fallbackShowcase,
         ...cmsShowcase,
         fit: cmsShowcase.fit ?? (fallbackShowcase as { fit?: "cinematic" | "native" } | undefined)?.fit
       }
     : fallbackShowcase;
+  const showcaseImage = mergedShowcase
+    ? {
+        ...mergedShowcase,
+        navbarInk:
+          inkFromHexColor(getResponsiveAssetForSrc(mergedShowcase.src)?.dominantColor)
+          ?? mergedShowcase.navbarInk
+          ?? fallbackShowcase?.navbarInk
+          ?? "light"
+      }
+    : undefined;
 
   return {
     title: cms?.title?.trim() || fallback?.title || "",
@@ -486,8 +496,8 @@ function footerLeadDefaults(): FooterLeadContent {
   return {
     leadTitle: footerContent.leadTitle,
     leadBody: footerContent.leadBody,
-    emailPlaceholder: footerContent.emailPlaceholder,
-    ctaLabel: footerContent.ctaLabel,
+    contactEmail: footerContent.contactEmail,
+    contactPhone: footerContent.contactPhone,
     legalText: footerContent.legalText
   };
 }
@@ -503,8 +513,8 @@ function mapFooterLeadSettings(payload: unknown): FooterLeadContent {
   return {
     leadTitle: optionalString(row.leadTitle) ?? optionalString(row.lead_title) ?? defaults.leadTitle,
     leadBody: optionalString(row.leadBody) ?? optionalString(row.lead_body) ?? defaults.leadBody,
-    emailPlaceholder: optionalString(row.emailPlaceholder) ?? optionalString(row.email_placeholder) ?? defaults.emailPlaceholder,
-    ctaLabel: optionalString(row.ctaLabel) ?? optionalString(row.cta_label) ?? defaults.ctaLabel,
+    contactEmail: optionalString(row.contactEmail) ?? optionalString(row.contact_email) ?? defaults.contactEmail,
+    contactPhone: optionalString(row.contactPhone) ?? optionalString(row.contact_phone) ?? defaults.contactPhone,
     legalText: optionalString(row.legalText) ?? optionalString(row.legal_text) ?? defaults.legalText
   };
 }

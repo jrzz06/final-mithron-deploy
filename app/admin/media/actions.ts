@@ -9,6 +9,7 @@ import { getCurrentAuthContext, requireAdminPermission } from "@/services/auth";
 import {
   assertAllowedMediaBucket,
   assertAllowedMediaMimeType,
+  assertMediaUploadSize,
   buildMediaAssetId,
   buildMediaAssetRecordFromFormData,
   buildStorageObjectPath
@@ -180,10 +181,7 @@ export async function saveMediaUploadFormAction(formData: FormData) {
     for (let index = 0; index < uploadedFiles.length; index += 1) {
       const file = uploadedFiles[index];
       const mimeType = assertAllowedMediaMimeType(file.type || "application/octet-stream", bucket);
-      const maxUploadBytes = Number(process.env.MEDIA_MAX_UPLOAD_BYTES?.trim() || 0) || 50 * 1024 * 1024;
-      if (file.size > maxUploadBytes) {
-        throw new Error(`File "${file.name}" exceeds the maximum upload size of ${Math.round(maxUploadBytes / 1024 / 1024)} MB.`);
-      }
+      assertMediaUploadSize(file);
       const uploadAt = new Date(Date.parse(now) + index).toISOString();
       const storagePath = buildStorageObjectPath({
         bucket,

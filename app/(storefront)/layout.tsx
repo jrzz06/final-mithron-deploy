@@ -8,7 +8,7 @@ function StorefrontShellFallback({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#eef0f3]">
       <div className="h-[104px] animate-pulse bg-[#dfe3e8]" aria-hidden="true" />
-      <main className="pt-16 md:pt-[104px]">{children}</main>
+      <main className="store-main-offset">{children}</main>
     </div>
   );
 }

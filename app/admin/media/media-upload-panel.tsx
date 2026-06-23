@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ImageIcon, RotateCcw, UploadCloud, VideoIcon } from "lucide-react";
+import { ALLOWED_MEDIA_MIME_TYPES } from "@/services/media-manager";
 
 type MediaUploadPanelProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -16,18 +17,8 @@ type SelectedFile = {
   accepted: boolean;
 };
 
-const acceptedTypes = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/avif",
-  "image/gif",
-  "image/svg+xml",
-  "video/mp4",
-  "video/webm",
-  "video/quicktime",
-  "application/pdf"
-]);
+const acceptedTypes = ALLOWED_MEDIA_MIME_TYPES;
+const acceptedMimeList = [...ALLOWED_MEDIA_MIME_TYPES].join(",");
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -131,7 +122,7 @@ export function MediaUploadPanel({ action }: MediaUploadPanelProps) {
               name="files"
               type="file"
               multiple
-              accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/svg+xml,video/mp4,video/webm,video/quicktime,application/pdf"
+              accept={acceptedMimeList}
               className="sr-only"
               onChange={(event) => {
                 if (event.currentTarget.files) applyFiles(event.currentTarget.files);

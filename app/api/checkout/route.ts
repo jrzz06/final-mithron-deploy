@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkDistributedRateLimit } from "@/lib/rate-limit-redis";
 import { parseCheckoutRequestBody, type GuestAddress } from "@/lib/api/checkout-schema";
+import { requireClientAuditToken } from "@/lib/api/require-client-audit-token";
 import { createClient } from "@/lib/server";
 import { assertSupabaseAdminConfig } from "@/lib/env";
 import { assertCustomerAddressBelongsToUser } from "@/services/customer-addresses";
@@ -119,6 +120,13 @@ export async function POST(request: Request) {
   const limit = await checkDistributedRateLimit(`checkout:${rateKey}`, 5, 60_000);
   if (!limit.allowed) {
     return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
+
+  if (!userId) {
+    const audit = requireClientAuditToken(request);
+    if (!audit.ok) {
+      return NextResponse.json({ error: audit.error }, { status: 401 });
+    }
   }
 
   if (process.env.NODE_ENV === "production" && !isPaymentGatewayConfigured()) {

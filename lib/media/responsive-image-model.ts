@@ -129,3 +129,50 @@ export function buildResponsiveImageModel(input: ResponsiveImageModelInput): Res
     mode
   };
 }
+
+export function buildImageFallbackChain(model: ResponsiveImageModel): string[] {
+  const chain: string[] = [];
+  const isSupabaseStorageSrc = (value: string) => /^https?:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/public\//i.test(value);
+  const push = (value?: string | null) => {
+    if (!value || chain.includes(value) || !isSupabaseStorageSrc(value)) return;
+    chain.push(value);
+  };
+
+  push(model.primarySrc);
+  push(model.optimizedSrc);
+
+  const skipResolvedMapFallback =
+    Boolean(model.variantFallbackSrc) &&
+    model.variantFallbackSrc === model.resolvedSrc &&
+    model.requestedSrc !== model.resolvedSrc;
+
+  if (model.variantFallbackSrc && !skipResolvedMapFallback) {
+    push(model.variantFallbackSrc);
+  }
+
+  push(model.responsive?.fallbackSrc);
+
+  if (
+    model.requestedSrc &&
+    model.requestedSrc !== model.primarySrc &&
+    model.requestedSrc !== model.optimizedSrc &&
+    model.requestedSrc !== model.variantFallbackSrc &&
+    model.requestedSrc !== model.responsive?.fallbackSrc
+  ) {
+    push(model.requestedSrc);
+  }
+
+  return chain;
+}
+
+export function isResponsiveVariantSrc(model: ResponsiveImageModel, src: string) {
+  if (src === model.primarySrc || src === model.optimizedSrc) return true;
+
+  const variants = [
+    ...(model.responsive?.variants.webp ?? []),
+    ...(model.responsive?.variants.avif ?? []),
+    ...(model.responsive?.variants.png ?? [])
+  ];
+
+  return variants.some((variant) => variant.src === src);
+}

@@ -6,6 +6,31 @@ export function generateCspNonce() {
   return randomBytes(16).toString("base64");
 }
 
+function resolveSupabaseOrigin(env: EnvSource) {
+  const url = env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!url) return null;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+function buildImageSrcDirective(env: EnvSource) {
+  const supabaseOrigin = resolveSupabaseOrigin(env);
+  if (env.NODE_ENV !== "production") {
+    return ["'self'", "data:", "blob:", "https:", ...(supabaseOrigin ? [supabaseOrigin] : [])].join(" ");
+  }
+
+  return [
+    "'self'",
+    "data:",
+    "blob:",
+    "https://checkout.razorpay.com",
+    ...(supabaseOrigin ? [supabaseOrigin] : [])
+  ].join(" ");
+}
+
 export function buildContentSecurityPolicy(nonce: string, env: EnvSource = process.env) {
   const devScriptDirectives = env.NODE_ENV !== "production" ? ["'unsafe-eval'"] : [];
   const devConnectDirectives = env.NODE_ENV !== "production" ? ["ws:", "wss:"] : [];
@@ -18,7 +43,7 @@ export function buildContentSecurityPolicy(nonce: string, env: EnvSource = proce
     "style-src 'self' 'unsafe-inline'",
     "frame-src https://*.razorpay.com",
     `connect-src ${connectSrc}`,
-    "img-src 'self' data: https: blob:",
+    `img-src ${buildImageSrcDirective(env)}`,
     "base-uri 'self'",
     "object-src 'none'",
     "form-action 'self'",

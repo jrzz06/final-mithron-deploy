@@ -13,6 +13,19 @@ create table if not exists public.product_merge_audit (
 create index if not exists product_merge_audit_source_idx on public.product_merge_audit (source_slug);
 create index if not exists product_merge_audit_target_idx on public.product_merge_audit (target_slug);
 
+alter table public.product_merge_audit enable row level security;
+
+drop policy if exists "product_merge_audit service role manage" on public.product_merge_audit;
+create policy "product_merge_audit service role manage"
+  on public.product_merge_audit
+  for all
+  to service_role
+  using (true)
+  with check (true);
+
+revoke all on table public.product_merge_audit from anon, authenticated;
+grant all on table public.product_merge_audit to service_role;
+
 alter table public.mithron_products
   add column if not exists merged_into_slug text,
   add column if not exists merge_status text;
@@ -139,5 +152,9 @@ begin
   );
 end;
 $$;
+
+revoke all on function public.merge_product_into_canonical(text, text, text) from public;
+revoke all on function public.merge_product_into_canonical(text, text, text) from anon;
+revoke all on function public.merge_product_into_canonical(text, text, text) from authenticated;
 
 grant execute on function public.merge_product_into_canonical(text, text, text) to service_role;

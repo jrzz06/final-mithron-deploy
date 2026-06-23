@@ -114,7 +114,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       </div>
       <SpecsFaqReviews product={product} relatedProducts={[]} support={cms.productSupport} />
       {reviewPayload.reviews.length > 0 ? (
-        <Suspense fallback={<div className="min-h-[320px] animate-pulse bg-[#f8fafc]" aria-hidden="true" />}>
+        <Suspense fallback={<div className="min-h-[320px] animate-pulse bg-[var(--ds-skeleton)]" aria-hidden="true" />}>
           <ProductReviewsLazySection
             productName={product.name}
             reviews={reviewPayload.reviews}
@@ -122,7 +122,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           />
         </Suspense>
       ) : null}
-      <Suspense fallback={<div className="min-h-[360px] animate-pulse bg-[#f8fafc]" aria-hidden="true" />}>
+      <Suspense fallback={<div className="min-h-[360px] animate-pulse bg-[var(--ds-skeleton)]" aria-hidden="true" />}>
         <ProductRelatedLazySection relatedProducts={relatedProducts} />
       </Suspense>
     </article>

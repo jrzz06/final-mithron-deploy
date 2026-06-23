@@ -131,6 +131,10 @@ export function assertProductionRuntimeConfig(env: EnvSource = process.env) {
     missing.push("UPSTASH_REDIS_REST_TOKEN");
   }
 
+  if (env.ALLOW_DEMO_SEED === "true") {
+    missing.push("ALLOW_DEMO_SEED must not be true in production");
+  }
+
   if (missing.length) {
     throw new Error(`Missing required production environment: ${missing.join(", ")}.`);
   }

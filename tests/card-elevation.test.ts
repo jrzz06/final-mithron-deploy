@@ -27,9 +27,9 @@ describe("card elevation system", () => {
   it("wires catalog and home shelf cards to elevation tokens", () => {
     const globals = source("app/globals.css");
 
-    expect(globals).toMatch(/\.catalog-page-shell \.premium-product-card-shell\s*{[\s\S]*box-shadow: var\(--elevation-product-rest\)/);
+    expect(globals).toMatch(/\.catalog-page-shell \.premium-product-card-shell\s*{[\s\S]*border: 1px solid var\(--ds-border\)/);
     expect(globals).toMatch(
-      /\.catalog-page-shell \.premium-product-card-shell:is\(:hover, :focus-within, :focus-visible\)\s*{[\s\S]*box-shadow: var\(--elevation-product-hover\)/
+      /\.catalog-page-shell \.premium-product-card-shell:is\(:hover, :focus-within, :focus-visible\)\s*{[\s\S]*box-shadow: 0 4px 16px rgba\(17, 17, 17, 0\.1\)/
     );
     expect(globals).toMatch(/\.home-shelf-card-link\s*{[\s\S]*box-shadow: var\(--elevation-card-rest\)/);
     expect(globals).toMatch(/\.home-shelf-card-link:hover[\s\S]*box-shadow: var\(--elevation-card-hover\)/);
@@ -45,8 +45,8 @@ describe("card elevation system", () => {
 
     expect(productCard).not.toMatch(/shadow-\[/);
     expect(productCard).toContain("premium-product-card-shell");
-    expect(productCardCss).toContain("--elevation-product-rest");
-    expect(productCardCss).toContain("--elevation-product-hover");
+    expect(productCardCss).toContain("var(--ds-border)");
+    expect(productCardCss).toContain("var(--ds-r-lg)");
     expect(metricCard).not.toContain("boxShadow");
     expect(metricCard).toContain("data-admin-metric-grid");
     expect(surface).not.toContain("boxShadow");

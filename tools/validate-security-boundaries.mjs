@@ -15,6 +15,21 @@ const baseUrl = process.argv.find((arg) => arg.startsWith("--base-url="))?.slice
 const marker = `security-boundary-${Date.now()}`;
 const cleanup = [];
 
+function expectedUploadDeniedStatuses() {
+  const statuses = [401, 403];
+  if (process.env.MITHRON_UPLOAD_API_RETIRED === "true") {
+    statuses.push(410);
+  }
+  return statuses;
+}
+
+function assertUploadDenied(status, context) {
+  const allowed = expectedUploadDeniedStatuses();
+  if (!allowed.includes(status)) {
+    throw new Error(`${context} expected ${allowed.join("/")}, got ${status}.`);
+  }
+}
+
 if (!url || !publishableKey || !serviceRoleKey) {
   console.error(JSON.stringify({
     status: "FAILED",
@@ -206,8 +221,20 @@ async function reportDeniedAttempt(persona, input) {
     })
   }, bearerHeaders(persona.session.access_token));
 
+  const canReportDenials = persona.role === "admin" || persona.role === "warehouse" || persona.role === "supplier";
   if (!result.response.ok) {
+    if (!canReportDenials && result.response.status === 403) {
+      return {
+        status: "VERIFIED_TELEMETRY_FORBIDDEN",
+        httpStatus: result.response.status,
+        attemptedResource
+      };
+    }
     throw new Error(`security denial telemetry failed for ${input.attemptedResource}: ${result.response.status} ${result.response.statusText} ${result.text}`);
+  }
+
+  if (!canReportDenials) {
+    throw new Error(`security denial telemetry unexpectedly accepted for ${persona.key}.`);
   }
 
   cleanup.push(() => serviceDelete("security_events", `attempted_resource=eq.${encodeURIComponent(attemptedResource)}`));
@@ -470,9 +497,7 @@ async function validateDirectApiAccess(byKey) {
         method: "POST",
         body: JSON.stringify({ marker })
       }, { "Content-Type": "application/json" });
-      if (![401, 403].includes(result.response.status)) {
-        throw new Error(`missing token upload expected 401/403, got ${result.response.status}.`);
-      }
+      assertUploadDenied(result.response.status, "missing token upload");
       return { status: "VERIFIED_DENIED", httpStatus: result.response.status, statusText: result.response.statusText };
     })(),
     localUploadInvalidToken: await (async () => {
@@ -483,9 +508,7 @@ async function validateDirectApiAccess(byKey) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${invalidToken}`
       });
-      if (![401, 403].includes(result.response.status)) {
-        throw new Error(`invalid token upload expected 401/403, got ${result.response.status}.`);
-      }
+      assertUploadDenied(result.response.status, "invalid token upload");
       return { status: "VERIFIED_DENIED", httpStatus: result.response.status, statusText: result.response.statusText };
     })()
   };
@@ -636,11 +659,16 @@ async function validateRlsMatrix(byKey) {
       }
       return summarizeDenied(unauthorizedOrderDelete);
     })(),
-    adminDirectUserRoleDeleteExplicitDenied: (() => {
-      if (![401, 403].includes(adminRoleDelete.response.status)) {
-        throw new Error(`direct user role delete expected 401/403, got ${adminRoleDelete.response.status}.`);
+    adminDirectUserRoleDeleteExplicitDenied: await (async () => {
+      const summary = summarizeDenied(adminRoleDelete);
+      const roleStillExists = await restOk(
+        `/rest/v1/user_roles?select=role_key&user_id=eq.${encodeURIComponent(byKey.user.userId)}&role_key=eq.user`
+      );
+      const rows = Array.isArray(roleStillExists.body) ? roleStillExists.body : [];
+      if (rows.length !== 1) {
+        throw new Error("Admin direct user role delete removed the protected user role row.");
       }
-      return summarizeDenied(adminRoleDelete);
+      return summary;
     })()
   };
 }

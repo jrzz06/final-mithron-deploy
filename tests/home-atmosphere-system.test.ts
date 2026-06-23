@@ -22,9 +22,9 @@ describe("home landing composite visual system", () => {
     expect(component).toContain("localMedia");
     expect(source("config/storefront-media-paths.ts")).toContain("night-surveillance.webp");
     expect(source("config/homepage-media-fallbacks.ts")).toContain("Supabase-backed surveillance mission media");
-    expect(css).toContain("--home-page: var(--surface-page)");
-    expect(css).toContain("--home-card: #ffffff");
-    expect(css).toContain("linear-gradient(180deg, #ffffff 0%, var(--home-page)");
+    expect(css).toContain("--home-page: var(--ds-bg)");
+    expect(css).toContain("--home-card: var(--ds-card)");
+    expect(css).toContain("background: var(--ds-bg)");
     expect(css).toContain("border: 1px solid var(--home-border)");
     expect(css).not.toMatch(/aurora|neon|text-shadow|filter:\s*drop-shadow|glow/i);
     expect(component).not.toContain("data-atmosphere-system");

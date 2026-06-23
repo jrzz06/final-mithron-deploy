@@ -140,7 +140,7 @@ function CheckoutInvoice({
   );
 }
 
-export function CheckoutPageClient() {
+export function CheckoutPageClient({ auditToken }: { auditToken?: string | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const items = useCartStore((state) => state.items);
@@ -343,7 +343,10 @@ export function CheckoutPageClient() {
 
     const response = await fetch("/api/checkout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(auditToken ? { "x-auth-audit-token": auditToken } : {})
+      },
       body: JSON.stringify(cartPayload)
     });
     const payload = await response.json().catch(() => ({}));
@@ -392,7 +395,10 @@ export function CheckoutPageClient() {
 
     const response = await fetch("/api/checkout/enquiry", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(auditToken ? { "x-auth-audit-token": auditToken } : {})
+      },
       body: JSON.stringify({ ...cartPayload, message: enquiryMessage.trim() })
     });
     const payload = await response.json().catch(() => ({}));

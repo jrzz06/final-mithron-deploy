@@ -12,12 +12,12 @@ export default function CartPage() {
   const removeItem = useCartStore((state) => state.removeItem);
 
   return (
-    <main className="surface-page min-h-screen px-6 py-28 md:px-16">
+    <main className="surface-page inner-page min-h-screen">
       <section className="mx-auto max-w-[960px]">
         <h1 className="type-page">Cart</h1>
         <div className="mt-8 grid gap-4">
           {items.length ? items.map((item) => (
-            <article key={`${item.productSlug}-${item.bundleId}`} className="rounded-2xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-5">
+            <article key={`${item.productSlug}-${item.bundleId}`} className="rounded-[var(--ds-r-xl)] border border-[var(--surface-border)] bg-[var(--surface-card)] p-5">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="font-semibold text-white">{item.productName}</p>

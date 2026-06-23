@@ -23,5 +23,7 @@ describe("CSP headers", () => {
     expect(devPolicy).toContain("'unsafe-eval'");
     const prodPolicy = buildContentSecurityPolicy("test-nonce", { NODE_ENV: "production" });
     expect(prodPolicy).not.toContain("'unsafe-eval'");
+    expect(prodPolicy).not.toContain("img-src 'self' data: https: blob:");
+    expect(prodPolicy).toContain("img-src 'self' data: blob:");
   });
 });

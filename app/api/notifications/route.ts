@@ -1,34 +1,28 @@
 import { NextResponse } from "next/server";
+import { checkDistributedRateLimit } from "@/lib/rate-limit-redis";
 import { createClient } from "@/lib/server";
-import { assertSupabaseAdminConfig } from "@/lib/env";
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const recipient = url.searchParams.get("recipient");
+export async function GET() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const userId = typeof data?.claims?.sub === "string" ? data.claims.sub : null;
+  if (!userId) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-  if (!userId || !recipient || recipient !== userId) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const limit = await checkDistributedRateLimit(`notifications:${userId}`, 30, 60_000);
+  if (!limit.allowed) {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   }
 
-  const config = assertSupabaseAdminConfig(process.env);
-  const response = await fetch(
-    `${config.url}/rest/v1/notifications?select=id,title,body,status,created_at&recipient_id=eq.${userId}&order=created_at.desc&limit=20`,
-    {
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`
-      },
-      cache: "no-store"
-    }
-  );
+  const { data: notifications, error } = await supabase
+    .from("notifications")
+    .select("id,title,body,status,created_at")
+    .eq("recipient_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(20);
 
-  if (!response.ok) {
+  if (error) {
     return NextResponse.json({ error: "Failed to fetch notifications." }, { status: 500 });
   }
 
-  const notifications = await response.json();
-  return NextResponse.json({ notifications });
+  return NextResponse.json({ notifications: notifications ?? [] });
 }

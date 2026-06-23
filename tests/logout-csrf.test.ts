@@ -14,6 +14,12 @@ describe("logout CSRF protection", () => {
     expect(route).toContain("createLogoutClient");
   });
 
+  it("sets sameSite cookie options on Supabase server clients", () => {
+    const server = readFileSync(join(process.cwd(), "lib/server.ts"), "utf8");
+    expect(server).toContain('sameSite: "lax"');
+    expect(server).toContain("cookieOptions");
+  });
+
   it("uses POST forms for account and control panel logout buttons", () => {
     const accountLayout = readFileSync(join(process.cwd(), "app/(storefront)/account/layout.tsx"), "utf8");
     const platformNav = readFileSync(join(process.cwd(), "components/platform/platform-nav.tsx"), "utf8");

@@ -6,6 +6,7 @@ describe("health endpoint", () => {
   it("returns minimal public status and gates detailed diagnostics behind HEALTH_CHECK_SECRET", () => {
     const route = readFileSync(join(process.cwd(), "app/api/health/route.ts"), "utf8");
     expect(route).toContain("HEALTH_CHECK_SECRET");
+    expect(route).toContain("authorizeBearerSecret");
     expect(route).toContain('return NextResponse.json({ status }');
     expect(route).toContain("build_id");
     expect(route).not.toContain("serviceRoleKey");
