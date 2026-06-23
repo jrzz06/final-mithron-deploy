@@ -633,6 +633,7 @@ function shelfNavbarInk(tone: ProductShelfConfig["tone"]): "light" | "dark" {
   return "dark";
 }
 
+function renderChapter({
   chapter,
   products,
   shelfConfigs,
