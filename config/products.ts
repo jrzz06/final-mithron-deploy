@@ -1,5 +1,4 @@
 import { interestAssets } from "@/config/assets";
-import { hydrateStorefrontMediaAssets } from "@/config/generated-assets";
 import type { HeroSlide, Interest } from "@/config/types";
 export { navigation } from "@/config/navigation";
 
@@ -79,5 +78,3 @@ export const interests: Interest[] = [
   { slug: "surveillance", label: "AI Monitoring", headline: "Live aerial awareness for distributed operations.", image: { src: interestAssets.surveillance, alt: "Mithron AI monitoring surveillance grid scene" } },
   { slug: "components", label: "Ecosystem", headline: "Hardware, payloads, controllers, service, and software.", image: { src: interestAssets.components, alt: "Mithron drone ecosystem components and payloads" } }
 ];
-
-hydrateStorefrontMediaAssets({ slides: heroSlides, interests });

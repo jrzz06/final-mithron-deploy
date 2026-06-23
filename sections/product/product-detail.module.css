@@ -912,6 +912,60 @@
   box-shadow: var(--pdp-float-shadow);
 }
 
+.tabPillLabel {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.supportTabs input:first-of-type:checked ~ .tabList .tabPillLabel:first-of-type,
+.supportTabs input:last-of-type:checked ~ .tabList .tabPillLabel:last-of-type {
+  border-color: var(--brand-accent, #174d33);
+  background: var(--brand-accent, #174d33);
+  color: #fff;
+}
+
+.supportTabPanelFaq,
+.supportTabPanelRelated {
+  display: none;
+}
+
+.supportTabs input:first-of-type:checked ~ .supportTabPanelFaq {
+  display: block;
+}
+
+.supportTabs input:last-of-type:checked ~ .supportTabPanelRelated {
+  display: block;
+}
+
+.faqItem {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.faqItem:last-child {
+  border-bottom: none;
+}
+
+.faqQuestion {
+  list-style: none;
+  cursor: pointer;
+  padding: 1rem 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+
+.faqQuestion::-webkit-details-marker {
+  display: none;
+}
+
+.faqAnswer {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #475569;
+}
+
 .reviewGrid {
   display: grid;
   gap: 1rem;

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Archive, Download, MoreHorizontal, Pencil, Plus, Search, Trash2, Upload, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { memo, type ReactNode, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { OperationalSubmitButton } from "@/components/admin/operational-submit-button";
 import type { SimpleInventoryRow, SimpleInventoryStatus } from "@/services/simple-inventory-view";
 import { buildInventorySnapshot } from "@/services/inventory-csv";
@@ -434,6 +435,11 @@ export function InventoryManager({
   const visibleRows = filteredRows;
   const inventorySummary = useMemo(() => buildInventorySnapshot(filteredRows), [filteredRows]);
   const categoryOptions = useMemo(() => Array.from(new Set(mergedRows.map((row) => row.category).filter(Boolean))).sort(), [mergedRows]);
+  const mobileRowVirtualizer = useWindowVirtualizer({
+    count: visibleRows.length,
+    estimateSize: () => 220,
+    overscan: 3
+  });
 
   function updateSelected(id: string, checked: boolean) {
     setSelected((current) => {
@@ -579,7 +585,7 @@ export function InventoryManager({
         <span>Use row checkboxes, then open Bulk actions for a grouped stock update.</span>
       </div>
 
-      <div className="hidden overflow-auto rounded-xl border border-slate-800 md:block">
+      <div className="hidden max-h-[70vh] overflow-auto rounded-xl border border-slate-800 md:block">
         <table data-inventory-table className="min-w-[920px] w-full border-collapse bg-[#0f141b]">
           <thead className="sticky top-0 z-20 bg-[#172131] text-left text-xs font-semibold text-slate-300">
             <tr>
@@ -641,8 +647,20 @@ export function InventoryManager({
       </div>
 
       <div data-inventory-mobile-cards className="grid gap-2 md:hidden">
-        {visibleRows.length ? visibleRows.map((row) => (
-          <article key={row.id} className="content-visibility-auto rounded-xl border border-slate-800 bg-[#10151d] p-3 [contain-intrinsic-size:220px] [content-visibility:auto]">
+        {visibleRows.length ? (
+          <div className="relative w-full" style={{ height: `${mobileRowVirtualizer.getTotalSize()}px` }}>
+            {mobileRowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const row = visibleRows[virtualRow.index];
+              if (!row) return null;
+
+              return (
+                <article
+                  key={row.id}
+                  ref={mobileRowVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className="content-visibility-auto absolute left-0 top-0 w-full rounded-xl border border-slate-800 bg-[#10151d] p-3 [contain-intrinsic-size:220px] [content-visibility:auto]"
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                >
             <div className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-start gap-3">
               <div className="grid size-12 place-items-center overflow-hidden rounded-lg border border-slate-800 bg-[#0b1017]">
                 {row.productImage ? (
@@ -679,8 +697,11 @@ export function InventoryManager({
             <div className="mt-3">
               <InlineStockEditor row={row} action={action} onLocalUpdate={updateRow} />
             </div>
-          </article>
-        )) : (
+                </article>
+              );
+            })}
+          </div>
+        ) : (
           <p className="rounded-xl border border-slate-800 bg-[#10151d] px-4 py-8 text-center text-sm text-slate-500">No inventory rows match the current filters.</p>
         )}
       </div>

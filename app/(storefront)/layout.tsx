@@ -1,28 +1,40 @@
+import { Suspense } from "react";
 import { StoreShell } from "@/components/layout/store-shell";
-import { LenisProvider } from "@/components/providers/lenis-provider";
-import { getProductShellItems, getProducts } from "@/services/catalog";
+import { getEnterpriseMenuProducts } from "@/services/catalog";
 import { buildEnterpriseMenuConfigs } from "@/services/catalog-navigation";
-import { getPublicCmsSnapshot } from "@/services/cms";
+import { getStorefrontShellCms } from "@/services/cms";
 
-export default async function StorefrontLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const [products, shellProducts, cms] = await Promise.all([
-    getProducts(),
-    getProductShellItems(),
-    getPublicCmsSnapshot()
+function StorefrontShellFallback({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-[#eef0f3]">
+      <div className="h-[104px] animate-pulse bg-[#dfe3e8]" aria-hidden="true" />
+      <main className="pt-16 md:pt-[104px]">{children}</main>
+    </div>
+  );
+}
+
+async function StorefrontShellContent({ children }: { children: React.ReactNode }) {
+  const [menuProducts, cms] = await Promise.all([
+    getEnterpriseMenuProducts(),
+    getStorefrontShellCms()
   ]);
-  const enterpriseMenuConfigs = buildEnterpriseMenuConfigs(products);
+  const enterpriseMenuConfigs = buildEnterpriseMenuConfigs(menuProducts);
 
   return (
-    <LenisProvider>
-      <StoreShell
-        products={shellProducts}
-        interests={cms.home.interests}
-        navigationItems={cms.navigation}
-        enterpriseMenuConfigs={enterpriseMenuConfigs}
-        footer={cms.footer}
-      >
-        {children}
-      </StoreShell>
-    </LenisProvider>
+    <StoreShell
+      navigationItems={cms.navigation}
+      enterpriseMenuConfigs={enterpriseMenuConfigs}
+      footer={cms.footer}
+    >
+      {children}
+    </StoreShell>
+  );
+}
+
+export default function StorefrontLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <Suspense fallback={<StorefrontShellFallback>{children}</StorefrontShellFallback>}>
+      <StorefrontShellContent>{children}</StorefrontShellContent>
+    </Suspense>
   );
 }

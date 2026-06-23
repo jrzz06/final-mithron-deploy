@@ -8,7 +8,7 @@ import {
   createCustomerCheckoutOrderRecord,
   createNotificationRecord
 } from "@/services/admin-actions";
-import { getProducts } from "@/services/catalog";
+import { getCheckoutPricingBySlugs } from "@/services/catalog";
 import { buildCustomerEnquiryOrderDraft } from "@/services/orders";
 import { submitCheckoutProductEnquiry } from "@/services/enquiries";
 import { resolveCheckoutStockSkus } from "@/services/checkout-stock";
@@ -51,17 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 409 });
   }
 
-  const products = await getProducts();
-  const catalog = products.map((product) => ({
-    slug: product.slug,
-    name: product.name,
-    price: product.price,
-    category: product.category,
-    chargeTax: product.chargeTax,
-    taxGroup: product.taxGroup,
-    taxRate: product.taxRate,
-    taxIncluded: product.taxIncluded
-  }));
+  const catalog = await getCheckoutPricingBySlugs(body.items.map((item) => item.productSlug));
 
   const draft = buildCustomerEnquiryOrderDraft(
     {

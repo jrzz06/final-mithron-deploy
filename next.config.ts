@@ -69,7 +69,7 @@ const nextConfig: NextConfig = {
     imageSizes: [64, 96, 160, 256, 384]
   },
   experimental: {
-    optimizePackageImports: ["lucide-react", "gsap"]
+    optimizePackageImports: ["lucide-react"]
   },
   async redirects() {
     return [

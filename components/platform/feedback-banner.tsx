@@ -19,11 +19,11 @@ export function FeedbackBanner({
       : "idle";
   const tone =
     normalizedStatus === "success"
-      ? "border-teal-200 bg-teal-50 text-teal-900"
+      ? "border-[var(--platform-border)] bg-[var(--platform-success-soft)] text-[var(--platform-success)]"
       : normalizedStatus === "warning"
-        ? "border-amber-200 bg-amber-50 text-amber-900"
+        ? "border-[var(--platform-border)] bg-[var(--platform-warning-soft)] text-[var(--platform-warning)]"
         : normalizedStatus === "error"
-          ? "border-rose-200 bg-rose-50 text-rose-900"
+          ? "border-[var(--platform-border)] bg-[var(--platform-danger-soft)] text-[var(--platform-danger)]"
           : "border-[var(--platform-border)] bg-[var(--platform-surface-muted)] text-[var(--platform-text-muted)]";
 
   return (
@@ -31,13 +31,13 @@ export function FeedbackBanner({
       aria-live="polite"
       role={normalizedStatus === "idle" ? "status" : "alert"}
       data-operational-feedback={normalizedStatus}
-      className={`rounded-[var(--platform-radius)] border px-4 py-3 text-sm ${tone}`}
+      className={`rounded-[var(--platform-radius)] border-0 px-4 py-3 text-sm ${tone}`}
     >
       {normalizedStatus === "idle" ? (
         idle
       ) : (
         <>
-          <span className="font-semibold">
+          <span className="font-medium">
             {status === "conflict"
               ? "Conflict detected"
               : normalizedStatus === "success"

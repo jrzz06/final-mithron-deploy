@@ -1,4 +1,6 @@
 import { assertSupabaseAdminConfig } from "@/lib/env";
+import { AdminSection } from "@/components/admin/module-panel";
+import { FeedbackBanner, StatusPill } from "@/components/platform";
 import { countPendingSupplierProducts } from "@/services/supplier-actions";
 import { approveProductSubmissionFormAction, rejectProductSubmissionFormAction } from "./actions";
 
@@ -76,76 +78,90 @@ export default async function AdminSupplierProductsPage({
   const [products, pendingCount] = await Promise.all([fetchPendingProducts(), countPendingSupplierProducts()]);
 
   return (
-    <div className="grid gap-4">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.11em] text-slate-500">Supplier approvals</p>
-        <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold text-slate-100">Pending product submissions</h1>
-          {pendingCount > 0 ? (
-            <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-200">
-              {pendingCount} pending
-            </span>
-          ) : null}
-        </div>
+    <div className="grid gap-5">
+      <div className="max-w-3xl">
+        <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--platform-text-muted)]">Supplier approvals</p>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--platform-text-muted)]">
+          Review supplier product submissions before they are published to the storefront.
+        </p>
       </div>
 
       {params.approval_message ? (
-        <p
-          role="alert"
-          className={`rounded-xl border px-4 py-3 text-sm ${
-            params.approval_status === "success"
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
-              : params.approval_status === "conflict"
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-100"
-                : "border-rose-500/30 bg-rose-500/10 text-rose-100"
-          }`}
-        >
-          {params.approval_message}
-        </p>
+        <FeedbackBanner status={params.approval_status ?? "success"} message={params.approval_message} context="Submission" />
       ) : null}
 
-      <div className="grid gap-3">
-        {products.length ? products.map((product) => {
-          const missingSupplier = !product.supplier_id;
-          return (
-          <article key={product.slug} className="mithron-elevated-card rounded-xl border border-slate-800 bg-[#10151d] p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-100">{product.name}</h2>
-                <p className="mt-1 text-sm text-slate-400">{product.category} · INR {product.price}</p>
-                <p className="mt-1 text-xs text-slate-500">Supplier: {product.supplier_label}</p>
-                {missingSupplier ? (
-                  <p className="mt-2 text-xs font-medium text-amber-300">
-                    Missing supplier owner — reject this submission or fix supplier_id before approval.
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <form action={approveProductSubmissionFormAction}>
-                  <input type="hidden" name="slug" value={product.slug} />
-                  <input type="hidden" name="expected_updated_at" value={product.updated_at} />
-                  <button
-                    type="submit"
-                    disabled={missingSupplier}
-                    className="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Approve
-                  </button>
-                </form>
-                <form action={rejectProductSubmissionFormAction} className="flex items-center gap-2">
-                  <input type="hidden" name="slug" value={product.slug} />
-                  <input type="hidden" name="expected_updated_at" value={product.updated_at} />
-                  <input name="rejection_reason" required placeholder="Rejection reason" className="rounded-lg border border-slate-700 bg-[#0c1118] px-3 py-2 text-sm text-slate-100" />
-                  <button type="submit" className="rounded-lg bg-rose-500 px-3 py-2 text-sm font-semibold text-white">Reject</button>
-                </form>
-              </div>
-            </div>
-          </article>
-        );
-        }) : (
-          <p className="rounded-xl border border-slate-800 bg-[#10151d] p-6 text-sm text-slate-500">No products waiting for approval.</p>
-        )}
-      </div>
+      <AdminSection
+        title="Pending product submissions"
+        description={`${pendingCount} item${pendingCount === 1 ? "" : "s"} awaiting review`}
+        actions={
+          pendingCount > 0 ? (
+            <StatusPill status="pending_review" />
+          ) : undefined
+        }
+      >
+        <div className="grid gap-2">
+          {products.length ? products.map((product) => {
+            const missingSupplier = !product.supplier_id;
+            return (
+              <article
+                key={product.slug}
+                className="rounded-[8px] border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] p-4 transition-colors hover:bg-[var(--platform-surface-raised)]"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-sm font-medium text-[var(--platform-text-primary)]">{product.name}</h2>
+                      <StatusPill status={product.workflow_status} />
+                    </div>
+                    <p className="mt-1 text-sm text-[var(--platform-text-muted)]">
+                      {product.category} · INR {product.price.toLocaleString("en-IN")}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--platform-text-muted)]">Supplier: {product.supplier_label}</p>
+                    {missingSupplier ? (
+                      <p className="mt-2 text-xs text-[var(--platform-warning)]">
+                        Missing supplier owner — reject this submission or fix supplier_id before approval.
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <form action={approveProductSubmissionFormAction}>
+                      <input type="hidden" name="slug" value={product.slug} />
+                      <input type="hidden" name="expected_updated_at" value={product.updated_at} />
+                      <button
+                        type="submit"
+                        disabled={missingSupplier}
+                        className="inline-flex h-9 items-center rounded-[8px] bg-[var(--platform-accent)] px-3 text-sm font-medium text-[var(--platform-surface)] transition hover:bg-[var(--platform-accent-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Approve
+                      </button>
+                    </form>
+                    <form action={rejectProductSubmissionFormAction} className="flex flex-wrap items-center gap-2">
+                      <input type="hidden" name="slug" value={product.slug} />
+                      <input type="hidden" name="expected_updated_at" value={product.updated_at} />
+                      <input
+                        name="rejection_reason"
+                        required
+                        placeholder="Rejection reason"
+                        className="h-9 min-w-[180px] rounded-[8px] border border-[var(--platform-border)] bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-primary)] outline-none focus:border-[var(--platform-accent)]/35 focus:ring-2 focus:ring-[var(--platform-accent)]/10"
+                      />
+                      <button
+                        type="submit"
+                        className="inline-flex h-9 items-center rounded-[8px] border border-[var(--platform-border)] bg-[var(--platform-surface)] px-3 text-sm font-medium text-[var(--platform-danger)] transition hover:bg-[var(--platform-danger-soft)]"
+                      >
+                        Reject
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </article>
+            );
+          }) : (
+            <p className="rounded-[8px] border border-dashed border-[var(--platform-border)] bg-[var(--platform-surface-muted)] px-4 py-8 text-center text-sm text-[var(--platform-text-muted)]">
+              No products waiting for approval.
+            </p>
+          )}
+        </div>
+      </AdminSection>
     </div>
   );
 }

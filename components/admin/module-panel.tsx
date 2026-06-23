@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Card, MetricGrid } from "@/components/platform";
+import { MetricGrid, Card } from "@/components/platform";
 import { EmptyState } from "@/components/platform/empty-state";
 import { FeedbackBanner } from "@/components/platform/feedback-banner";
 import { StatusPill } from "@/components/platform/status-pill";
@@ -16,16 +16,20 @@ type ModulePanelProps = {
 
 export function ModulePanel({ eyebrow, title, description, status, metrics = [], children }: ModulePanelProps) {
   return (
-    <Card title={title} description={description}>
-      <p className="mb-3 text-xs font-medium text-[var(--platform-text-muted)]">{eyebrow}</p>
+    <section data-module-panel className="grid gap-5">
+      <div className="grid gap-1">
+        <p className="text-xs text-[var(--platform-text-muted)]">{eyebrow}</p>
+        <h2 className="text-base font-medium text-[var(--platform-text-primary)]">{title}</h2>
+        {description ? <p className="max-w-3xl text-sm text-[var(--platform-text-muted)]">{description}</p> : null}
+      </div>
       {status ? (
-        <div className="mb-4">
+        <div>
           <StatusPill status={snapshotStatusLabel(status)} />
         </div>
       ) : null}
-      {metrics.length ? <AdminMetricGrid metrics={metrics} className="mb-4" /> : null}
+      {metrics.length ? <AdminMetricGrid metrics={metrics} className="pb-2" /> : null}
       {children}
-    </Card>
+    </section>
   );
 }
 
@@ -64,10 +68,17 @@ export function AdminSection({
   className?: string;
 }) {
   return (
-    <Card title={title} description={description} actions={actions} className={className}>
-      {eyebrow ? <p className="-mt-2 mb-3 text-xs font-medium text-[var(--platform-text-muted)]">{eyebrow}</p> : null}
+    <section data-admin-section className={`grid gap-4 ${className}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          {eyebrow ? <p className="mb-1 text-xs text-[var(--platform-text-muted)]">{eyebrow}</p> : null}
+          <h3 className="text-sm font-medium text-[var(--platform-text-primary)]">{title}</h3>
+          {description ? <p className="mt-1 max-w-2xl text-sm text-[var(--platform-text-muted)]">{description}</p> : null}
+        </div>
+        {actions ? <div className="shrink-0">{actions}</div> : null}
+      </div>
       {children}
-    </Card>
+    </section>
   );
 }
 
@@ -90,7 +101,7 @@ export function AdminTableShell({
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--platform-border)] bg-[var(--platform-surface-muted)] px-4 py-3">
         <div>
-          <h2 className="text-sm font-semibold text-[var(--platform-text-primary)]">{title}</h2>
+          <h2 className="text-sm font-medium text-[var(--platform-text-primary)]">{title}</h2>
           {description ? <p className="mt-0.5 text-xs text-[var(--platform-text-muted)]">{description}</p> : null}
         </div>
         {action}
@@ -235,13 +246,13 @@ export function DataList({ rows }: { rows: Array<{ id?: string; label: string; v
       {rows.map((row, index) => (
         <div
           key={row.id ?? `${row.label}-${row.value}-${row.detail ?? ""}-${index}`}
-          className="grid gap-2 rounded-[var(--platform-radius)] border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] p-3 md:grid-cols-[1fr_auto] md:items-center"
+          className="flex items-start justify-between gap-4 rounded-[8px] px-1 py-2 transition-colors hover:bg-[var(--platform-surface-muted)]"
         >
-          <div>
-            <p className="text-sm font-semibold text-[var(--platform-text-primary)]">{row.label}</p>
-            {row.detail ? <p className="mt-1 text-xs text-[var(--platform-text-muted)]">{row.detail}</p> : null}
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--platform-text-primary)]">{row.label}</p>
+            {row.detail ? <p className="mt-0.5 text-xs text-[var(--platform-text-muted)]">{row.detail}</p> : null}
           </div>
-          <p className="text-sm font-semibold text-[var(--platform-text-primary)]">{row.value}</p>
+          <p className="shrink-0 text-sm text-[var(--platform-text-secondary)]">{row.value}</p>
         </div>
       ))}
     </div>

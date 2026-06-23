@@ -10,6 +10,7 @@ import {
 } from "@/config/storefront-content";
 import { getSupabaseAdminConfig } from "@/lib/env";
 import type { HeroSlide, Interest, NavigationNode } from "@/config/types";
+import { hydrateStorefrontMediaAssets } from "@/config/generated-assets";
 import {
   getHomepageCmsOrchestration,
   shouldLoadCmsSource,
@@ -677,6 +678,14 @@ export function buildPublicCmsSnapshotFromRows(rowsByTable: CmsRowsByTable): Pub
     : diagnostics.remoteSurfaces.length > 0
       ? "mixed"
       : "fallback";
+  const homeInterests = mapInterestRows(categoryRows.rows) ?? fallbackSnapshot.home.interests;
+
+  if (heroValue?.length || homeInterests.length) {
+    hydrateStorefrontMediaAssets({
+      slides: heroValue ?? [],
+      interests: homeInterests
+    });
+  }
 
   return {
     source,
@@ -685,7 +694,7 @@ export function buildPublicCmsSnapshotFromRows(rowsByTable: CmsRowsByTable): Pub
     navigation: navigationValue,
     home: {
       heroBanners: heroValue,
-      interests: mapInterestRows(categoryRows.rows) ?? fallbackSnapshot.home.interests
+      interests: homeInterests
     },
     categories: categoryValue,
     footer: footerValue,
@@ -775,6 +784,59 @@ async function loadPublicCmsSnapshot(): Promise<PublicCmsSnapshot> {
 export const getPublicCmsSnapshot = cache(async () => {
   return loadPublicCmsSnapshot();
 });
+
+export type StorefrontShellCms = {
+  navigation: NavigationNode[];
+  footer: FooterContent;
+};
+
+async function loadStorefrontShellCms(): Promise<StorefrontShellCms> {
+  if (!(await hasCmsSchema())) {
+    if (process.env.MITHRON_CMS_STRICT === "true") {
+      throw new Error("Supabase CMS schema is not available. Apply 20260523000100_enterprise_cms_rbac.sql before enabling strict CMS mode.");
+    }
+    return {
+      navigation: fallbackSnapshot.navigation,
+      footer: fallbackSnapshot.footer
+    };
+  }
+
+  const [navRows, footerColumnRows, footerLinkRows, footerLead] = await Promise.all([
+    fetchCmsRows("site_navigation", publicCmsQueries.siteNavigation),
+    fetchCmsRows("footer_columns", publicCmsQueries.footerColumns),
+    fetchCmsRows("footer_links", publicCmsQueries.footerLinks),
+    fetchFooterLeadSettings()
+  ]);
+
+  const diagnostics = createDiagnostics();
+  const navigationPublished = publishedRows(navRows);
+  const footerColumnsPublished = publishedRows(footerColumnRows);
+  const footerLinksPublished = publishedRows(footerLinkRows);
+
+  const navigation = surface(
+    diagnostics,
+    "navigation",
+    navigationPublished.rows.length,
+    mapNavigationRows(navigationPublished.rows),
+    fallbackSnapshot.navigation,
+    "missing or invalid published navigation rows"
+  );
+  const footer = mergeFooterContent(
+    surface(
+      diagnostics,
+      "footer",
+      footerColumnsPublished.rows.length + footerLinksPublished.rows.length,
+      mapFooter(footerColumnsPublished.rows, footerLinksPublished.rows),
+      fallbackSnapshot.footer,
+      "missing or invalid published footer rows"
+    ),
+    footerLead
+  );
+
+  return { navigation, footer };
+}
+
+export const getStorefrontShellCms = cache(async () => loadStorefrontShellCms());
 
 export async function getCategoryCmsMetadata(routeKey: string) {
   const snapshot = await getPublicCmsSnapshot();

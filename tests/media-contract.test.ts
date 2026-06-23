@@ -7,9 +7,12 @@ import { MithronPageHeroImage } from "@/components/media/mithron-page-hero-image
 import { MithronThumbImage } from "@/components/media/mithron-thumb-image";
 import { MithronResponsiveImage } from "@/components/media/mithron-responsive-image";
 import { getBestVariantUpToWidth, getGeneratedAssetCoverage, getResponsiveAssetForSrc } from "@/config/generated-assets";
+import { hydrateDefaultStorefrontMedia } from "@/config/products-hydration";
 import { getCriticalMediaManifest } from "@/config/media";
 import { heroSlides, interests } from "@/config/products";
 import { getProductBySlug, getProducts } from "@/services/catalog";
+
+hydrateDefaultStorefrontMedia();
 
 const supabaseStoragePrefix = "/storage/v1/object/public/mithron-products/";
 

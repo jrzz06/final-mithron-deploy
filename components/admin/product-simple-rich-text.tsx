@@ -19,7 +19,7 @@ function toolbarButtonClass(active: boolean, variant: "light" | "dark") {
 
   return cn(
     "rounded p-1.5 transition-colors",
-    active ? "bg-slate-700 text-slate-100" : "text-slate-300 hover:bg-[#151c26]"
+    active ? "bg-[var(--platform-accent-soft)] text-[var(--platform-text-primary)]" : "text-[var(--platform-text-secondary)] hover:bg-[var(--platform-accent-soft)]"
   );
 }
 
@@ -74,7 +74,7 @@ export function ProductSimpleRichText({
           "[&_p]:my-1 [&_ul]:my-2 [&_ol]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:underline",
           variant === "light"
             ? "text-slate-900 [&_.is-editor-empty:first-child::before]:text-slate-400"
-            : "text-slate-100 [&_.is-editor-empty:first-child::before]:text-slate-500"
+            : "text-[var(--platform-text-primary)] [&_.is-editor-empty:first-child::before]:text-[var(--platform-text-muted)]"
         )
       }
     }
@@ -107,7 +107,7 @@ export function ProductSimpleRichText({
         data-product-rich-text
         className={cn(
           "min-h-[180px] rounded-lg border",
-          variant === "light" ? "border-slate-200 bg-white" : "border-slate-800 bg-[#10151d]",
+          variant === "light" ? "border-slate-200 bg-white" : "bg-[var(--platform-surface)]",
           className
         )}
       />
@@ -118,8 +118,8 @@ export function ProductSimpleRichText({
     <div data-product-rich-text data-variant={variant} className={className}>
       <div
         className={cn(
-          "flex flex-wrap items-center gap-1 rounded-t-lg border border-b-0 px-2 py-1.5",
-          variant === "light" ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-[#0b1017]"
+          "flex flex-wrap items-center gap-1 rounded-t-[10px] px-2 py-1.5",
+          variant === "light" ? "border border-b-0 border-slate-200 bg-slate-50" : "bg-[var(--platform-surface)]"
         )}
       >
         <button
@@ -179,8 +179,8 @@ export function ProductSimpleRichText({
       </div>
       <div
         className={cn(
-          "rounded-b-lg border focus-within:border-slate-400",
-          variant === "light" ? "border-slate-200 bg-white focus-within:border-slate-400" : "border-slate-800 bg-[#10151d] focus-within:border-slate-600"
+          "rounded-b-[10px] focus-within:ring-2 focus-within:ring-[var(--platform-focus-ring)]",
+          variant === "light" ? "border border-slate-200 bg-white focus-within:border-slate-400" : "bg-[var(--platform-surface)] focus-within:bg-[var(--platform-accent-soft)]"
         )}
       >
         <EditorContent editor={editor} />

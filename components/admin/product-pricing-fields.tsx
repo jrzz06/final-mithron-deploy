@@ -24,13 +24,13 @@ type ProductPricingFieldsProps = {
 function currencyInputClass(variant: "light" | "dark") {
   return variant === "light"
     ? "h-10 rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-sm text-slate-950 outline-none focus:border-slate-400"
-    : "h-10 rounded-lg border border-slate-800 bg-[#0b1017] pl-8 pr-3 text-sm text-slate-100 outline-none focus:border-slate-600";
+    : "h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)] pl-8 pr-3 text-sm text-[var(--platform-text-primary)] outline-none focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]";
 }
 
 function readonlyInputClass(variant: "light" | "dark") {
   return variant === "light"
     ? "h-10 rounded-lg border border-slate-200 bg-slate-50 pl-8 pr-3 text-sm text-slate-600"
-    : "h-10 rounded-lg border border-slate-800 bg-[#0b1017]/70 pl-8 pr-3 text-sm text-slate-400";
+    : "h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)]/70 pl-8 pr-3 text-sm text-[var(--platform-text-muted)]";
 }
 
 function toggleClass(active: boolean, variant: "light" | "dark") {
@@ -40,8 +40,8 @@ function toggleClass(active: boolean, variant: "light" | "dark") {
       : "border-slate-200 bg-white text-slate-500";
   }
   return active
-    ? "border-sky-500 bg-sky-500 text-white"
-    : "border-slate-700 bg-[#0b1017] text-slate-400";
+    ? "bg-[var(--platform-accent)] text-[var(--platform-accent-text)]"
+    : "bg-[var(--platform-surface)] text-[var(--platform-text-muted)]";
 }
 
 export function ProductPricingFields({
@@ -91,7 +91,7 @@ export function ProductPricingFields({
   const sectionTitleClass = variant === "light" ? "text-sm font-semibold text-slate-950" : "text-sm font-semibold text-slate-100";
   const sectionShellClass = variant === "light"
     ? "grid gap-4 rounded-xl border border-slate-200 bg-white p-4"
-    : "grid gap-4 rounded-xl border border-slate-800 bg-[#0b1017] p-4";
+    : "grid gap-4";
 
   return (
     <section data-product-pricing-section className={sectionShellClass}>
@@ -135,9 +135,9 @@ export function ProductPricingFields({
                 onChange={(event) => setDiscountValue(event.target.value)}
                 className={variant === "light"
                   ? "h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-slate-400"
-                  : "h-10 rounded-lg border border-slate-800 bg-[#0b1017] px-3 text-sm text-slate-100 outline-none focus:border-slate-600"}
+                  : "h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-primary)] outline-none focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]"}
               />
-              <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-slate-700">
+              <div className="grid grid-cols-2 overflow-hidden rounded-lg bg-[var(--platform-surface)]">
                 <button
                   type="button"
                   onClick={() => setDiscountType("percent")}

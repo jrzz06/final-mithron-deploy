@@ -20,13 +20,13 @@ type ProductTaxFieldsProps = {
 function selectClass(variant: "light" | "dark") {
   return variant === "light"
     ? "h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-slate-400"
-    : "h-10 rounded-lg border border-slate-800 bg-[#0b1017] px-3 text-sm text-slate-100 outline-none focus:border-slate-600";
+    : "h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-primary)] outline-none focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]";
 }
 
 function readonlyInputClass(variant: "light" | "dark") {
   return variant === "light"
     ? "h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600"
-    : "h-10 rounded-lg border border-slate-800 bg-[#0b1017]/70 px-3 text-sm text-slate-400";
+    : "h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)]/70 px-3 text-sm text-[var(--platform-text-muted)]";
 }
 
 export function ProductTaxFields({
@@ -47,10 +47,10 @@ export function ProductTaxFields({
   const sectionTitleClass = variant === "light" ? "text-sm font-semibold text-slate-950" : "text-sm font-semibold text-slate-100";
   const sectionShellClass = variant === "light"
     ? "grid gap-4 rounded-xl border border-slate-200 bg-white p-4"
-    : "grid gap-4 rounded-xl border border-slate-800 bg-[#0b1017] p-4";
+    : "grid gap-4";
   const advancedShellClass = variant === "light"
     ? "grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
-    : "grid gap-3 rounded-xl border border-slate-800 bg-[#10151d] p-4";
+    : "grid gap-3";
 
   return (
     <section data-product-tax-section className={sectionShellClass}>

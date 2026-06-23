@@ -1,18 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { Minus, Plus, ShieldCheck, ShoppingBag, Truck, Wrench, X } from "lucide-react";
 import { MithronThumbImage } from "@/components/media/mithron-thumb-image";
 import { Button } from "@/components/ui/button";
-import type { ProductShellItem } from "@/services/catalog";
+import type { CatalogSearchResult } from "@/services/catalog";
 import { glassButtonClassName } from "@/lib/glass-ui";
 import { formatUsd } from "@/lib/utils";
 import { useCartStore } from "@/store/cart";
 
-export function CartDrawer({ products }: { products: ProductShellItem[] }) {
+export function CartDrawer() {
   const router = useRouter();
+  const [suggestions, setSuggestions] = useState<CatalogSearchResult[]>([]);
   const { items, isCartOpen, setCartOpen, setQuantity, subtotal, taxTotal, grandTotal } = useCartStore(
     useShallow((state) => ({
       items: state.items,
@@ -24,9 +25,33 @@ export function CartDrawer({ products }: { products: ProductShellItem[] }) {
       grandTotal: state.grandTotal()
     }))
   );
-  const suggestions = products
-    .filter((product) => product.interests.includes("agriculture") || product.interests.includes("components"))
-    .slice(0, 3);
+  const drawerSuggestions = suggestions;
+
+  useEffect(() => {
+    if (!isCartOpen || items.length) return;
+
+    let active = true;
+    const controller = new AbortController();
+
+    void fetch("/api/catalog/search?intent=cart", {
+      signal: controller.signal,
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        const payload = await response.json() as { results?: CatalogSearchResult[] };
+        if (!response.ok || !active) return;
+        setSuggestions(payload.results ?? []);
+      })
+      .catch(() => {
+        if (!active) return;
+        setSuggestions([]);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [isCartOpen, items.length]);
 
   useEffect(() => {
     if (!isCartOpen) return;
@@ -147,7 +172,7 @@ export function CartDrawer({ products }: { products: ProductShellItem[] }) {
             <div className="mt-6 text-left">
               <p className="type-meta mb-3 text-white/40">Recommended starters</p>
               <div className="grid gap-3">
-                {suggestions.map((product) => (
+                {drawerSuggestions.map((product) => (
                   <button
                     key={product.slug}
                     type="button"

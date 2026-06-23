@@ -83,7 +83,7 @@ describe("CMS cutover readiness", () => {
     const migrationPath = join(process.cwd(), "supabase/migrations/20260524000900_cms_cutover_readiness.sql");
 
     expect(existsSync(migrationPath)).toBe(true);
-    expect(pageSource).toContain("HeroCarousel");
+    expect(pageSource).toContain("HeroCarouselDynamic");
     expect(pageSource).toContain("cms.home.heroBanners");
     expect(pageSource).not.toContain("CmsHomeSection");
     expect(pageSource).not.toContain("sectionRenderers");

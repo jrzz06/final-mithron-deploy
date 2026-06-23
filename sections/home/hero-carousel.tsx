@@ -376,6 +376,7 @@ function HeroBackdrop({
               alt={slide.image.alt}
               fill
               priority={Boolean(slide.image.priority)}
+              responsive={slide.image.responsive}
               sizes="100vw"
               className="[filter:var(--hero-image-mobile-filter)] [object-position:var(--hero-image-mobile-object-position)] [transform:var(--hero-image-mobile-transform)] md:[filter:var(--hero-image-filter)] md:[object-position:var(--hero-image-object-position)] md:[transform:var(--hero-image-transform)]"
               style={imageStyle}

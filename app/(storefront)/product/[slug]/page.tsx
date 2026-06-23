@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import type { Product } from "@/config/types";
 import { getProductBySlug, getProductStaticSlugs, getRelatedProductShellItems } from "@/services/catalog";
 import { ProductConfigurator, type ProductConfiguratorModel } from "@/sections/product/product-configurator";
@@ -8,8 +9,7 @@ import { ProductDetailSectionNav } from "@/sections/product/product-detail-secti
 import { ProductHighlights } from "@/sections/product/product-highlights";
 import { ProductMediaViewer, type ProductMediaViewerModel } from "@/sections/product/product-media-viewer";
 import { ProductOverview } from "@/sections/product/product-overview";
-import { ProductRelatedSection } from "@/sections/product/product-related-section";
-import { ProductReviewsSection } from "@/sections/product/product-reviews-section";
+import { ProductRelatedLazySection, ProductReviewsLazySection } from "@/sections/product/product-below-fold";
 import { ProductStory } from "@/sections/product/product-story";
 import { SpecsFaqReviews } from "@/sections/product/specs-faq-reviews";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -114,13 +114,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
       </div>
       <SpecsFaqReviews product={product} relatedProducts={[]} support={cms.productSupport} />
       {reviewPayload.reviews.length > 0 ? (
-        <ProductReviewsSection
-          productName={product.name}
-          reviews={reviewPayload.reviews}
-          summary={reviewPayload.summary}
-        />
+        <Suspense fallback={<div className="min-h-[320px] animate-pulse bg-[#f8fafc]" aria-hidden="true" />}>
+          <ProductReviewsLazySection
+            productName={product.name}
+            reviews={reviewPayload.reviews}
+            summary={reviewPayload.summary}
+          />
+        </Suspense>
       ) : null}
-      <ProductRelatedSection relatedProducts={relatedProducts} />
+      <Suspense fallback={<div className="min-h-[360px] animate-pulse bg-[#f8fafc]" aria-hidden="true" />}>
+        <ProductRelatedLazySection relatedProducts={relatedProducts} />
+      </Suspense>
     </article>
   );
 }

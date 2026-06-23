@@ -11,10 +11,10 @@ import {
   fetchAdminRecordsByColumn,
   updateAdminRecord
 } from "@/services/admin-actions";
-import { getProducts } from "@/services/catalog";
 import { buildCustomerCheckoutDraft } from "@/services/orders";
 import { releaseCheckoutStock, reserveCheckoutStock, resolveCheckoutStockSkus } from "@/services/checkout-stock";
 import { createPaymentIntent, isPaymentGatewayConfigured } from "@/services/payments/gateway";
+import { getCheckoutPricingBySlugs } from "@/services/catalog";
 
 type CheckoutResponse = {
   ok: true;
@@ -161,17 +161,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 409 });
   }
 
-  const products = await getProducts();
-  const catalog = products.map((product) => ({
-    slug: product.slug,
-    name: product.name,
-    price: product.price,
-    category: product.category,
-    chargeTax: product.chargeTax,
-    taxGroup: product.taxGroup,
-    taxRate: product.taxRate,
-    taxIncluded: product.taxIncluded
-  }));
+  const catalog = await getCheckoutPricingBySlugs(body.items.map((item) => item.productSlug));
 
   const draft = buildCustomerCheckoutDraft(
     {

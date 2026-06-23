@@ -16,7 +16,7 @@ export function EmptyState({ message, actionLabel, actionHref, action }: EmptySt
       {!action && actionLabel && actionHref ? (
         <Link
           href={actionHref}
-          className="mt-4 inline-flex h-9 items-center rounded-[10px] bg-[var(--platform-accent)] px-4 text-sm font-semibold text-white transition hover:bg-teal-700"
+          className="mt-4 inline-flex h-9 items-center rounded-[8px] bg-[var(--platform-accent)] px-4 text-sm font-medium text-[var(--platform-surface)] transition hover:bg-[var(--platform-accent-strong)]"
         >
           {actionLabel}
         </Link>

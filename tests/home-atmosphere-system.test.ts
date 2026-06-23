@@ -9,12 +9,14 @@ function source(path: string) {
 describe("home landing composite visual system", () => {
   it("uses the Mithron white/off-white storefront rhythm with scoped styles", () => {
     const component = source("sections/home/home-landing-composite.tsx");
+    const miniCarousel = source("sections/home/home-mini-carousel.tsx");
+    const miniCarouselLib = source("lib/home/mini-carousel.ts");
     const css = source("sections/home/home-landing-composite.module.css");
     const globals = source("app/globals.css");
 
-    expect(component).toContain('data-testid="home-mini-carousel"');
-    expect(component).toContain('data-testid="home-mini-carousel-rail"');
-    expect(component).toContain("pickMiniCarouselItems");
+    expect(miniCarousel).toContain('data-testid="home-mini-carousel"');
+    expect(miniCarousel).toContain('data-testid="home-mini-carousel-rail"');
+    expect(miniCarouselLib).toContain("pickHomeMiniCarouselItems");
     expect(component).not.toContain("Mithron operating ecosystem");
     expect(component).not.toContain("one guided journey");
     expect(component).toContain("localMedia");

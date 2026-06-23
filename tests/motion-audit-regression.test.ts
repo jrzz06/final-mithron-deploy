@@ -9,12 +9,13 @@ function source(path: string) {
 describe("storefront motion audit regressions", () => {
   it("keeps the homepage composite static without scroll-scrubbed motion", () => {
     const component = source("sections/home/home-landing-composite.tsx");
+    const compositeSection = source("sections/home/home-composite-section.tsx");
 
     expect(component).not.toContain("ScrollTrigger.create");
     expect(component).not.toContain("scrub: true");
     expect(component).not.toContain("onUpdate: (self)");
     expect(component).not.toContain("--home-composite-progress");
-    expect(component).toContain('data-motion-engine="static"');
+    expect(compositeSection).toContain('data-motion-engine="static"');
     expect(component).not.toContain("scheduleCompositeMotion");
     expect(component).not.toContain("requestIdleCallback");
     expect(component).not.toContain("cancelScheduledMotion?.()");
@@ -26,39 +27,26 @@ describe("storefront motion audit regressions", () => {
     const hook = source("hooks/use-adaptive-navbar-tone.ts");
 
     expect(hook).toContain("document.elementsFromPoint");
-    expect(hook).toContain('addEventListener("scroll", scheduleUpdate, { passive: true })');
-    expect(hook).toContain('attributeFilter: ["data-navbar-ink", "data-navbar-tone", "data-active-hero-theme", "data-hero-content-ink", "data-hero-slide-state"]');
+    expect(hook).toContain('addEventListener("scroll", onScroll, { passive: true })');
+    expect(hook).toContain("MIN_CHECK_INTERVAL_MS");
+    expect(hook).toContain("requestAnimationFrame");
+    expect(hook).toContain('attributeFilter: ["data-overlay-open", "data-navbar-ink", "data-navbar-tone", "data-active-hero-theme", "data-hero-content-ink", "data-hero-slide-state"]');
     expect(hook).not.toContain("Array.from(document.images)");
     expect(hook).not.toContain("childList: true");
   });
 
-  it("enables Lenis smooth storefront scrolling without CSS smooth-scroll or control-plane latency", () => {
+  it("uses native browser scrolling without Lenis RAF loops", () => {
     const layout = source("app/(storefront)/layout.tsx");
-    const provider = source("components/providers/lenis-provider.tsx");
     const component = source("sections/home/home-landing-composite.tsx");
     const globals = source("app/globals.css");
 
-    expect(layout).toContain("LenisProvider");
-    expect(provider).toContain('import("lenis")');
-    expect(provider).toContain("new Lenis");
-    expect(provider).toContain('"(prefers-reduced-motion: reduce)"');
-    expect(provider).toContain("usePathname");
-    expect(provider).toContain("shouldUseNativeScroll");
-    expect(provider).toContain("shell-routes");
-    expect(provider).toContain("autoRaf: true");
-    expect(provider).toContain("lenis.destroy()");
-    expect(provider).toContain("syncTouch: false");
-    expect(provider).toContain("lerp: 0.08");
-    expect(provider).toContain("dataset.smoothScroll");
-    expect(provider).not.toContain("ScrollTrigger.update()");
-    expect(provider).not.toContain("mithron:viewport-scroll");
-    expect(provider).not.toContain("gsap.ticker.add");
+    expect(layout).not.toContain("LenisProvider");
+    expect(layout).not.toContain("lenis-provider");
     expect(component).not.toContain("mithron:ensure-lenis");
     expect(component).not.toContain("mithron:lenis-ready");
-    expect(globals).toMatch(/html\s*{[^}]*scroll-behavior:\s*auto/s);
-    expect(globals).not.toContain("scroll-behavior: smooth");
-    expect(globals).toContain("html.lenis");
-    expect(globals).toContain("html.lenis.lenis-smooth");
+    expect(globals).toMatch(/@media \(prefers-reduced-motion: no-preference\)[\s\S]*html\s*{[^}]*scroll-behavior:\s*smooth/s);
+    expect(globals).not.toContain("html.lenis");
+    expect(globals).not.toContain("new Lenis");
   });
 
   it("removes non-scroll-scrubbed ambient homepage motion", () => {
@@ -102,10 +90,12 @@ describe("storefront motion audit regressions", () => {
 
   it("keeps reduced motion on the composite and removes Three.js runtime from the homepage", () => {
     const component = source("sections/home/home-landing-composite.tsx");
+    const compositeSection = source("sections/home/home-composite-section.tsx");
     const css = source("sections/home/home-landing-composite.module.css");
 
-    expect(component).toContain("if (reducedMotion)");
-    expect(component).toContain('root.setAttribute("data-motion-state", "reduced")');
+    expect(compositeSection).toContain("useReducedMotionPreference");
+    expect(compositeSection).toContain('motionState = reducedMotion ? "reduced" : "static"');
+    expect(compositeSection).toContain("data-motion-state={motionState}");
     expect(component).not.toContain("HomeDroneModelScene");
     expect(component).not.toContain("enabled={!reducedMotion");
     expect(component).not.toContain("home-three-scene");
@@ -161,9 +151,10 @@ describe("storefront motion audit regressions", () => {
 
   it("uses a responsive mobile composite instead of scrubbed card transforms", () => {
     const component = source("sections/home/home-landing-composite.tsx");
+    const compositeSection = source("sections/home/home-composite-section.tsx");
     const css = source("sections/home/home-landing-composite.module.css");
 
-    expect(component).toContain("useReducedMotionPreference");
+    expect(compositeSection).toContain("useReducedMotionPreference");
     expect(component).not.toContain('window.matchMedia("(max-width: 640px)")');
     expect(css).toContain("@media (max-width: 640px)");
     expect(css).toMatch(/@media \(max-width: 640px\)\s*{[\s\S]*?\.missionWorldGrid\s*{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);

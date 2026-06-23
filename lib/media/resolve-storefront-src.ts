@@ -1,5 +1,4 @@
 import pathAliases from "@/config/storefront-path-aliases.json";
-import { getBestVariantUpToWidth, getResponsiveAssetForSrc } from "@/config/generated-assets";
 import remoteMapData from "@/data/mithron-storefront-remote-map.generated.json";
 import { storefrontMediaPaths } from "@/config/storefront-media-paths";
 
@@ -44,23 +43,11 @@ function remotePrimaryForPath(path: string) {
   return remoteByPath.get(path)?.primarySrc ?? remoteByPath.get(canonicalStorefrontPath(path))?.primarySrc;
 }
 
-const STOREFRONT_PRIMARY_MAX_WIDTH = 1920;
-
-function generatedPrimaryForPath(path: string) {
-  const responsive = getResponsiveAssetForSrc(path);
-  if (responsive?.status !== "generated") return undefined;
-  return getBestVariantUpToWidth(responsive, STOREFRONT_PRIMARY_MAX_WIDTH, "webp")?.src;
-}
-
 export function resolveStorefrontSrc(src: string, options?: { heroSlideId?: string }) {
   const trimmed = src?.trim();
   if (!trimmed) {
     const fallbackPath = options?.heroSlideId ? HERO_FALLBACK_BY_ID[options.heroSlideId] ?? "" : "";
-    return (
-      remotePrimaryForPath(fallbackPath) ??
-      generatedPrimaryForPath(fallbackPath) ??
-      fallbackPath
-    );
+    return remotePrimaryForPath(fallbackPath) ?? fallbackPath;
   }
 
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
@@ -68,11 +55,7 @@ export function resolveStorefrontSrc(src: string, options?: { heroSlideId?: stri
   }
 
   const canonical = canonicalStorefrontPath(trimmed);
-  const remote =
-    remotePrimaryForPath(canonical) ??
-    remotePrimaryForPath(trimmed) ??
-    generatedPrimaryForPath(canonical) ??
-    generatedPrimaryForPath(trimmed);
+  const remote = remotePrimaryForPath(canonical) ?? remotePrimaryForPath(trimmed);
   if (remote) return remote;
 
   if (canonical.startsWith("/")) return canonical;

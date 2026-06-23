@@ -6,24 +6,26 @@ function source(path: string) {
   return readFileSync(join(process.cwd(), path), "utf8");
 }
 
-describe("admin and warehouse light operational palette", () => {
-  it("scopes the premium light palette to control-plane routes only", () => {
+describe("admin and warehouse dark enterprise palette", () => {
+  it("scopes the premium dark palette to control-plane routes only", () => {
     const globals = source("app/globals.css");
+    const platformStyles = source("app/platform.css");
     const platformShell = source("components/platform/platform-shell.tsx");
     const controlShell = source("components/admin/control-shell.tsx");
     const warehouseLoading = source("app/warehouse/loading.tsx");
 
-    expect(globals).toContain('[data-control-plane-theme="light"]');
-    expect(globals).toContain("--platform-bg: #f5f7fa");
-    expect(globals).toContain("--platform-surface: #ffffff");
-    expect(globals).toContain("--platform-text-primary: #0f172a");
-    expect(globals).toContain("--platform-accent: #0f766e");
+    expect(platformStyles).toContain('[data-control-plane-theme="dark"]');
+    expect(platformStyles).toContain("--platform-bg: #14161a");
+    expect(platformStyles).toContain("--platform-surface: #14161a");
+    expect(platformStyles).toContain("--platform-text-primary: #eceef2");
+    expect(platformStyles).toContain("--platform-accent: #dce0e6");
 
-    expect(platformShell).toContain('data-control-plane-theme="light"');
+    expect(platformShell).toContain('data-control-plane-theme="dark"');
+    expect(platformShell).toContain('@/app/platform.css');
     expect(controlShell).toContain("data-control-shell-header");
-    expect(warehouseLoading).not.toContain('data-control-plane-theme="dark"');
+    expect(warehouseLoading).toContain('data-control-plane-theme="dark"');
 
-    expect(globals).not.toContain("body[data-control-plane-theme=\"dark\"]");
+    expect(globals).not.toContain('body[data-control-plane-theme="dark"]');
     expect(source("components/layout/store-shell.tsx")).not.toContain("data-control-plane-theme");
   });
 });

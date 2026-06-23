@@ -13,6 +13,8 @@ export type AdminMutationOptions = {
   allowSystemActor?: boolean;
   /** Compare-and-swap guard for parallel edits. */
   expectedUpdatedAt?: string | null;
+  /** Skip audit_logs writes when the mutation already has a dedicated audit trail. */
+  skipAuditLog?: boolean;
 };
 
 export class AdminRecordConflictError extends Error {
@@ -468,7 +470,6 @@ async function insertActivityLogRecord(payload: JsonRecord, actorId: string | nu
   }
 
   const [record] = await response.json() as JsonRecord[];
-  await insertAuditLog("create", "activity_logs", String(record?.id ?? payload.id ?? ""), record ?? payload, actorId, env);
   return record ?? payload;
 }
 
@@ -794,7 +795,9 @@ export async function createAdminRecord(
   }
 
   const afterData = record ?? payload;
-  await insertAuditLog("create", table, inferEntityId(table, afterData), afterData, actorId, env, null);
+  if (!options.skipAuditLog) {
+    await insertAuditLog("create", table, inferEntityId(table, afterData), afterData, actorId, env, null);
+  }
   return record ?? payload;
 }
 
@@ -822,7 +825,9 @@ export async function upsertAdminRecord(
 
   const [record] = await response.json() as JsonRecord[];
   const afterData = record ?? payload;
-  await insertAuditLog("upsert", table, inferEntityId(table, afterData) || inferEntityId(table, payload), afterData, actorId, env, beforeData);
+  if (!options.skipAuditLog) {
+    await insertAuditLog("upsert", table, inferEntityId(table, afterData) || inferEntityId(table, payload), afterData, actorId, env, beforeData);
+  }
   return record ?? payload;
 }
 
@@ -889,7 +894,9 @@ export async function updateAdminRecord(
   }
 
   const afterData = record ?? payload;
-  await insertAuditLog("update", table, idValue, afterData, actorId, env, beforeData);
+  if (!options.skipAuditLog) {
+    await insertAuditLog("update", table, idValue, afterData, actorId, env, beforeData);
+  }
   return afterData;
 }
 
@@ -1011,7 +1018,7 @@ export function upsertWarehouseStockRecord(payload: JsonRecord, actorId: string 
 }
 
 export function createInventoryMovementRecord(payload: JsonRecord, actorId: string | null, env: EnvSource = process.env) {
-  return createAdminRecord("inventory_movements", payload, actorId, env);
+  return createAdminRecord("inventory_movements", payload, actorId, env, { skipAuditLog: true });
 }
 
 export function createOrderRecord(payload: JsonRecord, actorId: string | null, env: EnvSource = process.env) {

@@ -14,6 +14,7 @@ import {
 } from "@/lib/catalog-categories";
 import { formatAvailability, isSpecLikeBlob, parseInlineSpecPairs } from "@/lib/product-spec-text";
 import { customerFacingAvailability } from "@/services/inventory-csv";
+import type { OrderCatalogProduct } from "@/services/orders";
 import { resolveStorefrontSrc } from "@/lib/media/resolve-storefront-src";
 import { buildProductResponsiveAsset } from "@/lib/media/product-responsive";
 
@@ -74,6 +75,11 @@ type MithronProductShellRow = Pick<
   "slug" | "name" | "tagline" | "price" | "badge" | "category" | "interests" | "image" | "hero" | "gallery" | "source_catalog_id" | "source_description" | "source_images"
 >;
 
+type EnterpriseMenuProductRow = Pick<
+  MithronProductRow,
+  "slug" | "name" | "tagline" | "price" | "badge" | "category" | "interests" | "image" | "source_catalog_id" | "source_description" | "source_images"
+>;
+
 type ProductMediaLinkRow = {
   product_slug: string | null;
   media_asset_id: string | null;
@@ -118,6 +124,28 @@ export type ProductShellItem = {
   searchText: string;
 };
 
+export type CatalogSearchResult = {
+  slug: string;
+  name: string;
+  tagline: string;
+  price: number;
+  badge?: string;
+  category: string;
+  image: MediaAsset;
+};
+
+type CatalogSearchRow = {
+  slug: string;
+  name: string;
+  tagline: string | null;
+  price: number | string | null;
+  badge: string | null;
+  category: string;
+  image: JsonRecord | null;
+  hero: JsonRecord | null;
+  rank?: number | null;
+};
+
 const homepageProductSelect = [
   "slug",
   "product_url",
@@ -143,11 +171,28 @@ const homepageProductSelect = [
 ].join(",");
 
 const HOMEPAGE_PRODUCT_LIMIT = 80;
-// TODO: replace with cursor pagination
-const CATALOG_LIST_LIMIT = 500;
+const CATALOG_PAGE_SIZE = 200;
+const CATALOG_MAX_ROWS = 10_000;
+const SHELL_PREVIEW_LIMIT = 120;
+const ENTERPRISE_MENU_PRODUCT_LIMIT = 1000;
 const PRODUCT_MEDIA_LIMIT = 2000;
+const CHECKOUT_PRICING_SELECT = "slug,name,price,category,charge_tax,tax_group,tax_rate,tax_included";
 const LEGACY_WIX_INVENTORY_CATEGORY = "Imported Wix Inventory";
 const publishedCatalogFilter = `workflow_status=eq.published&is_visible=eq.true&category=neq.${encodeURIComponent(LEGACY_WIX_INVENTORY_CATEGORY)}`;
+
+const enterpriseMenuSelect = [
+  "slug",
+  "name",
+  "tagline",
+  "price",
+  "badge",
+  "category",
+  "interests",
+  "image",
+  "source_images",
+  "source_catalog_id",
+  "source_description"
+].join(",");
 
 const catalogListSelect = [
   "slug",
@@ -643,6 +688,45 @@ function mapProductRow(row: MithronProductRow, linkedPrimaryImage?: MediaAsset):
   };
 }
 
+function mapEnterpriseMenuProduct(row: EnterpriseMenuProductRow, linkedPrimaryImage?: MediaAsset): Product {
+  const name = cleanText(row.name);
+  const marketingTagline = getProductMarketingTagline({
+    name,
+    category: row.category,
+    tagline: row.tagline,
+    sourceDescription: row.source_description
+  });
+  const image = resolveHydratedProductImage(
+    { ...row, hero: null, gallery: null },
+    name,
+    linkedPrimaryImage,
+    row.slug
+  );
+
+  return {
+    slug: row.slug,
+    productUrl: `/product/${row.slug}`,
+    workflowStatus: "published",
+    isVisible: true,
+    name,
+    tagline: marketingTagline,
+    price: toNumber(row.price),
+    badge: row.badge ?? undefined,
+    category: row.category,
+    interests: row.interests ?? [],
+    image,
+    hero: image,
+    gallery: [image],
+    hotspots: [],
+    variants: [],
+    bundles: [],
+    story: [],
+    specs: {},
+    anchors: ["Overview"],
+    sourceCatalogId: row.source_catalog_id ?? undefined
+  };
+}
+
 function mapProductShellRow(row: MithronProductShellRow, linkedPrimaryImage?: MediaAsset): ProductShellItem {
   const name = cleanText(row.name);
   const tagline = getProductMarketingTagline({
@@ -675,33 +759,79 @@ function mapProductShellRow(row: MithronProductShellRow, linkedPrimaryImage?: Me
   };
 }
 
-export const getProductShellItems = cache(async (limit = CATALOG_LIST_LIMIT): Promise<ProductShellItem[]> => {
-  const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), CATALOG_LIST_LIMIT);
+export const getProductShellItems = cache(async (limit = SHELL_PREVIEW_LIMIT): Promise<ProductShellItem[]> => {
+  const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), SHELL_PREVIEW_LIMIT);
   const rows = await fetchCatalogRows<MithronProductShellRow>(
     `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&order=sort_order.asc&limit=${boundedLimit}`
   );
   return mapRowsWithPrimaryMedia(rows, mapProductShellRow);
 });
 
+export const getFeaturedSearchProducts = cache(async (limit = 4): Promise<CatalogSearchResult[]> => {
+  const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 12);
+  const rows = await fetchCatalogRows<MithronProductShellRow>(
+    `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&badge=not.is.null&order=sort_order.asc&limit=${boundedLimit}`
+  );
+  const shellRows = rows.length ? rows : await fetchCatalogRows<MithronProductShellRow>(
+    `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&order=sort_order.asc&limit=${boundedLimit}`
+  );
+  const items = await mapRowsWithPrimaryMedia(shellRows, mapProductShellRow);
+  return items.map(toCatalogSearchResult);
+});
+
+export const getCartDrawerSuggestions = cache(async (): Promise<CatalogSearchResult[]> => {
+  const rows = await fetchCatalogRows<MithronProductShellRow>(
+    `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&or=(interests.cs.{agriculture},interests.cs.{components})&order=sort_order.asc&limit=12`
+  );
+  const items = await mapRowsWithPrimaryMedia(rows, mapProductShellRow);
+  return items.slice(0, 3).map(toCatalogSearchResult);
+});
+
+export async function getCheckoutPricingBySlugs(slugs: string[]): Promise<OrderCatalogProduct[]> {
+  const normalized = [...new Set(slugs.map((slug) => slug.trim()).filter(Boolean))];
+  if (!normalized.length) return [];
+
+  const inFilter = `slug=in.(${normalized.map((slug) => encodeURIComponent(slug)).join(",")})`;
+  const rows = await fetchCatalogRows<Pick<MithronProductRow, "slug" | "name" | "price" | "category" | "charge_tax" | "tax_group" | "tax_rate" | "tax_included">>(
+    `select=${CHECKOUT_PRICING_SELECT}&${inFilter}&${publishedCatalogFilter}&limit=${normalized.length}`
+  );
+
+  return rows.map((row) => ({
+    slug: row.slug,
+    name: row.name,
+    price: toNumber(row.price),
+    category: row.category,
+    chargeTax: row.charge_tax ?? undefined,
+    taxGroup: row.tax_group,
+    taxRate: row.tax_rate !== null && row.tax_rate !== undefined ? toNumber(row.tax_rate) : null,
+    taxIncluded: row.tax_included ?? undefined
+  }));
+}
+
 export async function getRelatedProductShellItems(slug: string, limit = 4): Promise<ProductShellItem[]> {
-  const [products, currentRow] = await Promise.all([getProductShellItems(), getProductAffinityRowBySlug(slug)]);
-  const currentProduct = products.find((product) => product.slug === slug);
-  const fallback = products.filter((product) => product.slug !== slug);
+  const currentRow = await getProductAffinityRowBySlug(slug);
+  if (!currentRow) {
+    const rows = await fetchCatalogRows<MithronProductShellRow>(
+      `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&slug=neq.${encodeURIComponent(slug)}&order=sort_order.asc&limit=${limit}`
+    );
+    return mapRowsWithPrimaryMedia(rows, mapProductShellRow);
+  }
 
-  if (!currentRow || !currentProduct) return fallback.slice(0, limit);
-
-  const shelfInputs = products as unknown as ProductShelfInput[];
+  const categoryRows = await fetchCatalogRows<MithronProductShellRow>(
+    `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&category=eq.${encodeURIComponent(currentRow.category)}&slug=neq.${encodeURIComponent(slug)}&order=sort_order.asc&limit=${Math.max(limit * 4, 16)}`
+  );
+  const currentInterests = currentRow.interests ?? [];
+  const shelfInputs = categoryRows as unknown as ProductShelfInput[];
   const shelfProducts = classifyProductShelf({
-    slug: currentProduct.slug,
-    name: currentProduct.name,
-    tagline: currentProduct.tagline,
-    category: currentProduct.category,
-    interests: currentProduct.interests,
+    slug,
+    name: "",
+    tagline: "",
+    category: currentRow.category,
+    interests: currentInterests,
     specs: {}
   }) === "drone-care"
     ? filterDroneCareProducts(shelfInputs)
     : filterDroneWorldProducts(shelfInputs);
-  const currentInterests = currentRow.interests ?? [];
 
   const related = shelfProducts.filter((product) => (
     product.slug !== slug && (
@@ -710,7 +840,17 @@ export async function getRelatedProductShellItems(slug: string, limit = 4): Prom
     )
   ));
 
-  return (related.length ? related : shelfProducts.filter((product) => product.slug !== slug)).slice(0, limit) as unknown as ProductShellItem[];
+  const candidateRows = (related.length ? related : shelfProducts.filter((product) => product.slug !== slug))
+    .slice(0, limit) as unknown as MithronProductShellRow[];
+
+  if (!candidateRows.length) {
+    const fallbackRows = await fetchCatalogRows<MithronProductShellRow>(
+      `select=slug,name,tagline,price,badge,category,interests,image,hero,gallery,source_images,source_catalog_id,source_description&${publishedCatalogFilter}&slug=neq.${encodeURIComponent(slug)}&order=sort_order.asc&limit=${limit}`
+    );
+    return mapRowsWithPrimaryMedia(fallbackRows, mapProductShellRow);
+  }
+
+  return mapRowsWithPrimaryMedia(candidateRows, mapProductShellRow);
 }
 
 function getCatalogConfig(useServiceRole = false) {
@@ -774,6 +914,86 @@ async function fetchSupabaseRows<T>(table: string, query: string, useServiceRole
 
 async function fetchCatalogRows<T>(query: string): Promise<T[]> {
   return fetchSupabaseRows<T>("mithron_products", query);
+}
+
+async function fetchAllCatalogRows<T>(select: string): Promise<T[]> {
+  const rows: T[] = [];
+  let offset = 0;
+
+  while (rows.length < CATALOG_MAX_ROWS) {
+    const page = await fetchCatalogRows<T>(
+      `select=${select}&${publishedCatalogFilter}&order=sort_order.asc,slug.asc&limit=${CATALOG_PAGE_SIZE}&offset=${offset}`
+    );
+    rows.push(...page);
+    if (page.length < CATALOG_PAGE_SIZE) break;
+    offset += CATALOG_PAGE_SIZE;
+  }
+
+  return rows;
+}
+
+async function fetchCatalogSearchRows(query: string, limit: number): Promise<CatalogSearchRow[]> {
+  const { url, key } = getCatalogConfig();
+  const response = await fetch(`${url}/rest/v1/rpc/search_published_products`, {
+    method: "POST",
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      p_query: query,
+      p_limit: limit
+    }),
+    next: { revalidate: 60, tags: ["catalog", "catalog-search"] }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to search catalog: ${response.status} ${response.statusText}`);
+  }
+
+  return parseCatalogRows<CatalogSearchRow>(await response.text());
+}
+
+function toCatalogSearchResult(item: ProductShellItem): CatalogSearchResult {
+  return {
+    slug: item.slug,
+    name: item.name,
+    tagline: item.tagline,
+    price: item.price,
+    badge: item.badge,
+    category: item.category,
+    image: item.image
+  };
+}
+
+async function mapSearchRowsToCatalogResults(rows: CatalogSearchRow[]): Promise<CatalogSearchResult[]> {
+  if (!rows.length) return [];
+  const primaryMedia = await getPrimaryProductMediaLookup();
+  return rows.map((row) => {
+    const name = cleanText(row.name);
+    const linkedPrimaryImage = primaryMedia.get(row.slug);
+    const image = resolveHydratedProductImage(
+      {
+        image: row.image,
+        hero: row.hero,
+        gallery: null,
+        source_images: null
+      },
+      name,
+      linkedPrimaryImage,
+      row.slug
+    );
+    return {
+      slug: row.slug,
+      name,
+      tagline: cleanText(row.tagline),
+      price: toNumber(row.price),
+      badge: row.badge ?? undefined,
+      category: row.category,
+      image
+    };
+  });
 }
 
 async function fetchMediaAssetChunk(chunk: string[]) {
@@ -941,9 +1161,26 @@ function mapHomepageProductRow(row: MithronProductRow, linkedPrimaryImage?: Medi
 }
 
 export const getProducts = cache(async (): Promise<Product[]> => {
-  // TODO: replace with cursor pagination
-  const rows = await fetchCatalogRows<MithronProductRow>(`select=${catalogListSelect}&${publishedCatalogFilter}&order=sort_order.asc&limit=${CATALOG_LIST_LIMIT}`);
+  const rows = await fetchAllCatalogRows<MithronProductRow>(catalogListSelect);
   return mapRowsWithPrimaryMedia(rows, mapProductRow);
+});
+
+export const getEnterpriseMenuProducts = cache(async (): Promise<Product[]> => {
+  const rows: EnterpriseMenuProductRow[] = [];
+  let offset = 0;
+
+  while (rows.length < ENTERPRISE_MENU_PRODUCT_LIMIT) {
+    const remaining = ENTERPRISE_MENU_PRODUCT_LIMIT - rows.length;
+    const pageSize = Math.min(CATALOG_PAGE_SIZE, remaining);
+    const page = await fetchCatalogRows<EnterpriseMenuProductRow>(
+      `select=${enterpriseMenuSelect}&${publishedCatalogFilter}&order=sort_order.asc,slug.asc&limit=${pageSize}&offset=${offset}`
+    );
+    rows.push(...page);
+    if (page.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return mapRowsWithPrimaryMedia(rows, mapEnterpriseMenuProduct);
 });
 
 export const getProductAffinityRowBySlug = cache(async (slug: string): Promise<ProductAffinityRow | null> => {
@@ -956,8 +1193,7 @@ export const getProductAffinityRowBySlug = cache(async (slug: string): Promise<P
 });
 
 export const getCatalogShowroomProducts = cache(async (): Promise<Product[]> => {
-  // TODO: replace with cursor pagination
-  const rows = await fetchCatalogRows<MithronProductRow>(`select=${catalogListSelect}&${publishedCatalogFilter}&order=sort_order.asc&limit=${CATALOG_LIST_LIMIT}`);
+  const rows = await fetchAllCatalogRows<MithronProductRow>(catalogListSelect);
   const primaryMedia = await getPrimaryProductMediaLookup();
   let catalogCutouts = new Map<string, MediaAsset>();
 
@@ -998,10 +1234,7 @@ export async function getProductBySlug(slug: string) {
 }
 
 export async function getProductStaticSlugs() {
-  // TODO: replace with cursor pagination
-  const rows = await fetchCatalogRows<{ slug: string }>(
-    `select=slug&${publishedCatalogFilter}&order=sort_order.asc&limit=${CATALOG_LIST_LIMIT}`
-  );
+  const rows = await fetchAllCatalogRows<{ slug: string }>("slug");
   return rows.map((product) => product.slug).filter(Boolean);
 }
 
@@ -1012,8 +1245,8 @@ export type ProductSitemapEntry = {
 };
 
 export async function getPublishedProductSitemapEntries(): Promise<ProductSitemapEntry[]> {
-  const rows = await fetchCatalogRows<{ slug: string; product_url: string | null; updated_at: string | null }>(
-    `select=slug,product_url,updated_at&${publishedCatalogFilter}&order=sort_order.asc&limit=${CATALOG_LIST_LIMIT}`
+  const rows = await fetchAllCatalogRows<{ slug: string; product_url: string | null; updated_at: string | null }>(
+    "slug,product_url,updated_at"
   );
 
   return rows.map((row) => ({
@@ -1029,7 +1262,7 @@ export async function countPublishedProductsWithoutPrimaryLink(): Promise<{
   missingCount: number;
 }> {
   const [productRows, links] = await Promise.all([
-    fetchCatalogRows<{ slug: string }>(`select=slug&${publishedCatalogFilter}&limit=${CATALOG_LIST_LIMIT}`),
+    fetchAllCatalogRows<{ slug: string }>("slug"),
     fetchSupabaseRows<{ product_slug: string }>(
       "product_media_assets",
       `select=product_slug&usage=eq.primary&is_primary=eq.true&limit=${PRODUCT_MEDIA_LIMIT}`,
@@ -1076,21 +1309,66 @@ export async function getProductsByCategory(category: string) {
   return products.filter((product) => product.category.toLowerCase().includes(normalized));
 }
 
-export async function searchProducts(query: string) {
-  const normalized = query.trim().toLowerCase();
+export async function searchProducts(query: string, limit = 24) {
+  const normalized = query.trim();
   if (!normalized) return [];
-  const products = await getProducts();
-  return products.filter((product) => {
-    const haystack = [
-      product.name,
-      product.tagline,
-      product.category,
-      product.slug,
-      product.specs["Product ID"],
-      ...product.interests
-    ].join(" ").toLowerCase();
-    return haystack.includes(normalized);
-  });
+  const rows = await fetchCatalogSearchRows(normalized, limit);
+  return mapRowsWithPrimaryMedia(
+    rows.map((row) => ({
+      slug: row.slug,
+      product_url: null,
+      workflow_status: "published" as const,
+      published_at: null,
+      archived_at: null,
+      is_visible: true,
+      name: row.name,
+      tagline: row.tagline,
+      seo_title: null,
+      seo_description: null,
+      og_title: null,
+      og_description: null,
+      og_image: null,
+      price: row.price,
+      compare_at: null,
+      badge: row.badge,
+      description: null,
+      on_sale: null,
+      discount_type: null,
+      discount_value: null,
+      cost_of_goods: null,
+      show_price_per_unit: null,
+      charge_tax: null,
+      tax_group: null,
+      tax_rate: null,
+      tax_included: null,
+      category: row.category,
+      interests: [],
+      image: row.image,
+      hero: row.hero,
+      gallery: [],
+      hotspots: [],
+      variants: [],
+      bundles: [],
+      story: [],
+      specs: {},
+      anchors: [],
+      sort_order: null,
+      source_url: null,
+      source_catalog_id: null,
+      source_description: null,
+      source_images: [],
+      source_availability: null,
+      source_currency: null
+    })),
+    mapProductRow
+  );
+}
+
+export async function searchCatalogProducts(query: string, limit = 24): Promise<CatalogSearchResult[]> {
+  const normalized = query.trim();
+  if (!normalized) return [];
+  const rows = await fetchCatalogSearchRows(normalized, limit);
+  return mapSearchRowsToCatalogResults(rows);
 }
 
 export async function getProductsForCategorySlug(slug: string) {

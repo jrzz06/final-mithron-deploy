@@ -17,7 +17,7 @@ export function SupplierFrame({ children, recipientId }: { children: React.React
         searchItems={supplierNavGroups.flatMap((group) => group.items.map((item) => ({ label: item.label, href: item.href, group: group.label })))}
         userId={recipientId}
         scopeBadge="Supplier"
-        accentClass="bg-violet-50 text-violet-900"
+        accentClass="bg-[var(--platform-nav-active-bg)] text-[var(--platform-text-primary)]"
         shellDataAttributes={{ "data-supplier-frame": true }}
         primaryAction={{ label: "Add product", href: "/supplier/products/new" }}
         notificationHref="/supplier"

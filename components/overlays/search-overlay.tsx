@@ -5,27 +5,42 @@ import { ArrowRight, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MithronThumbImage } from "@/components/media/mithron-thumb-image";
 import { catalogCategoryDefinitions } from "@/lib/catalog-categories";
-import type { ProductShellItem } from "@/services/catalog";
+import type { CatalogSearchResult } from "@/services/catalog";
 import { useUiStore } from "@/store/ui";
 import { formatUsd } from "@/lib/utils";
 
-function searchCatalog(products: ProductShellItem[], query: string) {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return [];
-  return products.filter((product) => product.searchText.includes(normalized));
+type SearchResponse = {
+  query: string;
+  results: CatalogSearchResult[];
+  error?: string;
+};
+
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timerId = globalThis.setTimeout(() => setDebounced(value), delayMs);
+    return () => globalThis.clearTimeout(timerId);
+  }, [value, delayMs]);
+
+  return debounced;
 }
 
-export function SearchOverlay({ products }: { products: ProductShellItem[] }) {
+export function SearchOverlay() {
   const overlay = useUiStore((state) => state.overlay);
   const setOverlay = useUiStore((state) => state.setOverlay);
   const [query, setQuery] = useState("");
+  const [featuredProducts, setFeaturedProducts] = useState<CatalogSearchResult[]>([]);
+  const [results, setResults] = useState<CatalogSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const results = useMemo(() => searchCatalog(products, query), [products, query]);
+  const debouncedQuery = useDebouncedValue(query, 220);
   const hasQuery = query.trim().length > 0;
-  const visibleProducts = hasQuery ? results : products.slice(0, 4);
+  const visibleProducts = hasQuery ? results : featuredProducts;
   const promoProduct = useMemo(
-    () => products.find((product) => Boolean(product.badge)) ?? products[0],
-    [products]
+    () => featuredProducts.find((product) => Boolean(product.badge)) ?? featuredProducts[0],
+    [featuredProducts]
   );
   const open = overlay === "search";
 
@@ -34,6 +49,81 @@ export function SearchOverlay({ products }: { products: ProductShellItem[] }) {
       inputRef.current?.focus();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let active = true;
+    const controller = new AbortController();
+
+    void fetch("/api/catalog/search?limit=4", {
+      signal: controller.signal,
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        const payload = await response.json() as SearchResponse;
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Search failed.");
+        }
+        if (!active) return;
+        setFeaturedProducts(payload.results);
+        if (!query.trim()) {
+          setResults(payload.results);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!active || (error instanceof DOMException && error.name === "AbortError")) return;
+        setSearchError(error instanceof Error ? error.message : "Search failed.");
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [open, query]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const normalized = debouncedQuery.trim();
+    if (!normalized) {
+      setResults(featuredProducts);
+      setSearchError(null);
+      setIsSearching(false);
+      return;
+    }
+
+    let active = true;
+    const controller = new AbortController();
+    setIsSearching(true);
+    setSearchError(null);
+
+    void fetch(`/api/catalog/search?q=${encodeURIComponent(normalized)}&limit=24`, {
+      signal: controller.signal,
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        const payload = await response.json() as SearchResponse;
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Search failed.");
+        }
+        if (!active) return;
+        setResults(payload.results);
+      })
+      .catch((error: unknown) => {
+        if (!active || (error instanceof DOMException && error.name === "AbortError")) return;
+        setSearchError(error instanceof Error ? error.message : "Search failed.");
+        setResults([]);
+      })
+      .finally(() => {
+        if (active) setIsSearching(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [debouncedQuery, featuredProducts, open]);
 
   return (
     <div
@@ -72,7 +162,9 @@ export function SearchOverlay({ products }: { products: ProductShellItem[] }) {
             <div>
               <div className="mb-4 flex items-center justify-between gap-4">
                 <p className="type-button text-sm text-white/40">{hasQuery ? "Matching systems" : "Featured systems"}</p>
-                <p className="type-meta text-white/40">{visibleProducts.length} results</p>
+                <p className="type-meta text-white/40">
+                  {isSearching ? "Searching..." : `${visibleProducts.length} results`}
+                </p>
               </div>
               {visibleProducts.length ? (
                 <div className="grid gap-3 text-sm md:grid-cols-2">
@@ -100,8 +192,10 @@ export function SearchOverlay({ products }: { products: ProductShellItem[] }) {
                 </div>
               ) : (
                 <div className="ambient-surface ambient-muted rounded-2xl border border-[var(--surface-border)] p-6">
-                  <p className="type-card-title text-xl">No exact mission match</p>
-                  <p className="type-body mt-2 text-sm text-white/50">Try agriculture, mapping, controller, safety sensor, or surveillance.</p>
+                  <p className="type-card-title text-xl">{searchError ? "Search unavailable" : "No exact mission match"}</p>
+                  <p className="type-body mt-2 text-sm text-white/50">
+                    {searchError ?? "Try agriculture, mapping, controller, safety sensor, or surveillance."}
+                  </p>
                 </div>
               )}
             </div>

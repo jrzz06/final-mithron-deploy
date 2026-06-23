@@ -79,7 +79,8 @@ describe("Supabase free-plan performance contract", () => {
     expect(cms).toContain("heroBanners: \"select=id,product_slug,title,subtitle,cta_label,href,image,poster,video,theme,composition,title_color,subtitle_color,sort_order,is_visible,status");
     expect(cms).toContain("siteNavigation: \"select=id,label,href,sort_order,is_visible,status");
     expect(cms).toContain("productReviews: \"select=id,reviewer_name,body,product_slug,rating,sort_order,is_visible,status");
-    expect(cms).toContain("fetchFooterLeadSettings");
+    expect(cms).toContain("getStorefrontShellCms");
+    expect(cms).toContain("loadStorefrontShellCms");
   });
 
   it("keeps operations command-center reads on shallow operational columns", () => {
@@ -198,9 +199,13 @@ describe("Supabase free-plan performance contract", () => {
   it("loads product details and static slugs with targeted catalog queries", () => {
     const catalog = source("services/catalog.ts");
     expect(catalog).toContain("async function fetchCatalogRows");
+    expect(catalog).toContain("fetchAllCatalogRows");
     expect(catalog).toContain("getProductRowBySlug");
     expect(catalog).toContain("getProductAffinityRowBySlug");
-    expect(catalog).toContain("getProductShellItems");
+    expect(catalog).toContain("getCheckoutPricingBySlugs");
+    expect(catalog).toContain("searchCatalogProducts");
+    expect(catalog).toContain("getEnterpriseMenuProducts");
+    expect(catalog).toContain("enterpriseMenuSelect");
     expect(catalog).toContain("slug=eq.");
     expect(catalog).toContain("select=slug,category,interests");
     expect(catalog).toContain("select=slug");
@@ -214,14 +219,24 @@ describe("Supabase free-plan performance contract", () => {
     const storeShell = source("components/layout/store-shell.tsx");
     const searchOverlay = source("components/overlays/search-overlay.tsx");
     const cartDrawer = source("components/overlays/cart-drawer.tsx");
+    const checkoutRoute = source("app/api/checkout/route.ts");
 
     expect(rootLayout).not.toContain("getProductShellItems");
-    expect(layout).toContain("getProductShellItems");
-    expect(layout).toContain("getProducts");
+    expect(layout).toContain("getEnterpriseMenuProducts");
+    expect(layout).toContain("getStorefrontShellCms");
+    expect(layout).not.toContain("getPublicCmsSnapshot");
+    expect(layout).not.toContain("getFeaturedSearchProducts");
+    expect(layout).not.toContain("getCartDrawerSuggestions");
+    expect(layout).not.toContain("getProductShellItems");
+    expect(layout).not.toContain("getProducts()");
     expect(layout).toContain("buildEnterpriseMenuConfigs");
-    expect(storeShell).toContain("ProductShellItem");
-    expect(searchOverlay).toContain("ProductShellItem");
-    expect(cartDrawer).toContain("ProductShellItem");
+    expect(storeShell).not.toContain("featuredSearchProducts");
+    expect(storeShell).not.toContain("cartSuggestions");
+    expect(searchOverlay).toContain("/api/catalog/search");
+    expect(searchOverlay).not.toContain("searchCatalog(");
+    expect(cartDrawer).toContain("/api/catalog/search?intent=cart");
+    expect(cartDrawer).toContain("CatalogSearchResult");
+    expect(checkoutRoute).toContain("getCheckoutPricingBySlugs");
   });
 
   it("keeps product detail client islands on lightweight product props", () => {

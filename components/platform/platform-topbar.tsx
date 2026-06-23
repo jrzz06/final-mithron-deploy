@@ -60,13 +60,13 @@ export function PlatformTopbar({
   return (
     <header
       data-admin-topbar
-      className="sticky top-0 z-30 border-b border-[var(--platform-border)] bg-[var(--platform-surface)]/95 px-4 py-3 backdrop-blur-sm md:px-6"
+      className="sticky top-0 z-30 bg-[var(--platform-bg)] px-4 py-3 md:px-6"
       style={{ boxShadow: "var(--platform-shadow-sm)" }}
     >
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-[var(--platform-text-muted)]">{scopeLabel ?? page.kicker}</p>
-          <h1 className="mt-0.5 truncate text-lg font-semibold tracking-tight text-[var(--platform-text-primary)] md:text-xl">
+          <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--platform-text-muted)]">{scopeLabel ?? page.kicker}</p>
+          <h1 className="mt-0.5 truncate text-base font-medium tracking-normal text-[var(--platform-text-primary)] md:text-[17px]">
             {page.title}
           </h1>
         </div>
@@ -86,11 +86,11 @@ export function PlatformTopbar({
               onBlur={() => window.setTimeout(() => setOpen(false), 120)}
               placeholder="Search"
               aria-label="Search workspace"
-              className="h-9 w-full rounded-[10px] border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] pl-9 pr-3 text-sm text-[var(--platform-text-primary)] outline-none transition placeholder:text-[var(--platform-text-muted)] focus:border-teal-600/30 focus:bg-[var(--platform-surface)] focus:ring-2 focus:ring-teal-600/10"
+              className="h-9 w-full rounded-[8px] border-0 bg-[var(--platform-surface-muted)]/70 pl-9 pr-3 text-sm text-[var(--platform-text-primary)] outline-none transition placeholder:text-[var(--platform-text-muted)] focus:bg-[var(--platform-surface-muted)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]"
             />
             {open ? (
               <div
-                className="absolute left-0 right-0 top-10 z-40 overflow-hidden rounded-[10px] border border-[var(--platform-border)] bg-[var(--platform-surface)]"
+                className="absolute left-0 right-0 top-10 z-40 overflow-hidden rounded-[10px] bg-[var(--platform-surface-raised)]"
                 style={{ boxShadow: "var(--platform-shadow-md)" }}
               >
                 {filteredItems.length ? (
@@ -98,7 +98,7 @@ export function PlatformTopbar({
                     <Link
                       key={`${item.group}-${item.href}-${item.label}`}
                       href={item.href}
-                      className="grid gap-0.5 border-b border-[var(--platform-border)] px-3 py-2.5 text-sm text-[var(--platform-text-secondary)] last:border-b-0 hover:bg-[var(--platform-surface-muted)] hover:text-[var(--platform-text-primary)]"
+                      className="grid gap-0.5 px-3 py-2.5 text-sm text-[var(--platform-text-secondary)] hover:bg-[var(--platform-surface-muted)] hover:text-[var(--platform-text-primary)]"
                     >
                       <span className="font-medium">{item.label}</span>
                       <span className="text-xs text-[var(--platform-text-muted)]">{item.group}</span>
@@ -115,7 +115,7 @@ export function PlatformTopbar({
             {primaryAction ? (
               <Link
                 href={primaryAction.href}
-                className="inline-flex h-9 items-center gap-2 rounded-[10px] bg-[var(--platform-accent)] px-3 text-sm font-semibold text-white transition hover:bg-teal-700"
+                className="inline-flex h-9 items-center gap-2 rounded-[8px] bg-[var(--platform-accent)] px-3 text-sm font-medium text-[var(--platform-accent-text)] transition hover:bg-[var(--platform-accent-strong)]"
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 {primaryAction.label}
@@ -127,12 +127,12 @@ export function PlatformTopbar({
               <Link
                 href={notificationHref}
                 aria-label="Notifications"
-                className="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--platform-border)] bg-[var(--platform-surface)] text-[var(--platform-text-muted)] transition hover:bg-[var(--platform-surface-muted)]"
+                className="grid h-9 w-9 place-items-center rounded-[10px] bg-[var(--platform-surface-muted)]/70 text-[var(--platform-text-muted)] transition hover:bg-[var(--platform-surface-muted)]"
               >
                 <Bell className="h-4 w-4" aria-hidden="true" />
               </Link>
             )}
-            <div className="hidden h-9 items-center gap-2 rounded-[10px] border border-[var(--platform-border)] bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-secondary)] md:flex">
+            <div className="hidden h-9 items-center gap-2 rounded-[10px] bg-[var(--platform-surface-muted)]/70 px-3 text-sm text-[var(--platform-text-secondary)] md:flex">
               <UserRound className="h-4 w-4 text-[var(--platform-text-muted)]" aria-hidden="true" />
               <span className="max-w-[130px] truncate capitalize">{normalizeRole(role)}</span>
             </div>
@@ -140,7 +140,7 @@ export function PlatformTopbar({
               <button
                 type="submit"
                 aria-label="Sign out"
-                className="grid h-9 w-9 place-items-center rounded-[10px] border border-[var(--platform-border)] bg-[var(--platform-surface)] text-[var(--platform-text-muted)] transition hover:bg-[var(--platform-surface-muted)]"
+                className="grid h-9 w-9 place-items-center rounded-[10px] bg-[var(--platform-surface-muted)]/70 text-[var(--platform-text-muted)] transition hover:bg-[var(--platform-surface-muted)]"
               >
                 <LogOut className="h-4 w-4" aria-hidden="true" />
               </button>

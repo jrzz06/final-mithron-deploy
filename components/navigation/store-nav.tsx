@@ -44,6 +44,14 @@ function resolveNavigationItem(item: NavigationNode, menuByLabel: Map<string, En
   return { ...resolved, href: menu.href };
 }
 
+function shouldSkipAggressivePrefetch() {
+  if (typeof navigator === "undefined") return false;
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  if (connection?.saveData) return true;
+  if (typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 2) return true;
+  return false;
+}
+
 function getFeaturedCard(menu: MegaMenuConfig, featureKey: string | undefined) {
   return menu.featured.find((card) => card.key === featureKey) ?? menu.featured.find((card) => card.key === menu.defaultFeatureKey) ?? menu.featured[0];
 }
@@ -155,6 +163,7 @@ export function StoreNav({
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!window.matchMedia("(min-width: 1024px)").matches) return;
+    if (shouldSkipAggressivePrefetch()) return;
 
     const routes = displayedNavigationItems
       .map((item) => item.href)
@@ -162,33 +171,43 @@ export function StoreNav({
     const primaryRoute = routes[0];
     if (!primaryRoute) return;
 
-    const runWhenIdle = (callback: () => void, timeout = 900) => {
-      if ("requestIdleCallback" in window) {
-        return window.requestIdleCallback(callback, { timeout });
+    const runWhenIdle = (callback: () => void, timeout = 3000): number => {
+      const scheduleIdle = window.requestIdleCallback;
+      if (typeof scheduleIdle === "function") {
+        return scheduleIdle.call(window, callback, { timeout });
       }
 
-      callback();
-      return undefined;
+      return window.setTimeout(callback, timeout);
     };
 
     let secondaryIdleId: number | undefined;
-    const primaryTimer = window.setTimeout(() => {
+    const primaryIdleId = runWhenIdle(() => {
       prefetchRoute(primaryRoute);
-    }, 550);
+    }, 3000);
     const secondaryTimer = window.setTimeout(() => {
       secondaryIdleId = runWhenIdle(() => {
         for (const href of routes.slice(1, 4)) {
           prefetchRoute(href);
         }
-      }, 1200);
+      }, 3000);
     }, 2600);
 
     return () => {
-      window.clearTimeout(primaryTimer);
-      window.clearTimeout(secondaryTimer);
-      if (secondaryIdleId !== undefined) {
-        window.cancelIdleCallback(secondaryIdleId);
+      if (typeof secondaryIdleId === "number") {
+        const cancelIdle = window.cancelIdleCallback;
+        if (typeof cancelIdle === "function") {
+          cancelIdle.call(window, secondaryIdleId);
+        } else {
+          window.clearTimeout(secondaryIdleId);
+        }
       }
+      const cancelIdle = window.cancelIdleCallback;
+      if (typeof cancelIdle === "function") {
+        cancelIdle.call(window, primaryIdleId);
+      } else {
+        window.clearTimeout(primaryIdleId);
+      }
+      window.clearTimeout(secondaryTimer);
     };
   }, [displayedNavigationItems, normalizedPathname, prefetchRoute]);
 

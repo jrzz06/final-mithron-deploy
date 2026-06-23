@@ -14,8 +14,10 @@ describe("final CMS cutover and real-data cleanup", () => {
     const page = source("app/(storefront)/page.tsx");
     const heroCarousel = source("sections/home/hero-carousel.tsx");
     const homeComposite = source("sections/home/home-landing-composite.tsx");
+    const compositeSection = source("sections/home/home-composite-section.tsx");
     const homeCompositeCss = source("sections/home/home-landing-composite.module.css");
     const storeShell = source("components/layout/store-shell.tsx");
+    const storeShellClient = source("components/layout/store-shell-client.tsx");
     const globals = source("app/globals.css");
     const cms = source("services/cms.ts");
     const cmsWorkspace = source("features/admin/cms/cms-visual-workspace.tsx");
@@ -24,7 +26,7 @@ describe("final CMS cutover and real-data cleanup", () => {
       expect(page).not.toContain(removed);
     }
 
-    expect(page).toContain("HeroCarousel");
+    expect(page).toContain("HeroCarouselDynamic");
     expect(page).toContain("HomeLandingComposite");
     expect(page).toContain("<HomeLandingComposite");
     expect(page).toContain("products={products}");
@@ -47,10 +49,10 @@ describe("final CMS cutover and real-data cleanup", () => {
     expect(page).not.toContain("getProductShellItems");
     expect(page).toContain("getHomepageProducts");
     expect(page).toContain("cms.home.heroBanners");
-    expect(homeComposite).toContain('data-testid="home-landing-composite"');
-    expect(homeComposite).toContain('data-home-composite-root="true"');
-    expect(homeComposite).toContain('data-motion-state="reduced"');
-    expect(homeComposite).toContain('data-motion-engine="static"');
+    expect(compositeSection).toContain('data-testid="home-landing-composite"');
+    expect(compositeSection).toContain('data-home-composite-root="true"');
+    expect(compositeSection).toContain("data-motion-state={motionState}");
+    expect(compositeSection).toContain('data-motion-engine="static"');
     expect(homeComposite).toContain('type ProofState = "VERIFIED" | "FALLBACK"');
     expect(homeComposite).not.toContain(forbiddenStatusLabel);
     expect(homeComposite).not.toContain(oldDraftCollectionName);
@@ -64,7 +66,8 @@ describe("final CMS cutover and real-data cleanup", () => {
     expect(homeComposite).toContain('data-testid="home-about-band"');
     expect(homeComposite).toContain('data-testid="home-about-footer"');
     expect(homeComposite).toContain("SiteFooter");
-    expect(homeComposite).toContain("if (reducedMotion)");
+    expect(compositeSection).toContain("useReducedMotionPreference");
+    expect(compositeSection).toContain('motionState = reducedMotion ? "reduced" : "static"');
     expect(homeComposite).not.toContain("HomeDroneModelScene");
     expect(homeComposite).not.toContain("enabled={!reducedMotion");
     expect(homeComposite).not.toContain("lineup-solutions");
@@ -91,16 +94,17 @@ describe("final CMS cutover and real-data cleanup", () => {
     expect(existsSync(join(process.cwd(), "public/media/mithron/shell/default-section-pencil-art.svg"))).toBe(false);
     expect(existsSync(join(process.cwd(), "public/media/mithron/optical-ecosystem"))).toBe(false);
     expect(existsSync(join(process.cwd(), "public/media/mithron/platform-worlds"))).toBe(false);
-    expect(storeShell).toContain("NAV_HERO_CAROUSEL_COMPOSITE");
-    expect(storeShell).not.toContain("NAV_HERO_CAROUSEL_ONLY");
-    expect(storeShell).not.toContain("NAV_HERO_CAROUSEL_ECOSYSTEM_PLATFORM_INTELLIGENCE");
-    expect(storeShell).not.toContain("NAV_HERO_CAROUSEL_WITH_ECOSYSTEM_REVEAL");
-    expect(storeShell).not.toContain("NAV_HERO_PRODUCT_ECOSYSTEM");
-    expect(storeShell).not.toContain("NAV_HERO_CAROUSEL_WITH_POST_HERO_ECOSYSTEM");
-    expect(storeShell).not.toContain("NAV_HERO_CAROUSEL_WITH_SHOWCASE");
-    expect(storeShell).not.toContain("NAV_HERO_CAROUSEL_OPTICAL_ECOSYSTEM");
-    expect(storeShell).not.toContain("NAV_HERO_CAROUSEL_ECOSYSTEM_EXPERIENCE");
-    expect(storeShell).toContain("isHome ? null : <SiteFooter");
+    expect(storeShellClient).toContain("NAV_HERO_CAROUSEL_COMPOSITE");
+    expect(storeShellClient).not.toContain("NAV_HERO_CAROUSEL_ONLY");
+    expect(storeShellClient).not.toContain("NAV_HERO_CAROUSEL_ECOSYSTEM_PLATFORM_INTELLIGENCE");
+    expect(storeShellClient).not.toContain("NAV_HERO_CAROUSEL_WITH_ECOSYSTEM_REVEAL");
+    expect(storeShellClient).not.toContain("NAV_HERO_PRODUCT_ECOSYSTEM");
+    expect(storeShellClient).not.toContain("NAV_HERO_CAROUSEL_WITH_POST_HERO_ECOSYSTEM");
+    expect(storeShellClient).not.toContain("NAV_HERO_CAROUSEL_WITH_SHOWCASE");
+    expect(storeShellClient).not.toContain("NAV_HERO_CAROUSEL_OPTICAL_ECOSYSTEM");
+    expect(storeShellClient).not.toContain("NAV_HERO_CAROUSEL_ECOSYSTEM_EXPERIENCE");
+    expect(storeShell).toContain("siteFooter={<SiteFooter content={footer} />}");
+    expect(storeShellClient).toContain("isHome ? null : siteFooter");
     expect(globals).not.toContain("@import \"./storefront-showcase.css\"");
     expect(globals).not.toContain("hero-banner-extension");
     expect(globals).not.toContain("drone-world-panel");

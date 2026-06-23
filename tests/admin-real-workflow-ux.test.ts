@@ -83,17 +83,20 @@ describe("admin real workflow UX", () => {
     expect(mediaPage).not.toContain("FALLBACK ACTIVE");
   });
 
-  it("switches the control plane to a minimal light operational theme", () => {
+  it("switches the control plane to a minimal dark enterprise theme", () => {
     const frame = source("components/admin/admin-frame.tsx");
     const shell = source("components/platform/platform-shell.tsx");
     const globals = source("app/globals.css");
+    const platformStyles = source("app/platform.css");
 
-    expect(shell).toContain('data-control-plane-theme="light"');
+    expect(shell).toContain('data-control-plane-theme="dark"');
     expect(frame).toContain("PlatformShell");
     expect(shell).toContain("data-admin-performance-theme");
-    expect(globals).toContain("[data-control-plane-theme=\"light\"]");
-    expect(globals).toContain("--platform-bg: #f5f7fa");
-    expect(globals).toContain("--platform-text-primary: #0f172a");
+    expect(shell).toContain('@/app/platform.css');
+    expect(platformStyles).toContain('[data-control-plane-theme="dark"]');
+    expect(platformStyles).toContain("--platform-bg: #14161a");
+    expect(platformStyles).toContain("--platform-text-primary: #eceef2");
+    expect(globals).not.toContain('[data-control-plane-theme="dark"]');
   });
 
   it("keeps admin and warehouse startup payloads bounded for a responsive prototype", () => {

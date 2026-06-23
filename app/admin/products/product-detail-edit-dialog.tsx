@@ -18,7 +18,7 @@ export function ProductDetailEditDialog({
   onSaved: (fields: Partial<ProductCatalogGridRow>) => void;
 }) {
   return (
-    <div data-product-detail-modal className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 p-4">
+    <div data-product-detail-modal className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4 backdrop-blur-[2px]">
       <form
         id="update-product"
         action={saveProductQuickEditFormAction}
@@ -45,36 +45,36 @@ export function ProductDetailEditDialog({
           });
           onClose();
         }}
-        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-800 bg-[#10151d] shadow-none"
+        className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-[var(--platform-radius-lg)] bg-[var(--platform-surface)] shadow-none"
       >
         <input type="hidden" name="product_slug" value={product.id} />
         <input type="hidden" name="change_summary" value={`Edit product details ${product.id}`} />
         {product.updatedAt ? <input type="hidden" name="expected_updated_at" value={product.updatedAt} /> : null}
 
-        <div className="flex items-start justify-between gap-4 border-b border-slate-800 px-5 py-4">
+        <div className="flex items-start justify-between gap-4 px-5 py-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Product info</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-100">Edit product</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--platform-text-muted)]">Product info</p>
+            <h2 className="mt-1 text-lg font-medium text-[var(--platform-text-primary)]">Edit product</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-[#151c26]"
+            className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--platform-text-secondary)] transition hover:bg-[var(--platform-accent-soft)] hover:text-[var(--platform-text-primary)]"
           >
             Cancel
           </button>
         </div>
 
         <div className="grid gap-5 overflow-y-auto px-5 py-5">
-          <section data-product-basic-info className="grid gap-4 rounded-xl border border-slate-800 bg-[#0b1017] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Basic info</p>
+          <section data-product-basic-info className="grid gap-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--platform-text-muted)]">Basic info</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1.5 text-sm sm:col-span-2">
                 <ProductFieldLabel>Name</ProductFieldLabel>
                 <input
                   name="name"
                   defaultValue={product.title}
-                  className="rounded-lg border border-slate-800 bg-[#10151d] px-3 py-2 text-sm text-slate-100 outline-none focus:border-slate-600"
+                  className="h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-primary)] outline-none focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]"
                 />
               </label>
               <label className="grid gap-1.5 text-sm">
@@ -85,7 +85,7 @@ export function ProductDetailEditDialog({
                   name="ribbon"
                   defaultValue={product.badge ?? ""}
                   placeholder="New Arrival"
-                  className="rounded-lg border border-slate-800 bg-[#10151d] px-3 py-2 text-sm text-slate-100 outline-none focus:border-slate-600"
+                  className="h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-primary)] outline-none placeholder:text-[var(--platform-text-muted)] focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]"
                 />
               </label>
               <label className="grid gap-1.5 text-sm">
@@ -93,7 +93,7 @@ export function ProductDetailEditDialog({
                 <input
                   name="category"
                   defaultValue={product.category}
-                  className="rounded-lg border border-slate-800 bg-[#10151d] px-3 py-2 text-sm text-slate-100 outline-none focus:border-slate-600"
+                  className="h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-primary)] outline-none focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]"
                 />
               </label>
             </div>
@@ -126,13 +126,13 @@ export function ProductDetailEditDialog({
             initialTaxIncluded={product.taxIncluded}
           />
 
-          <section className="grid gap-3 rounded-xl border border-slate-800 bg-[#0b1017] p-4 sm:grid-cols-2">
+          <section className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1.5 text-sm">
               <ProductFieldLabel>Stock</ProductFieldLabel>
               <input
                 name="source_availability"
                 defaultValue={product.sourceAvailability}
-                className="rounded-lg border border-slate-800 bg-[#10151d] px-3 py-2 text-sm text-slate-100 outline-none focus:border-slate-600"
+                className="h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-primary)] outline-none focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]"
               />
             </label>
             <label className="grid gap-1.5 text-sm">
@@ -140,7 +140,7 @@ export function ProductDetailEditDialog({
               <select
                 name="visibility"
                 defaultValue={product.isVisible ? "visible" : "hidden"}
-                className="rounded-lg border border-slate-800 bg-[#10151d] px-3 py-2 text-sm text-slate-100 outline-none focus:border-slate-600"
+                className="h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-primary)] outline-none focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]"
               >
                 <option value="visible">Visible</option>
                 <option value="hidden">Hidden</option>
@@ -149,8 +149,8 @@ export function ProductDetailEditDialog({
           </section>
         </div>
 
-        <div className="flex justify-end border-t border-slate-800 px-5 py-4">
-          <button className="rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+        <div className="flex justify-end px-5 py-4">
+          <button className="rounded-lg bg-[var(--platform-accent)] px-4 py-2 text-sm font-medium text-[var(--platform-accent-text)] transition hover:bg-[var(--platform-accent-strong)]">
             Save changes
           </button>
         </div>

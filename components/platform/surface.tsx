@@ -15,7 +15,7 @@ const paddingClass = {
 export function Surface({ children, className = "", padding = "md" }: SurfaceProps) {
   return (
     <section
-      className={`mithron-elevated-card rounded-[var(--platform-radius)] border border-[var(--platform-border)] bg-[var(--platform-surface)] ${paddingClass[padding]} ${className}`}
+      className={`mithron-elevated-card rounded-[var(--platform-radius)] bg-[var(--platform-surface)] ${paddingClass[padding]} ${className}`}
     >
       {children}
     </section>
@@ -35,8 +35,8 @@ export function Card({ title, description, actions, children, className = "" }: 
     <Surface className={className}>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-base font-semibold text-[var(--platform-text-primary)]">{title}</h3>
-          {description ? <p className="mt-1 max-w-2xl text-sm text-[var(--platform-text-secondary)]">{description}</p> : null}
+          <h3 className="text-sm font-medium text-[var(--platform-text-primary)]">{title}</h3>
+          {description ? <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[var(--platform-text-muted)]">{description}</p> : null}
         </div>
         {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>

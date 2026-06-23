@@ -35,13 +35,13 @@ describe("admin Supabase-only workflow recovery", () => {
     expect(adminService).not.toContain("limit=500");
   });
 
-  it("uses a minimal light admin chrome across control-plane shells", () => {
+  it("uses a minimal dark admin chrome across control-plane shells", () => {
     const frame = source("components/admin/admin-frame.tsx");
     const shell = source("components/platform/platform-shell.tsx");
     const primitives = source("components/admin/module-panel.tsx");
     const topbar = source("components/platform/platform-topbar.tsx");
 
-    expect(shell).toContain('data-control-plane-theme="light"');
+    expect(shell).toContain('data-control-plane-theme="dark"');
     expect(shell).toContain("bg-[var(--platform-bg)]");
     expect(frame).toContain("PlatformShell");
     expect(primitives).toContain("var(--platform-border)");

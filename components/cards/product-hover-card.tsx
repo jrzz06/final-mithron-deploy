@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { MithronCardImage } from "@/components/media/mithron-card-image";
 import type { Product } from "@/config/types";
@@ -25,7 +26,7 @@ const imageSizes: Record<ProductHoverCardVariant, string> = {
   related: "240px"
 };
 
-export function ProductHoverCard({
+export const ProductHoverCard = memo(function ProductHoverCard({
   product,
   variant = "rail",
   showCategory = false,
@@ -171,7 +172,7 @@ export function ProductHoverCard({
       </Link>
     </article>
   );
-}
+});
 
 function getShowroomPreview(product: Product) {
   const source = `${product.name} ${product.category} ${product.tagline}`.toLowerCase();

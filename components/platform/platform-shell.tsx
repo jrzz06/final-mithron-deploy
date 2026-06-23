@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import "@/app/platform.css";
 import { OperatorToastBridge } from "@/components/admin/operator-toast-bridge";
 import { PlatformSidebar } from "@/components/platform/platform-sidebar";
 import { PlatformTopbar } from "@/components/platform/platform-topbar";
@@ -30,7 +31,7 @@ export function PlatformShell({
   role = null,
   userId,
   scopeBadge,
-  accentClass = "bg-teal-50 text-teal-900",
+  accentClass = "bg-[var(--platform-nav-active-bg)] text-[var(--platform-text-primary)]",
   homeHref,
   shellDataAttributes = {},
   contentDataAttribute = "data-platform-content",
@@ -45,13 +46,13 @@ export function PlatformShell({
     <main
       data-control-plane
       data-control-plane-scope={scope}
-      data-control-plane-theme="light"
+      data-control-plane-theme="dark"
       data-admin-performance-theme
       {...shellDataAttributes}
       className="min-h-screen bg-[var(--platform-bg)] text-[var(--platform-text-primary)]"
     >
       <OperatorToastBridge />
-      <div className="min-h-screen lg:pl-[240px]">
+      <div className="min-h-screen lg:pl-[248px]">
         <PlatformSidebar
           scope={scope}
           groups={groups}
@@ -70,7 +71,7 @@ export function PlatformShell({
               notificationHref={notificationHref}
             />
           ) : null}
-          <div {...{ [contentDataAttribute]: true }} data-admin-content className="px-4 py-4 md:px-6 md:py-5">
+          <div {...{ [contentDataAttribute]: true }} data-admin-content className="px-4 py-5 md:px-6 md:py-6">
             {children}
           </div>
         </section>

@@ -1,4 +1,3 @@
-"use client";
 
 import type { CSSProperties, ImgHTMLAttributes } from "react";
 import { MithronResponsiveImage } from "@/components/media/mithron-responsive-image";

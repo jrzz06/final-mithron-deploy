@@ -12,6 +12,7 @@ type ImageDebugMeta = {
 };
 
 export function reportImageRenderMetrics(img: HTMLImageElement, meta: ImageDebugMeta) {
+  if (process.env.NODE_ENV === "production") return;
   const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1;
   const naturalWidth = img.naturalWidth;
   const naturalHeight = img.naturalHeight;

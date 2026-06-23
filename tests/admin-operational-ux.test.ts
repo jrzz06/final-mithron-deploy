@@ -131,7 +131,8 @@ describe("admin operational UX", () => {
     expect(page).toContain("name=\"image_file\"");
     expect(page).toContain("data-product-supabase-storage-note");
     expect(page).toContain("mithron-products Storage bucket");
-    expect(page).toContain("border-emerald-400/45 bg-emerald-500/15 text-emerald-100");
+    expect(page).toContain("platformToolClass");
+    expect(page).toContain("text-[var(--platform-text-primary)]");
     expect(page).not.toContain("border-slate-900 bg-slate-950 text-white");
     expect(grid).toContain("ProductDetailEditDialog");
     expect(dialog).toContain("id=\"update-product\"");
@@ -256,7 +257,7 @@ describe("admin operational UX", () => {
   });
 
   it("keeps storefront chrome out of admin and role control-plane routes", () => {
-    const shell = source("components/layout/store-shell.tsx");
+    const shell = source("components/layout/store-shell-client.tsx");
     const routes = source("lib/ui/shell-routes.ts");
 
     expect(shell).toContain("shouldSkipStorefrontChrome");
@@ -268,7 +269,7 @@ describe("admin operational UX", () => {
   });
 
   it("keeps storefront chrome off auth entry routes so login controls stay clickable", () => {
-    const shell = source("components/layout/store-shell.tsx");
+    const shell = source("components/layout/store-shell-client.tsx");
     const routes = source("lib/ui/shell-routes.ts");
 
     expect(routes).toContain("isAuthEntryRoute");

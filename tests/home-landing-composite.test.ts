@@ -13,12 +13,12 @@ describe("home landing composite contract", () => {
   it("renders the current hero followed by exactly one composite post-hero section", () => {
     const page = source("app/(storefront)/page.tsx");
 
-    expect(page).toContain("HeroCarousel");
+    expect(page).toContain("HeroCarouselDynamic");
     expect(page).toContain("HomeLandingComposite");
     expect(page).toContain("<HomeLandingComposite");
     expect(page).toContain("getHomepageProducts");
     expect(page).toContain("products={products}");
-    expect(page).toContain("HomeLandingSkeleton");
+    expect(page).not.toContain("dynamic(");
     expect(page).toContain("productReviews={cms.productSupport.reviews}");
     expect(page).toContain("footer={cms.footer}");
     expect(page).toContain("homepageCms={homepageCms}");
@@ -28,11 +28,12 @@ describe("home landing composite contract", () => {
 
   it("defines the requested chapter order and proof states without fake verified testimonials", () => {
     const component = source("sections/home/home-landing-composite.tsx");
+    const compositeSection = source("sections/home/home-composite-section.tsx");
 
-    expect(component).toContain('data-testid="home-landing-composite"');
-    expect(component).toContain('data-home-composite-root="true"');
-    expect(component).toContain('data-motion-state="reduced"');
-    expect(component).toContain('data-motion-engine="static"');
+    expect(compositeSection).toContain('data-testid="home-landing-composite"');
+    expect(compositeSection).toContain('data-home-composite-root="true"');
+    expect(compositeSection).toContain("data-motion-state={motionState}");
+    expect(compositeSection).toContain('data-motion-engine="static"');
     expect(component).toContain('type ProofState = "VERIFIED" | "FALLBACK"');
     expect(component).not.toContain(forbiddenStatusLabel);
     expect(component).not.toContain(oldDraftCollectionName);
@@ -71,13 +72,14 @@ describe("home landing composite contract", () => {
 
   it("uses reduced-motion guards and restrained product hover selectors", () => {
     const component = source("sections/home/home-landing-composite.tsx");
+    const compositeSection = source("sections/home/home-composite-section.tsx");
     const css = source("sections/home/home-landing-composite.module.css");
 
     expect(component).not.toContain('import gsap from "gsap"');
     expect(component).not.toContain('import("gsap")');
     expect(component).not.toContain("ScrollTrigger.create");
-    expect(component).toContain("useReducedMotionPreference");
-    expect(component).toContain("if (reducedMotion)");
+    expect(compositeSection).toContain("useReducedMotionPreference");
+    expect(compositeSection).toContain('motionState = reducedMotion ? "reduced" : "static"');
 
     expect(css).toContain(".productCard:hover .productImage");
     expect(css).toContain("scale(1.024)");
@@ -86,6 +88,8 @@ describe("home landing composite contract", () => {
 
   it("uses product shelves followed by distinct mission-world editorial sections", () => {
     const component = source("sections/home/home-landing-composite.tsx");
+    const miniCarousel = source("sections/home/home-mini-carousel.tsx");
+    const miniCarouselLib = source("lib/home/mini-carousel.ts");
     const css = source("sections/home/home-landing-composite.module.css");
     const chapterBlock = component.slice(
       component.indexOf("const chapters: HomeChapter[]"),
@@ -135,17 +139,17 @@ describe("home landing composite contract", () => {
     expect(component).toContain("featureExclude");
     expect(component).toContain('href={`/product/${product.slug}`}');
     expect(component).toContain("shelfProducts.slice(0, 4)");
-    expect(component).toContain('data-testid="home-mini-carousel"');
-    expect(component).toContain('data-carousel-kind="product"');
-    expect(component).toContain('data-testid="home-mini-carousel-item"');
+    expect(miniCarousel).toContain('data-testid="home-mini-carousel"');
+    expect(miniCarousel).toContain('data-carousel-kind="product"');
+    expect(miniCarousel).toContain('data-testid="home-mini-carousel-item"');
     expect(component).not.toContain("Mithron mission stack");
     expect(component).not.toContain("Aircraft, spares, and field support in one path.");
-    expect(component).toContain("pickMiniCarouselItems");
-    expect(component).toContain("miniCarouselProductPriority");
-    expect(component).toContain("itemKey:");
-    expect(component).toContain("key={item.itemKey}");
-    expect(component).not.toContain("key={item.label}");
-    expect(component).toContain('href: `/product/${product.slug}`');
+    expect(component).toContain("pickHomeMiniCarouselItems");
+    expect(miniCarouselLib).toContain("miniCarouselProductPriority");
+    expect(miniCarouselLib).toContain("itemKey:");
+    expect(miniCarousel).toContain("key={item.itemKey}");
+    expect(miniCarousel).not.toContain("key={item.label}");
+    expect(miniCarouselLib).toContain('href: `/product/${product.slug}`');
     expect(component).not.toContain("miniCarouselConfigs");
 
     expect(css).toContain(".productShelfSection");
@@ -226,7 +230,7 @@ describe("home landing composite contract", () => {
     );
     const missionTypes = component.slice(
       component.indexOf("type MissionWorldTile"),
-      component.indexOf("type MiniCarouselItem")
+      component.indexOf("function hasAny")
     );
     const agriMissionConfig = component.slice(
       component.indexOf('"agri-drones":'),

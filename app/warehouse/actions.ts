@@ -36,7 +36,7 @@ import {
   type InventoryCsvRecord
 } from "@/services/inventory-csv";
 import { buildValidatedOrderDraft, buildOrderTimelineEntry, appendOrderTimeline, syncOrderStatusFromFulfillment } from "@/services/orders";
-import { getProducts } from "@/services/catalog";
+import { getCheckoutPricingBySlugs } from "@/services/catalog";
 import { requirePermission } from "@/services/auth";
 import {
   applyFulfillmentStockMovements,
@@ -976,16 +976,7 @@ export async function createWarehouseOrderFormAction(formData: FormData) {
   const actorId = await currentActorId();
   const now = new Date();
   const warehouseCode = warehouseCodeFromFormData(formData);
-  const catalog = (await getProducts()).map((product) => ({
-    slug: product.slug,
-    name: product.name,
-    price: product.price,
-    category: product.category,
-    chargeTax: product.chargeTax,
-    taxGroup: product.taxGroup,
-    taxRate: product.taxRate,
-    taxIncluded: product.taxIncluded
-  }));
+  const catalog = await getCheckoutPricingBySlugs(input.checkout.items.map((item) => item.productSlug));
   const draft = buildValidatedOrderDraft(input.checkout, catalog);
   const timeline = appendOrderTimeline(
     [],

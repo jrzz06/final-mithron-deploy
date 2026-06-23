@@ -1,8 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { ProductHoverCard } from "@/components/cards/product-hover-card";
 import type { Product } from "@/config/types";
@@ -11,8 +7,6 @@ import { cn } from "@/lib/utils";
 import type { ProductShellItem } from "@/services/catalog";
 import { productSupportContent, type ProductSupportContent } from "@/config/storefront-content";
 import styles from "./product-detail.module.css";
-
-type SupportTab = "faq" | "related";
 
 function shellItemToProduct(item: ProductShellItem): Product {
   return {
@@ -45,15 +39,12 @@ export function SpecsFaqReviews({
   support?: ProductSupportContent;
 }) {
   const specs = getCustomerFacingSpecs(product);
+  const showFaq = support.faqs.length > 0;
+  const showRelated = relatedProducts.length > 0;
+  const showTabs = showFaq && showRelated;
+  const defaultTab = showFaq ? "faq" : "related";
 
-  const tabs = [
-    { id: "faq" as SupportTab, label: "FAQ", visible: support.faqs.length > 0 },
-    { id: "related" as SupportTab, label: "Related", visible: relatedProducts.length > 0 }
-  ].filter((tab) => tab.visible);
-
-  const [activeTab, setActiveTab] = useState<SupportTab>(tabs[0]?.id ?? "faq");
-
-  if (!specs.length && !tabs.length) return null;
+  if (!specs.length && !showFaq && !showRelated) return null;
 
   return (
     <section className={cn("product-detail-support", styles.supportSection)}>
@@ -77,65 +68,61 @@ export function SpecsFaqReviews({
           </div>
         ) : null}
 
-        {tabs.length > 0 ? (
-          <>
-            {tabs.length > 1 ? (
-              <div className={cn(styles.tabList, specs.length > 0 && "mt-10")} role="tablist" aria-label="Product support sections">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeTab === tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={cn(
-                      "type-button",
-                      styles.tabPill,
-                      activeTab === tab.id && styles.tabPillActive
-                    )}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+        {showFaq || showRelated ? (
+          <div className={cn(styles.supportTabs, specs.length > 0 && "mt-10")} data-support-tabs>
+            {showTabs ? (
+              <>
+                <input type="radio" name={`support-tab-${product.slug}`} id={`support-faq-${product.slug}`} defaultChecked={defaultTab === "faq"} className="sr-only" />
+                <input type="radio" name={`support-tab-${product.slug}`} id={`support-related-${product.slug}`} defaultChecked={defaultTab === "related"} className="sr-only" />
+                <div className={styles.tabList} role="tablist" aria-label="Product support sections">
+                  {showFaq ? (
+                    <label htmlFor={`support-faq-${product.slug}`} className={cn("type-button", styles.tabPill, styles.tabPillLabel)}>
+                      FAQ
+                    </label>
+                  ) : null}
+                  {showRelated ? (
+                    <label htmlFor={`support-related-${product.slug}`} className={cn("type-button", styles.tabPill, styles.tabPillLabel)}>
+                      Related
+                    </label>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+
+            {showFaq ? (
+              <div id="faq" className={cn(styles.tabPanel, showTabs ? styles.supportTabPanelFaq : undefined)} role="tabpanel">
+                <div className={styles.faqPanel}>
+                  {support.faqs.map(([question, answer]) => (
+                    <details key={question} className={styles.faqItem}>
+                      <summary className={styles.faqQuestion}>{question}</summary>
+                      <p className={styles.faqAnswer}>{answer}</p>
+                    </details>
+                  ))}
+                </div>
               </div>
             ) : null}
 
-            <div className={styles.tabPanel}>
-              {activeTab === "faq" ? (
-                <div id="faq" role="tabpanel">
-                  <Accordion type="single" collapsible className={styles.faqPanel}>
-                    {support.faqs.map(([question, answer]) => (
-                      <AccordionItem key={question} value={question}>
-                        <AccordionTrigger className="text-left text-[var(--text-primary,#0f172a)]">{question}</AccordionTrigger>
-                        <AccordionContent className="text-slate-600">{answer}</AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
+            {showRelated && relatedProducts.length > 0 ? (
+              <div id="accessories" className={cn(styles.tabPanel, showTabs ? styles.supportTabPanelRelated : undefined)} role="tabpanel">
+                <div className={styles.relatedHeader}>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/products">View all products</Link>
+                  </Button>
                 </div>
-              ) : null}
-
-              {activeTab === "related" && relatedProducts.length > 0 ? (
-                <div id="accessories" role="tabpanel">
-                  <div className={styles.relatedHeader}>
-                    <Button asChild variant="outline" size="sm">
-                      <Link href="/products">View all products</Link>
-                    </Button>
-                  </div>
-                  <div className={styles.relatedGrid}>
-                    {relatedProducts.map((item) => (
-                      <ProductHoverCard
-                        key={item.slug}
-                        product={shellItemToProduct(item)}
-                        variant="related"
-                        showCategory
-                        cta="arrow"
-                      />
-                    ))}
-                  </div>
+                <div className={styles.relatedGrid}>
+                  {relatedProducts.map((item) => (
+                    <ProductHoverCard
+                      key={item.slug}
+                      product={shellItemToProduct(item)}
+                      variant="related"
+                      showCategory
+                      cta="arrow"
+                    />
+                  ))}
                 </div>
-              ) : null}
-            </div>
-          </>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </section>

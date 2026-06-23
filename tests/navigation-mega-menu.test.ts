@@ -15,7 +15,7 @@ describe("store navigation mega menu", () => {
     expect(nav).toContain("enterpriseMenuConfigs?: EnterpriseMenuConfig[]");
     expect(nav).not.toContain("const enterpriseMenuConfigs: EnterpriseMenuConfig[]");
     expect(nav).not.toContain("productCutouts");
-    expect(layout).toContain("buildEnterpriseMenuConfigs(products)");
+    expect(layout).toContain("buildEnterpriseMenuConfigs(menuProducts)");
     expect(catalogNavigation).toContain("buildEnterpriseMenuConfigs");
     expect(catalogNavigation).toContain("filterProductsForCategorySlug");
   });

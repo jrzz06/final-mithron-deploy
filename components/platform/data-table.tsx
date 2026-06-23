@@ -27,7 +27,7 @@ export function DataTable({
       {title ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--platform-border)] bg-[var(--platform-surface-muted)] px-4 py-3">
           <div>
-            <h3 className="text-sm font-semibold text-[var(--platform-text-primary)]">{title}</h3>
+            <h3 className="text-sm font-medium text-[var(--platform-text-primary)]">{title}</h3>
             {description ? <p className="mt-0.5 text-xs text-[var(--platform-text-muted)]">{description}</p> : null}
           </div>
           {action}

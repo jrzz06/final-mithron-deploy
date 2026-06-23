@@ -38,11 +38,18 @@ export type ProductCatalogGridRow = {
   updatedAt?: string | null;
 };
 
+const productActionClass =
+  "product-row-btn inline-flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-colors";
+
 function statusClass(status: string) {
   const normalized = status.toLowerCase();
-  if (normalized === "published") return "border-emerald-400/35 bg-emerald-500/10 text-emerald-200";
-  if (normalized === "archived") return "border-slate-700 bg-slate-900 text-slate-300";
-  return "border-amber-400/35 bg-amber-500/10 text-amber-200";
+  if (normalized === "published") {
+    return "text-[var(--platform-success)]";
+  }
+  if (normalized === "archived") {
+    return "text-[var(--platform-text-muted)]";
+  }
+  return "text-[var(--platform-warning)]";
 }
 
 function formatCurrency(value: string) {
@@ -57,7 +64,7 @@ function ProductImage({ product }: { product: ProductCatalogGridRow }) {
   const thumbnailSrc = resolveNextImageSrc(product.thumbnailSrc);
 
   return (
-    <div className="relative aspect-[7/4] overflow-hidden rounded-lg border border-slate-800 bg-[#f8fafc]">
+    <div data-product-image-well className="relative aspect-[7/4] overflow-hidden rounded-lg">
       {thumbnailSrc ? (
         <Image
           src={thumbnailSrc}
@@ -65,10 +72,10 @@ function ProductImage({ product }: { product: ProductCatalogGridRow }) {
           fill
           sizes="(min-width: 1536px) 16vw, (min-width: 1280px) 20vw, (min-width: 768px) 40vw, 90vw"
           loading="lazy"
-          className="object-contain p-3.5"
+          className="object-contain p-4"
         />
       ) : (
-        <div className="grid h-full place-items-center bg-[#0b1017] text-3xl font-semibold text-slate-600">
+        <div className="grid h-full place-items-center text-2xl font-medium text-[var(--platform-text-muted)]">
           {product.title.slice(0, 1).toUpperCase()}
         </div>
       )}
@@ -103,11 +110,8 @@ function ProductPublishToggle({
       <button
         type="submit"
         title={isLiveOnStorefront ? "Remove product from storefront" : "Publish product to storefront"}
-        className={`inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition-colors ${
-          isLiveOnStorefront
-            ? "border-slate-700 bg-[#0b1017] text-slate-200 hover:border-slate-500 hover:bg-[#151c26]"
-            : "border-emerald-500/35 bg-emerald-500/15 text-emerald-100 hover:border-emerald-400/50 hover:bg-emerald-500/20"
-        }`}
+        className="product-row-btn inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-medium text-[var(--platform-text-primary)] transition-colors"
+        data-product-row-action="publish"
       >
         <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         {label}
@@ -138,33 +142,34 @@ const ProductCard = memo(function ProductCard({
   return (
     <article
       data-product-card
-      className={`group relative flex min-h-[260px] flex-col rounded-xl border border-slate-800 bg-[#10151d] p-2.5 shadow-none transition-colors hover:border-slate-600 hover:bg-[#111923] ${menuOpen ? "z-40" : "z-0"}`}
+      className={`group relative flex min-h-[248px] flex-col rounded-[var(--platform-radius)] p-3 transition-[background-color] ${menuOpen ? "z-40" : "z-0"}`}
     >
       <ProductImage product={product} />
 
-      <div className="mt-2.5 min-h-[84px] flex-1">
-        <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2">
-          <p className="truncate text-[11px] font-medium text-slate-400">{product.category}</p>
-          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize leading-4 ${statusClass(product.status)}`}>
+      <div className="mt-3 min-h-[72px] flex-1">
+        <div className="mb-1 flex min-w-0 items-center justify-between gap-2">
+          <p className="truncate text-[11px] text-[var(--platform-text-muted)]">{product.category}</p>
+          <span className={`inline-flex shrink-0 items-center gap-1 text-[10px] font-medium capitalize leading-4 ${statusClass(product.status)}`}>
+            <span className="size-1.5 rounded-full bg-current opacity-70" aria-hidden="true" />
             {product.status.replaceAll("_", " ")}
           </span>
         </div>
-        <h3 className="line-clamp-2 text-[12.5px] font-semibold leading-4 text-slate-100">
+        <h3 className="line-clamp-2 text-[13px] font-medium leading-5 text-[var(--platform-text-primary)]">
           {product.title}
         </h3>
-        <div className="mt-2.5 grid grid-cols-2 gap-1.5 text-xs">
-          <div className="rounded-lg border border-slate-800 bg-[#0b1017] px-2.5 py-1.5">
-            <p className="text-[11px] text-slate-500">Price</p>
-            <p className="mt-0.5 truncate font-semibold text-slate-100">{formatCurrency(product.price)}</p>
-          </div>
-          <div className="rounded-lg border border-slate-800 bg-[#0b1017] px-2.5 py-1.5">
-            <p className="text-[11px] text-slate-500">Stock</p>
-            <p className="mt-0.5 truncate font-semibold text-slate-100">{product.stockQuantity} {product.stockStatus}</p>
-          </div>
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs tabular-nums">
+          <p>
+            <span className="text-[var(--platform-text-muted)]">Price </span>
+            <span className="font-medium text-[var(--platform-text-primary)]">{formatCurrency(product.price)}</span>
+          </p>
+          <p>
+            <span className="text-[var(--platform-text-muted)]">Stock </span>
+            <span className="font-medium text-[var(--platform-text-primary)]">{product.stockQuantity} {product.stockStatus}</span>
+          </p>
         </div>
       </div>
 
-      <div className="mt-2.5 grid gap-1.5 border-t border-slate-800 pt-2.5">
+      <div className="mt-2 grid gap-1 pt-2">
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_36px] items-stretch gap-1.5">
           <button
             type="button"
@@ -172,7 +177,7 @@ const ProductCard = memo(function ProductCard({
             aria-label={`Edit ${product.title}`}
             title="Edit product"
             onClick={() => onEdit(product)}
-            className="inline-flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-[#0b1017] px-2 text-xs font-semibold text-slate-100 transition-colors hover:border-slate-500 hover:bg-[#151c26]"
+            className={productActionClass}
           >
             <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             Edit
@@ -180,7 +185,7 @@ const ProductCard = memo(function ProductCard({
           <Link
             data-product-row-action="media"
             href={`/admin/products?product_slug=${encodeURIComponent(product.id)}&tool=media#product-media`}
-            className="inline-flex h-8 min-w-0 items-center justify-center rounded-lg border border-slate-700 bg-[#0b1017] px-2 text-xs font-semibold text-slate-100 transition-colors hover:border-slate-500 hover:bg-[#151c26]"
+            className={productActionClass}
           >
             Media
           </Link>
@@ -190,15 +195,16 @@ const ProductCard = memo(function ProductCard({
               aria-label={`More actions for ${product.title}`}
               aria-expanded={menuOpen}
               onClick={() => onMenuToggle(product.id)}
-              className="grid h-8 w-9 place-items-center rounded-lg border border-slate-700 bg-[#0b1017] text-slate-300 transition-colors hover:border-slate-500 hover:bg-[#151c26]"
+              className="product-row-btn grid h-8 w-9 place-items-center rounded-lg text-[var(--platform-text-primary)] transition-colors"
+              data-product-row-action="menu"
             >
               <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
             </button>
             {menuOpen ? (
-              <div className="absolute right-0 top-[calc(100%+0.375rem)] z-[90] grid w-44 gap-1 rounded-xl border border-slate-800 bg-[#10151d] p-2 text-xs shadow-lg shadow-black/40">
+              <div className="absolute right-0 top-[calc(100%+0.375rem)] z-[90] grid w-44 gap-1 rounded-xl bg-[var(--platform-surface-raised)] p-2 text-xs" style={{ boxShadow: "var(--platform-shadow-md)" }}>
                 <form action={saveProductDuplicateFormAction}>
                   <input type="hidden" name="product_slug" value={product.id} />
-                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-semibold text-slate-300 hover:bg-[#151c26] hover:text-slate-100">
+                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left font-medium text-[var(--platform-text-secondary)] hover:bg-[var(--platform-accent-soft)] hover:text-[var(--platform-text-primary)]">
                     <Copy className="h-3.5 w-3.5" aria-hidden="true" />
                     Duplicate
                   </button>
@@ -214,7 +220,7 @@ const ProductCard = memo(function ProductCard({
           onPublishState={onPublishState}
         />
 
-        <div className="grid grid-cols-2 items-stretch gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           <form
             action={saveProductPublishStateFormAction}
             data-product-row-action="archive"
@@ -227,7 +233,8 @@ const ProductCard = memo(function ProductCard({
             <button
               type="submit"
               title="Archive product"
-              className="inline-flex h-8 w-full items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/10 px-2 text-xs font-semibold text-amber-200 transition-colors hover:border-amber-400/40 hover:bg-amber-500/15"
+              className="product-row-btn inline-flex h-8 w-full items-center justify-center rounded-lg px-2 text-xs font-medium transition-colors"
+              data-product-row-action="archive"
             >
               Archive
             </button>
@@ -237,7 +244,7 @@ const ProductCard = memo(function ProductCard({
             data-product-row-action="delete"
             title="Delete product"
             onClick={() => onDelete(product)}
-            className="inline-flex h-8 w-full items-center justify-center rounded-lg border border-rose-500/25 bg-rose-500/10 px-2 text-xs font-semibold text-rose-200 transition-colors hover:border-rose-400/40 hover:bg-rose-500/15"
+            className="product-row-btn inline-flex h-8 w-full items-center justify-center rounded-lg px-2 text-xs font-medium transition-colors"
           >
             Delete
           </button>
@@ -261,11 +268,13 @@ export function ProductCatalogGrid({
   const [deleteProduct, setDeleteProduct] = useState<ProductCatalogGridRow | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 24;
+  const baseProducts = useMemo(
+    () => rows.filter((product) => !deletedProductIds.has(product.id)),
+    [deletedProductIds, rows]
+  );
   const products = useMemo(
-    () => rows
-      .filter((product) => !deletedProductIds.has(product.id))
-      .map((product) => ({ ...product, ...(productOverrides[product.id] ?? {}) })),
-    [deletedProductIds, productOverrides, rows]
+    () => baseProducts.map((product) => ({ ...product, ...(productOverrides[product.id] ?? {}) })),
+    [baseProducts, productOverrides]
   );
   const visibleProducts = useMemo(() => products.slice(0, page * pageSize), [page, products]);
   const adjustedTotalCount = Math.max(totalCount - deletedProductIds.size, products.length);
@@ -282,8 +291,8 @@ export function ProductCatalogGrid({
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-        <span className="rounded-full border border-slate-800 bg-[#0b1017] px-3 py-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--platform-text-muted)]">
+        <span>
           Showing {String(visibleProducts.length)} of {String(adjustedTotalCount)} products
         </span>
       </div>
@@ -291,7 +300,7 @@ export function ProductCatalogGrid({
         id="product-list"
         data-product-operational-grid
         data-product-stock-visibility
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-3"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-4"
       >
         {visibleProducts.length ? visibleProducts.map((product) => (
           <ProductCard
@@ -317,7 +326,7 @@ export function ProductCatalogGrid({
             }}
           />
         )) : (
-          <div className="rounded-xl border border-slate-800 bg-[#10151d] p-4 text-sm text-slate-400 md:col-span-2 xl:col-span-4">
+          <div className="rounded-xl bg-[var(--platform-surface)] p-4 text-sm text-[var(--platform-text-muted)] md:col-span-2 xl:col-span-4">
             No products match the current filters.
           </div>
         )}
@@ -327,7 +336,7 @@ export function ProductCatalogGrid({
           <button
             type="button"
             onClick={() => setPage((current) => current + 1)}
-            className="rounded-lg border border-slate-700 bg-[#10151d] px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-[#151c26]"
+            className="rounded-lg border border-transparent bg-[var(--platform-surface-muted)] px-4 py-2 text-xs font-medium text-[var(--platform-text-secondary)] hover:bg-[var(--platform-accent-soft)]"
           >
             Load more products
           </button>
@@ -343,7 +352,7 @@ export function ProductCatalogGrid({
       ) : null}
 
       {deleteProduct ? (
-        <div data-product-delete-modal className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 p-4">
+        <div data-product-delete-modal className="fixed inset-0 z-50 grid place-items-center bg-[color-mix(in_srgb,var(--platform-bg)_72%,transparent)] p-4 backdrop-blur-[2px]">
           <form
             action={saveProductHardDeleteFormAction}
             onSubmit={() => {
@@ -354,21 +363,22 @@ export function ProductCatalogGrid({
               });
               setDeleteProduct(null);
             }}
-            className="w-full max-w-md rounded-2xl border border-rose-500/30 bg-[#10151d] p-5 shadow-none"
+            className="w-full max-w-md rounded-2xl border border-[var(--platform-border)] bg-[var(--platform-surface)] p-5"
+            style={{ boxShadow: "var(--platform-shadow-md)" }}
           >
             <input type="hidden" name="product_slug" value={deleteProduct.id} />
             <input type="hidden" name="confirm_slug" value={deleteProduct.id} />
             <input type="hidden" name="change_summary" value={`Delete product ${deleteProduct.id} from catalog grid`} />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-rose-600">Delete product</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-100">{deleteProduct.title}</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-400">
+            <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--platform-danger)]">Delete product</p>
+            <h2 className="mt-2 text-lg font-medium text-[var(--platform-text-primary)]">{deleteProduct.title}</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--platform-text-muted)]">
               This permanently deletes the product from the database. This action cannot be undone.
             </p>
             <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={() => setDeleteProduct(null)} className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-[#151c26]">
+              <button type="button" onClick={() => setDeleteProduct(null)} className="rounded-lg px-4 py-2 text-sm font-medium text-[var(--platform-text-secondary)] hover:bg-[var(--platform-accent-soft)]">
                 Cancel
               </button>
-              <button className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700">
+              <button className="rounded-lg bg-[var(--platform-danger-soft)] px-4 py-2 text-sm font-medium text-[var(--platform-danger)] hover:bg-[var(--platform-danger-soft)]">
                 Delete product
               </button>
             </div>

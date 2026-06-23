@@ -11,13 +11,14 @@ const oldDraftCityOperatorId = ["draft", "city", "operators"].join("-");
 describe("home composite scroll transition system", () => {
   it("uses a static composite section without scroll-scrubbed reveals", () => {
     const component = source("sections/home/home-landing-composite.tsx");
+    const compositeSection = source("sections/home/home-composite-section.tsx");
     const css = source("sections/home/home-landing-composite.module.css");
     const globals = source("app/globals.css");
 
     expect(component).toContain("export function HomeLandingComposite");
-    expect(component).toContain('data-testid="home-landing-composite"');
-    expect(component).toContain('data-home-composite-root="true"');
-    expect(component).toContain('data-motion-engine="static"');
+    expect(compositeSection).toContain('data-testid="home-landing-composite"');
+    expect(compositeSection).toContain('data-home-composite-root="true"');
+    expect(compositeSection).toContain('data-motion-engine="static"');
     expect(component).not.toContain("ScrollTrigger.create");
     expect(component).not.toContain("scrub: true");
     expect(component).not.toContain("--home-composite-progress");
@@ -26,7 +27,7 @@ describe("home composite scroll transition system", () => {
     expect(component).not.toContain("mithron:lenis-ready");
     expect(component).not.toContain('window.addEventListener("scroll"');
     expect(component).not.toContain("SplitText");
-    expect(component).toContain('data-testid="home-landing-composite"');
+    expect(compositeSection).toContain('data-testid="home-landing-composite"');
     expect(component).not.toContain('id: "about-us"');
     expect(component).not.toContain('id: "draft-testimonials"');
     expect(component).not.toContain('data-testimonial-state="fallback"');

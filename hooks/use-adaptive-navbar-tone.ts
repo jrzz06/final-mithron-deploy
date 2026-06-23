@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 export type NavbarInkTone = "light" | "dark";
-
-type NavbarToneStyle = CSSProperties & Record<`--${string}`, string>;
 
 const navbarToneStyles = {
   light: {
@@ -36,9 +33,10 @@ const navbarToneStyles = {
     "--adaptive-navbar-menu-border": "rgba(17, 17, 19, 0.10)",
     "--adaptive-navbar-menu-control": "rgba(17, 17, 19, 0.055)"
   }
-} satisfies Record<NavbarInkTone, NavbarToneStyle>;
+} satisfies Record<NavbarInkTone, CSSProperties & Record<`--${string}`, string>>;
 
 const NAVBAR_ROOT_SELECTOR = ".TOP_NAVBAR, .adaptive-mobile-menu, .adaptive-mobile-menu__backdrop";
+const MIN_CHECK_INTERVAL_MS = 100;
 
 function isInteractionPaused() {
   return typeof document !== "undefined" && document.documentElement.hasAttribute("data-overlay-open");
@@ -123,19 +121,44 @@ function measureNavbarTone(currentTone: NavbarInkTone): NavbarInkTone {
 }
 
 export function useAdaptiveNavbarTone(initialTone: NavbarInkTone = "dark") {
-  const [tone, setTone] = useState<NavbarInkTone>(initialTone);
+  const [tone, setTone] = useState(initialTone);
+  const toneRef = useRef(initialTone);
+  const lastCheckAtRef = useRef(0);
+  const rafIdRef = useRef<number | null>(null);
+  const resizeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const scheduleUpdate = () => {
-      if (isInteractionPaused()) return;
-      setTone((current) => measureNavbarTone(current));
+    const applyTone = (nextTone: NavbarInkTone) => {
+      if (toneRef.current === nextTone) return;
+      toneRef.current = nextTone;
+      setTone(nextTone);
     };
 
-    scheduleUpdate();
+    const runToneCheck = () => {
+      if (isInteractionPaused()) return;
+      applyTone(measureNavbarTone(toneRef.current));
+      lastCheckAtRef.current = performance.now();
+    };
+
+    const scheduleToneCheck = (force = false) => {
+      if (rafIdRef.current !== null) return;
+
+      rafIdRef.current = window.requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        const elapsed = performance.now() - lastCheckAtRef.current;
+        if (!force && elapsed < MIN_CHECK_INTERVAL_MS) {
+          scheduleToneCheck();
+          return;
+        }
+        runToneCheck();
+      });
+    };
+
+    runToneCheck();
 
     let mountAttempts = 0;
     const retryUntilHeroReady = () => {
-      scheduleUpdate();
+      scheduleToneCheck(true);
       if (!document.querySelector("#hero") && mountAttempts < 24) {
         mountAttempts += 1;
         window.requestAnimationFrame(retryUntilHeroReady);
@@ -143,42 +166,38 @@ export function useAdaptiveNavbarTone(initialTone: NavbarInkTone = "dark") {
     };
     retryUntilHeroReady();
 
-    window.addEventListener("resize", scheduleUpdate);
-    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    const onResize = () => {
+      if (resizeTimerRef.current) window.clearTimeout(resizeTimerRef.current);
+      resizeTimerRef.current = window.setTimeout(() => scheduleToneCheck(true), 150);
+    };
+
+    const onScroll = () => scheduleToneCheck();
+
+    window.addEventListener("resize", onResize);
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     const hero = document.querySelector("#hero");
     const heroObserver = hero
-      ? new IntersectionObserver(scheduleUpdate, { threshold: [0, 0.25, 0.5, 0.75, 1] })
+      ? new IntersectionObserver(() => scheduleToneCheck(true), { threshold: [0, 0.25, 0.5, 0.75, 1] })
       : null;
     if (hero && heroObserver) heroObserver.observe(hero);
 
-    const mutationObserver = new MutationObserver(scheduleUpdate);
-    if (document.body) {
-      mutationObserver.observe(document.body, {
-        subtree: true,
-        attributes: true,
-        attributeFilter: ["data-navbar-ink", "data-navbar-tone", "data-active-hero-theme", "data-hero-content-ink", "data-hero-slide-state"]
-      });
-    }
-
-    const overlayObserver = new MutationObserver(() => {
-      if (!isInteractionPaused()) scheduleUpdate();
-    });
-    overlayObserver.observe(document.documentElement, {
+    const mutationObserver = new MutationObserver(() => scheduleToneCheck());
+    mutationObserver.observe(document.documentElement, {
+      subtree: true,
       attributes: true,
-      attributeFilter: ["data-overlay-open"]
+      attributeFilter: ["data-overlay-open", "data-navbar-ink", "data-navbar-tone", "data-active-hero-theme", "data-hero-content-ink", "data-hero-slide-state"]
     });
 
     return () => {
-      window.removeEventListener("resize", scheduleUpdate);
-      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", onScroll);
+      if (resizeTimerRef.current) window.clearTimeout(resizeTimerRef.current);
+      if (rafIdRef.current !== null) window.cancelAnimationFrame(rafIdRef.current);
       heroObserver?.disconnect();
       mutationObserver.disconnect();
-      overlayObserver.disconnect();
     };
   }, []);
 
-  const style = useMemo(() => navbarToneStyles[tone], [tone]);
-
-  return { tone, style };
+  return { tone, style: navbarToneStyles[tone] };
 }

@@ -1,7 +1,5 @@
-"use client";
-
 import Link from "next/link";
-import { Fragment, useCallback, useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { ArrowRight, Star } from "lucide-react";
 import type { Product, MediaAsset } from "@/config/types";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -22,10 +20,12 @@ import {
   isGlobalProductsCategory,
   resolveHomepageShelf
 } from "@/lib/product-shelf-classification";
-import { useReducedMotionPreference } from "@/hooks/use-reduced-motion";
+import { pickHomeMiniCarouselItems } from "@/lib/home/mini-carousel";
 import { formatUsd } from "@/lib/utils";
 import { sanitizeProductPreviewText } from "@/lib/product-preview-text";
 import type { ProductReviewContent } from "@/config/storefront-content";
+import { HomeCompositeSection } from "@/sections/home/home-composite-section";
+import { HomeMiniCarousel } from "@/sections/home/home-mini-carousel";
 import styles from "./home-landing-composite.module.css";
 
 type ProofState = "VERIFIED" | "FALLBACK";
@@ -98,38 +98,6 @@ type MissionWorldConfig = {
   mediaNote: string;
   tiles: MissionWorldTile[];
 };
-
-type MiniCarouselItem = {
-  itemKey: string;
-  label: string;
-  fullLabel: string;
-  href: string;
-  media: Pick<MediaAsset, "src" | "alt">;
-  sourceState: ProofState;
-};
-
-function toSentenceCaseLabel(value: string) {
-  const clean = sanitizeProductPreviewText(value);
-  if (!clean) return "";
-  return clean
-    .toLowerCase()
-    .replace(/\b[a-z]/g, (char) => char.toUpperCase());
-}
-
-function formatMiniCarouselLabel(product: Product) {
-  const source = (product.name || product.category || "Catalog")
-    .replace(/[|[\]{}]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const normalized = toSentenceCaseLabel(source);
-  if (normalized.length <= 28) return normalized;
-
-  if (product.category) {
-    return toSentenceCaseLabel(product.category);
-  }
-
-  return normalized.slice(0, 26).replace(/\s+\S*$/, "");
-}
 
 function hasAny(product: Product, values: string[]) {
   const haystack = [
@@ -415,46 +383,6 @@ function textHasAny(text: string, values: string[]) {
   return values.some((value) => text.includes(value.toLowerCase()));
 }
 
-const miniCarouselProductPriority = [
-  "drone",
-  "agri",
-  "sprayer",
-  "seed",
-  "survey",
-  "mapping",
-  "surveillance",
-  "camera",
-  "controller",
-  "battery",
-  "propeller",
-  "power",
-  "gimbal"
-];
-
-function miniCarouselProductScore(product: Product) {
-  const text = productShelfSearchText(product);
-  const priorityIndex = miniCarouselProductPriority.findIndex((keyword) => text.includes(keyword));
-  const productBias = text.includes("drone") ? 18 : 0;
-  return (priorityIndex === -1 ? 0 : miniCarouselProductPriority.length - priorityIndex) + productBias;
-}
-
-function pickMiniCarouselItems(products: Product[]): MiniCarouselItem[] {
-  const carouselProducts = filterDroneWorldProducts(products);
-  return carouselProducts
-    .filter((product) => product.slug && product.image?.src)
-    .map((product, index) => ({ product, index, score: miniCarouselProductScore(product) }))
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .slice(0, 14)
-    .map(({ product, index }) => ({
-      itemKey: `${product.slug}-${index}`,
-      label: formatMiniCarouselLabel(product),
-      fullLabel: sanitizeProductPreviewText(product.name || product.category),
-      href: `/product/${product.slug}`,
-      media: product.image,
-      sourceState: "VERIFIED"
-    }));
-}
-
 function pickFeatureProduct(products: Product[], config: ProductShelfConfig) {
   const fallback = products[0];
   if (!fallback) return undefined;
@@ -499,7 +427,7 @@ function ProductShelfSection({
   config: ProductShelfConfig;
   products: Product[];
 }) {
-  const shelfProducts = useMemo(() => pickShelfProducts(products, config), [products, config]);
+  const shelfProducts = pickShelfProducts(products, config);
   const cardProducts = shelfProducts.slice(0, 4);
   const guideMedia = cardProducts[0]?.image ?? null;
 
@@ -555,7 +483,7 @@ function ProductShelfSection({
                           alt=""
                           aria-hidden={true}
                           fill
-                          priority={productIndex < 2}
+                          priority={productIndex === 0}
                           responsive={product.image.responsive}
                           sizes="(max-width: 640px) 72vw, (max-width: 1024px) 36vw, 270px"
                           className={styles.productImage}
@@ -857,7 +785,7 @@ function HomeCustomerTestimonialsSection({
   header: HomepageCmsContent["testimonials"];
   products: Product[];
 }) {
-  const representativeReviews = useMemo(() => pickRepresentativeHomeReviews(products), [products]);
+  const representativeReviews = pickRepresentativeHomeReviews(products);
   const showVerifiedReviews = mediaState === "VERIFIED" && items.length > 0;
   const displayReviews = showVerifiedReviews ? items : representativeReviews;
 
@@ -934,241 +862,155 @@ export function HomeLandingComposite({
   footer?: FooterContent;
   homepageCms?: HomepageCmsContent;
 }) {
-  const rootRef = useRef<HTMLElement | null>(null);
-  const miniCarouselRailRef = useRef<HTMLDivElement | null>(null);
-  const reducedMotion = useReducedMotionPreference();
-  const scrollMiniCarousel = useCallback(() => {
-    const rail = miniCarouselRailRef.current;
-    if (!rail) return;
-    rail.scrollBy({ left: rail.clientWidth * 0.8, behavior: reducedMotion ? "auto" : "smooth" });
-  }, [reducedMotion]);
   const strictWithoutCms = isCmsStrictMode() && !homepageCms;
   const cms = homepageCms ?? defaultHomepageCmsContent;
-  const shelfConfigs = useMemo(
-    () => ({
-      "drone-world": {
-        ...productShelfConfigs["drone-world"],
-        eyebrow: cms.shelves.droneWorld.eyebrow,
-        title: cms.shelves.droneWorld.title,
+  const shelfConfigs = {
+    "drone-world": {
+      ...productShelfConfigs["drone-world"],
+      eyebrow: cms.shelves.droneWorld.eyebrow,
+      title: cms.shelves.droneWorld.title,
+      href: cms.shelves.droneWorld.href,
+      viewAllLabel: cms.shelves.droneWorld.viewAllLabel,
+      guideLabel: cms.shelves.droneWorld.guideLabel,
+      guideTitle: cms.shelves.droneWorld.guideTitle,
+      guideHref: cms.shelves.droneWorld.guideHref,
+      heroSubtitle: cms.shelves.droneWorld.heroSubtitle,
+      heroBody: cms.shelves.droneWorld.heroBody,
+      featureCta: cms.shelves.droneWorld.featureCta,
+      heroCtaHref: cms.shelves.droneWorld.heroCtaHref
+    },
+    "drone-care": {
+      ...productShelfConfigs["drone-care"],
+      eyebrow: cms.shelves.droneCare.eyebrow,
+      title: cms.shelves.droneCare.title,
+      href: cms.shelves.droneCare.href,
+      viewAllLabel: cms.shelves.droneCare.viewAllLabel,
+      guideLabel: cms.shelves.droneCare.guideLabel,
+      guideTitle: cms.shelves.droneCare.guideTitle,
+      guideHref: cms.shelves.droneCare.guideHref,
+      heroSubtitle: cms.shelves.droneCare.heroSubtitle,
+      heroBody: cms.shelves.droneCare.heroBody,
+      featureCta: cms.shelves.droneCare.featureCta,
+      heroCtaHref: cms.shelves.droneCare.heroCtaHref
+    },
+    "global-products": {
+      ...productShelfConfigs["global-products"],
+      eyebrow: cms.shelves.globalProducts.eyebrow,
+      title: cms.shelves.globalProducts.title,
+      href: cms.shelves.globalProducts.href,
+      viewAllLabel: cms.shelves.globalProducts.viewAllLabel,
+      guideLabel: cms.shelves.globalProducts.guideLabel,
+      guideTitle: cms.shelves.globalProducts.guideTitle,
+      guideHref: cms.shelves.globalProducts.guideHref,
+      heroSubtitle: cms.shelves.globalProducts.heroSubtitle,
+      heroBody: cms.shelves.globalProducts.heroBody,
+      featureCta: cms.shelves.globalProducts.featureCta,
+      heroCtaHref: cms.shelves.globalProducts.heroCtaHref
+    }
+  };
+  const mergeTiles = (
+    defaults: MissionWorldConfig["tiles"],
+    cmsTiles: HomepageCmsContent["missions"]["agri"]["tiles"]
+  ) =>
+    defaults.map((tile, index) => {
+      const cmsTile = cmsTiles[index];
+      if (!cmsTile) return tile;
+      return {
+        ...tile,
+        label: cmsTile.label,
+        body: cmsTile.body,
+        operator: cmsTile.operator,
+        model: cmsTile.model,
+        location: cmsTile.location,
+        href: cmsTile.href?.trim() || tile.href,
+        media: { src: cmsTile.imageSrc, alt: cmsTile.imageAlt }
+      };
+    });
+  const missionConfigs = {
+    "agri-drones": {
+      ...missionWorldConfigs["agri-drones"],
+      eyebrow: cms.missions.agri.eyebrow,
+      title: cms.missions.agri.title,
+      body: cms.missions.agri.body,
+      mediaNote: cms.missions.agri.mediaNote,
+      tiles: mergeTiles(missionWorldConfigs["agri-drones"].tiles, cms.missions.agri.tiles)
+    },
+    "city-drones": {
+      ...missionWorldConfigs["city-drones"],
+      eyebrow: cms.missions.city.eyebrow,
+      title: cms.missions.city.title,
+      body: cms.missions.city.body,
+      mediaNote: cms.missions.city.mediaNote,
+      tiles: mergeTiles(missionWorldConfigs["city-drones"].tiles, cms.missions.city.tiles)
+    }
+  };
+  const landingChapters = chapters.map((chapter) => {
+    if (chapter.id === "drone-world") {
+      return {
+        ...chapter,
         href: cms.shelves.droneWorld.href,
-        viewAllLabel: cms.shelves.droneWorld.viewAllLabel,
-        guideLabel: cms.shelves.droneWorld.guideLabel,
-        guideTitle: cms.shelves.droneWorld.guideTitle,
-        guideHref: cms.shelves.droneWorld.guideHref,
-        heroSubtitle: cms.shelves.droneWorld.heroSubtitle,
-        heroBody: cms.shelves.droneWorld.heroBody,
-        featureCta: cms.shelves.droneWorld.featureCta,
-        heroCtaHref: cms.shelves.droneWorld.heroCtaHref
-      },
-      "drone-care": {
-        ...productShelfConfigs["drone-care"],
-        eyebrow: cms.shelves.droneCare.eyebrow,
-        title: cms.shelves.droneCare.title,
+        media: {
+          ...chapter.media,
+          src: cms.shelves.droneWorld.heroImageSrc,
+          alt: cms.shelves.droneWorld.heroImageAlt
+        }
+      };
+    }
+    if (chapter.id === "drone-care") {
+      return {
+        ...chapter,
         href: cms.shelves.droneCare.href,
-        viewAllLabel: cms.shelves.droneCare.viewAllLabel,
-        guideLabel: cms.shelves.droneCare.guideLabel,
-        guideTitle: cms.shelves.droneCare.guideTitle,
-        guideHref: cms.shelves.droneCare.guideHref,
-        heroSubtitle: cms.shelves.droneCare.heroSubtitle,
-        heroBody: cms.shelves.droneCare.heroBody,
-        featureCta: cms.shelves.droneCare.featureCta,
-        heroCtaHref: cms.shelves.droneCare.heroCtaHref
-      },
-      "global-products": {
-        ...productShelfConfigs["global-products"],
-        eyebrow: cms.shelves.globalProducts.eyebrow,
-        title: cms.shelves.globalProducts.title,
+        media: {
+          ...chapter.media,
+          src: cms.shelves.droneCare.heroImageSrc,
+          alt: cms.shelves.droneCare.heroImageAlt
+        }
+      };
+    }
+    if (chapter.id === "global-products") {
+      return {
+        ...chapter,
         href: cms.shelves.globalProducts.href,
-        viewAllLabel: cms.shelves.globalProducts.viewAllLabel,
-        guideLabel: cms.shelves.globalProducts.guideLabel,
-        guideTitle: cms.shelves.globalProducts.guideTitle,
-        guideHref: cms.shelves.globalProducts.guideHref,
-        heroSubtitle: cms.shelves.globalProducts.heroSubtitle,
-        heroBody: cms.shelves.globalProducts.heroBody,
-        featureCta: cms.shelves.globalProducts.featureCta,
-        heroCtaHref: cms.shelves.globalProducts.heroCtaHref
-      }
-    }),
-    [cms]
-  );
-  const missionConfigs = useMemo(() => {
-    const mergeTiles = (
-      defaults: MissionWorldConfig["tiles"],
-      cmsTiles: HomepageCmsContent["missions"]["agri"]["tiles"]
-    ) =>
-      defaults.map((tile, index) => {
-        const cmsTile = cmsTiles[index];
-        if (!cmsTile) return tile;
-        return {
-          ...tile,
-          label: cmsTile.label,
-          body: cmsTile.body,
-          operator: cmsTile.operator,
-          model: cmsTile.model,
-          location: cmsTile.location,
-          href: cmsTile.href?.trim() || tile.href,
-          media: { src: cmsTile.imageSrc, alt: cmsTile.imageAlt }
-        };
-      });
-
-    return {
-      "agri-drones": {
-        ...missionWorldConfigs["agri-drones"],
+        media: {
+          ...chapter.media,
+          src: cms.shelves.globalProducts.heroImageSrc,
+          alt: cms.shelves.globalProducts.heroImageAlt
+        }
+      };
+    }
+    if (chapter.id === "agri-drones") {
+      return {
+        ...chapter,
         eyebrow: cms.missions.agri.eyebrow,
         title: cms.missions.agri.title,
         body: cms.missions.agri.body,
-        mediaNote: cms.missions.agri.mediaNote,
-        tiles: mergeTiles(missionWorldConfigs["agri-drones"].tiles, cms.missions.agri.tiles)
-      },
-      "city-drones": {
-        ...missionWorldConfigs["city-drones"],
+        href: cms.missions.agri.href,
+        cta: cms.missions.agri.cta
+      };
+    }
+    if (chapter.id === "city-drones") {
+      return {
+        ...chapter,
         eyebrow: cms.missions.city.eyebrow,
         title: cms.missions.city.title,
         body: cms.missions.city.body,
-        mediaNote: cms.missions.city.mediaNote,
-        tiles: mergeTiles(missionWorldConfigs["city-drones"].tiles, cms.missions.city.tiles)
-      }
-    };
-  }, [cms]);
-  const landingChapters = useMemo(
-    () =>
-      chapters.map((chapter) => {
-        if (chapter.id === "drone-world") {
-          return {
-            ...chapter,
-            href: cms.shelves.droneWorld.href,
-            media: {
-              ...chapter.media,
-              src: cms.shelves.droneWorld.heroImageSrc,
-              alt: cms.shelves.droneWorld.heroImageAlt
-            }
-          };
-        }
-        if (chapter.id === "drone-care") {
-          return {
-            ...chapter,
-            href: cms.shelves.droneCare.href,
-            media: {
-              ...chapter.media,
-              src: cms.shelves.droneCare.heroImageSrc,
-              alt: cms.shelves.droneCare.heroImageAlt
-            }
-          };
-        }
-        if (chapter.id === "global-products") {
-          return {
-            ...chapter,
-            href: cms.shelves.globalProducts.href,
-            media: {
-              ...chapter.media,
-              src: cms.shelves.globalProducts.heroImageSrc,
-              alt: cms.shelves.globalProducts.heroImageAlt
-            }
-          };
-        }
-        if (chapter.id === "agri-drones") {
-          return {
-            ...chapter,
-            eyebrow: cms.missions.agri.eyebrow,
-            title: cms.missions.agri.title,
-            body: cms.missions.agri.body,
-            href: cms.missions.agri.href,
-            cta: cms.missions.agri.cta
-          };
-        }
-        if (chapter.id === "city-drones") {
-          return {
-            ...chapter,
-            eyebrow: cms.missions.city.eyebrow,
-            title: cms.missions.city.title,
-            body: cms.missions.city.body,
-            href: cms.missions.city.href,
-            cta: cms.missions.city.cta
-          };
-        }
-        return chapter;
-      }),
-    [cms]
-  );
-  const miniCarouselItems = useMemo(() => pickMiniCarouselItems(products), [products]);
-  const displayedProductReviews = useMemo(
-    () => pickHomeProductReviews(productReviews, products),
-    [productReviews, products]
-  );
-  const resolvedFooter = footer ?? (isCmsStrictMode() ? null : footerContent);
-
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-
-    if (reducedMotion) {
-      root.setAttribute("data-motion-state", "reduced");
-      return;
+        href: cms.missions.city.href,
+        cta: cms.missions.city.cta
+      };
     }
-
-    root.setAttribute("data-motion-state", "static");
-  }, [reducedMotion]);
+    return chapter;
+  });
+  const miniCarouselItems = pickHomeMiniCarouselItems(products);
+  const displayedProductReviews = pickHomeProductReviews(productReviews, products);
+  const resolvedFooter = footer ?? (isCmsStrictMode() ? null : footerContent);
 
   if (strictWithoutCms) {
     return null;
   }
 
   return (
-    <section
-      ref={rootRef}
-      className={styles.root}
-      data-testid="home-landing-composite"
-      data-home-composite-root="true"
-      data-motion-state="reduced"
-      data-motion-engine="static"
-      aria-label="Mithron home landing composite"
-    >
-      <div
-        className={styles.miniCarousel}
-        data-testid="home-mini-carousel"
-        data-carousel-kind="product"
-        data-media-state={miniCarouselItems.some((item) => item.sourceState === "VERIFIED") ? "VERIFIED" : "FALLBACK"}
-      >
-        <div className={styles.miniCarouselViewport}>
-          <div
-            ref={miniCarouselRailRef}
-            className={styles.miniCarouselRail}
-            data-testid="home-mini-carousel-rail"
-            aria-label="Mithron product category carousel"
-          >
-            {miniCarouselItems.map((item) => (
-              <Link
-                href={item.href}
-                className={styles.miniCarouselItem}
-                data-testid="home-mini-carousel-item"
-                data-media-state={item.sourceState}
-                key={item.itemKey}
-                title={item.fullLabel}
-              >
-                <span className={styles.miniCarouselImageWell}>
-                  <MithronThumbImage
-                    src={item.media.src}
-                    alt=""
-                    aria-hidden={true}
-                    fill
-                    sizes="(max-width: 640px) 92px, 128px"
-                    className={styles.miniCarouselImage}
-                  />
-                </span>
-                <span className={styles.miniCarouselLabel}>{item.label}</span>
-              </Link>
-            ))}
-          </div>
-          <button
-            type="button"
-            className={styles.miniCarouselNext}
-            aria-label="Show more Mithron categories"
-            onClick={scrollMiniCarousel}
-          >
-            <ArrowRight size={22} aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+    <HomeCompositeSection>
+      <HomeMiniCarousel items={miniCarouselItems} />
 
       {landingChapters.map((chapter) => renderChapter({ chapter, products, shelfConfigs, missionConfigs }))}
 
@@ -1183,7 +1025,7 @@ export function HomeLandingComposite({
         <HomeAboutUsBand about={cms.about} />
         {resolvedFooter ? <SiteFooter content={resolvedFooter} /> : null}
       </div>
-    </section>
+    </HomeCompositeSection>
   );
 }
 

@@ -45,7 +45,7 @@ export function ProductCategoryField({ categories, deleteCategoryAction }: Produ
   return (
     <div data-product-category-field className="grid gap-2">
       <div className="flex items-center justify-between gap-3">
-        <label htmlFor={categoryId} className="text-xs font-medium text-slate-500">
+        <label htmlFor={categoryId} className="text-xs font-medium text-[var(--platform-text-muted)]">
           Category
         </label>
         <button
@@ -66,7 +66,7 @@ export function ProductCategoryField({ categories, deleteCategoryAction }: Produ
               event.preventDefault();
             }
           }}
-          className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-45"
+          className="rounded-md px-2.5 py-1 text-xs font-medium text-[var(--platform-danger)] transition-colors hover:bg-[var(--platform-danger-soft)] disabled:cursor-not-allowed disabled:opacity-45"
         >
           Delete
         </button>
@@ -79,7 +79,7 @@ export function ProductCategoryField({ categories, deleteCategoryAction }: Produ
           required
           value={selectedCategory}
           onChange={(event) => setSelectedCategory(event.target.value)}
-          className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-slate-400"
+          className="h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface-muted)] px-3 text-sm text-[var(--platform-text-primary)] outline-none focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]"
         >
           {options.map((category) => (
             <option key={category.label} value={category.label}>
@@ -88,12 +88,12 @@ export function ProductCategoryField({ categories, deleteCategoryAction }: Produ
           ))}
         </select>
       ) : (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+        <div className="rounded-[10px] bg-[var(--platform-warning-soft)] px-3 py-2 text-xs leading-5 text-[var(--platform-warning)]">
           No existing categories were returned. Add a category first, then return here to create the product.
         </div>
       )}
       {selectedOption ? (
-        <p data-product-category-usage className="text-xs leading-5 text-slate-500">
+        <p data-product-category-usage className="text-xs leading-5 text-[var(--platform-text-muted)]">
           {usageLabel}. Delete removes the CMS category row only after products are moved out.
         </p>
       ) : null}

@@ -3,6 +3,8 @@ import { ArrowRight } from "lucide-react";
 import type { CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { ProductHoverCard } from "@/components/cards/product-hover-card";
+import { CatalogVirtualizedGrid } from "@/sections/catalog/catalog-virtualized-grid";
+import { StorefrontRevealImage } from "@/components/media/storefront-reveal-image";
 import { MithronCardImage } from "@/components/media/mithron-card-image";
 import { MithronPageHeroImage } from "@/components/media/mithron-page-hero-image";
 import type { Product } from "@/config/types";
@@ -65,7 +67,7 @@ export function CatalogPage({
           <picture className="catalog-hero-image-section__frame">
             {optimizedShowcase?.avifSrcSet ? <source type="image/avif" srcSet={optimizedShowcase.avifSrcSet} sizes="(min-width: 1440px) 1440px, 100vw" /> : null}
             {optimizedShowcase?.webpSrcSet ? <source type="image/webp" srcSet={optimizedShowcase.webpSrcSet} sizes="(min-width: 1440px) 1440px, 100vw" /> : null}
-            <img
+            <StorefrontRevealImage
               src={optimizedShowcase?.src ?? showcaseImage.src}
               alt={showcaseImage.alt}
               width={optimizedShowcase?.width ?? showcaseImage.width}
@@ -171,11 +173,11 @@ export function CatalogPage({
               <p className={isShowroom ? styles.separatorLabel : "type-meta"}>Complete ecosystem</p>
               <span className={isShowroom ? styles.separatorRule : "catalog-section-separator__rule"} aria-hidden />
             </div>
-            <div className={isShowroom ? cn(styles.productGrid, styles.productGridContinued) : "catalog-product-grid catalog-product-grid--continued grid md:grid-cols-3 xl:grid-cols-4"}>
-              {remainingProducts.map((product) => (
-                <ProductHoverCard key={product.slug} product={product} variant="catalog" showCategory cta="catalog" presentation={cardPresentation} />
-              ))}
-            </div>
+            <CatalogVirtualizedGrid
+              products={remainingProducts}
+              className={isShowroom ? cn(styles.productGrid, styles.productGridContinued) : "catalog-product-grid catalog-product-grid--continued grid md:grid-cols-3 xl:grid-cols-4"}
+              presentation={cardPresentation}
+            />
           </>
         ) : null}
       </section>

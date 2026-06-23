@@ -9,18 +9,19 @@ function source(path: string) {
 describe("card elevation system", () => {
   it("defines shared elevation tokens and utility classes in globals.css", () => {
     const globals = source("app/globals.css");
+    const platformStyles = source("app/platform.css");
 
     expect(globals).toContain("--elevation-card-rest:");
     expect(globals).toContain("--elevation-card-hover:");
     expect(globals).toContain("--elevation-card-lift:");
     expect(globals).toContain("--elevation-product-rest:");
     expect(globals).toContain("--elevation-product-hover:");
-    expect(globals).toContain(".mithron-elevated-card {");
-    expect(globals).toContain(".mithron-elevated-card--interactive:is(:hover, :focus-within, :focus-visible)");
-    expect(globals).toContain("box-shadow: var(--elevation-card-rest)");
-    expect(globals).toContain("box-shadow: var(--elevation-card-hover)");
-    expect(globals).toContain("--platform-shadow-sm: var(--elevation-card-rest)");
-    expect(globals).toContain("--platform-shadow-hover: var(--elevation-card-hover)");
+    expect(platformStyles).toContain(".mithron-elevated-card {");
+    expect(platformStyles).toContain(".mithron-elevated-card--interactive:is(:hover, :focus-within, :focus-visible)");
+    expect(platformStyles).toContain("box-shadow: var(--platform-shadow-sm)");
+    expect(platformStyles).toContain("box-shadow: var(--platform-shadow-hover)");
+    expect(platformStyles).toContain("--platform-shadow-sm:");
+    expect(platformStyles).toContain("--platform-shadow-hover:");
   });
 
   it("wires catalog and home shelf cards to elevation tokens", () => {
@@ -47,7 +48,7 @@ describe("card elevation system", () => {
     expect(productCardCss).toContain("--elevation-product-rest");
     expect(productCardCss).toContain("--elevation-product-hover");
     expect(metricCard).not.toContain("boxShadow");
-    expect(metricCard).toContain("mithron-elevated-card");
+    expect(metricCard).toContain("data-admin-metric-grid");
     expect(surface).not.toContain("boxShadow");
     expect(surface).toContain("mithron-elevated-card");
     expect(dataTable).not.toContain("boxShadow");

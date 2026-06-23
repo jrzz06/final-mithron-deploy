@@ -8,8 +8,8 @@ import { ProductTaxFields } from "@/components/admin/product-tax-fields";
 export function ProductCreateDetailFields() {
   return (
     <div data-product-create-detail-fields className="grid gap-4 lg:col-span-2">
-      <section data-product-create-basic-info className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Basic info</p>
+      <section data-product-create-basic-info className="grid gap-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--platform-text-muted)]">Basic info</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-1.5 text-sm sm:col-span-2">
             <ProductFieldLabel>Name</ProductFieldLabel>
@@ -17,7 +17,7 @@ export function ProductCreateDetailFields() {
               name="name"
               required
               placeholder="Agri Kisan Drone Medium - 10 Liter"
-              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none placeholder:text-slate-400 focus:border-slate-400"
+              className="h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-primary)] outline-none placeholder:text-[var(--platform-text-muted)] focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]"
             />
           </label>
           <label className="grid gap-1.5 text-sm">
@@ -27,18 +27,18 @@ export function ProductCreateDetailFields() {
             <input
               name="ribbon"
               placeholder="New Arrival"
-              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none placeholder:text-slate-400 focus:border-slate-400"
+              className="h-10 w-full rounded-[10px] border-0 bg-[var(--platform-surface)] px-3 text-sm text-[var(--platform-text-primary)] outline-none placeholder:text-[var(--platform-text-muted)] focus:bg-[var(--platform-accent-soft)] focus:ring-2 focus:ring-[var(--platform-focus-ring)]"
             />
           </label>
         </div>
         <label className="grid gap-1.5 text-sm">
           <ProductFieldLabel>Description</ProductFieldLabel>
-          <ProductSimpleRichText name="description" variant="light" placeholder="Describe features, payload, and warranty details..." />
+          <ProductSimpleRichText name="description" variant="dark" placeholder="Describe features, payload, and warranty details..." />
         </label>
       </section>
 
-      <ProductPricingFields initialPrice={0} variant="light" />
-      <ProductTaxFields variant="light" />
+      <ProductPricingFields initialPrice={0} variant="dark" />
+      <ProductTaxFields variant="dark" />
     </div>
   );
 }
