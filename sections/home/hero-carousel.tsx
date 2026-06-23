@@ -83,7 +83,7 @@ const heroImageComposition: Record<string, HeroImageComposition> = {
   "ag10-arrival": {
     focalPoint: "right-center drone over glacial terrain at sunrise",
     desktopObjectPosition: "72% 52%",
-    mobileObjectPosition: "50% 58%",
+    mobileObjectPosition: "58% 52%",
     desktopTransform: "translate3d(0, 0, 0) scale(1)",
     mobileTransform: "translate3d(0, 0, 0) scale(1)",
     desktopFilter: "none",
@@ -92,7 +92,7 @@ const heroImageComposition: Record<string, HeroImageComposition> = {
   "mapping-flight": {
     focalPoint: "center-right caged drone over night sports court",
     desktopObjectPosition: "62% 58%",
-    mobileObjectPosition: "50% 60%",
+    mobileObjectPosition: "50% 50%",
     desktopTransform: "translate3d(0, 0, 0) scale(1)",
     mobileTransform: "translate3d(0, 0, 0) scale(1)",
     desktopFilter: "none",
@@ -101,7 +101,7 @@ const heroImageComposition: Record<string, HeroImageComposition> = {
   "drone-ecosystem": {
     focalPoint: "upper-right medical delivery drone over coastal horizon",
     desktopObjectPosition: "90% 52%",
-    mobileObjectPosition: "62% 58%",
+    mobileObjectPosition: "62% 48%",
     desktopTransform: "translate3d(0, 0, 0) scale(1)",
     mobileTransform: "translate3d(0, 0, 0) scale(1)",
     desktopFilter: "none",
@@ -244,7 +244,7 @@ export function HeroCarousel({
       data-hero-content-ink={contentInk}
       data-navbar-ink={navbarInk}
       className={cn(
-        "hero-premium-field relative isolate h-[80svh] min-h-[580px] w-full overflow-hidden max-md:h-auto max-md:min-h-0",
+        "hero-premium-field relative isolate h-[80svh] min-h-[580px] w-full overflow-hidden",
         tone.section
       )}
     >

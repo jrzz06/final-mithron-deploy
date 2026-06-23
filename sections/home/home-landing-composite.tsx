@@ -24,7 +24,7 @@ import {
 } from "@/lib/product-shelf-classification";
 import { useReducedMotionPreference } from "@/hooks/use-reduced-motion";
 import { formatUsd } from "@/lib/utils";
-import { clipProductPreviewText, sanitizeProductPreviewText } from "@/lib/product-preview-text";
+import { sanitizeProductPreviewText } from "@/lib/product-preview-text";
 import type { ProductReviewContent } from "@/config/storefront-content";
 import styles from "./home-landing-composite.module.css";
 
@@ -117,14 +117,18 @@ function toSentenceCaseLabel(value: string) {
 }
 
 function formatMiniCarouselLabel(product: Product) {
-  const source = product.name || product.category || "Catalog";
+  const source = (product.name || product.category || "Catalog")
+    .replace(/[|[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   const normalized = toSentenceCaseLabel(source);
-  if (normalized.length <= 32) return normalized;
+  if (normalized.length <= 28) return normalized;
 
-  const clipped = clipProductPreviewText(normalized, 32).replace(/\.{3}$/, "");
-  if (clipped.length >= 12) return clipped;
+  if (product.category) {
+    return toSentenceCaseLabel(product.category);
+  }
 
-  return toSentenceCaseLabel(product.category || "Catalog");
+  return normalized.slice(0, 26).replace(/\s+\S*$/, "");
 }
 
 function hasAny(product: Product, values: string[]) {
