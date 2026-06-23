@@ -514,35 +514,38 @@
 .productShelfSection[data-shelf-tone="world"] .productShelfGrid,
 .productShelfSection[data-shelf-tone="care"] .productShelfGrid,
 .productShelfSection[data-shelf-tone="global"] .productShelfGrid {
-  padding: 10px;
-  border: 1px solid rgba(15, 23, 42, 0.09);
-  border-radius: 16px;
-  gap: 10px;
+  --shelf-product-floor: radial-gradient(ellipse 78% 54% at 50% 96%, rgba(15, 23, 42, 0.11) 0%, rgba(31, 107, 70, 0.04) 46%, transparent 78%);
+  --shelf-product-halo: radial-gradient(ellipse 88% 68% at 50% 46%, rgba(226, 232, 240, 0.48) 0%, rgba(241, 245, 249, 0.14) 50%, transparent 88%);
+  --shelf-product-radial: radial-gradient(ellipse at center, rgba(23, 77, 51, 0.06) 0%, rgba(148, 163, 184, 0.05) 56%, transparent 88%);
+  padding: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.055);
+  border-radius: 14px;
+  gap: 8px;
   overflow: hidden;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 24px 52px -22px rgba(15, 23, 42, 0.22);
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 12px 32px -24px rgba(15, 23, 42, 0.1);
 }
 
 .productShelfSection[data-shelf-tone="world"] .productShelfGrid {
   background:
-    radial-gradient(ellipse 100% 78% at 0% 100%, rgba(31, 107, 70, 0.14) 0%, transparent 62%),
-    radial-gradient(ellipse 92% 68% at 100% 0%, rgba(100, 116, 139, 0.16) 0%, transparent 58%),
-    linear-gradient(165deg, #e6edf5 0%, #dce6f0 48%, #d2dde9 100%);
+    radial-gradient(ellipse 88% 68% at 0% 100%, rgba(23, 77, 51, 0.06) 0%, transparent 58%),
+    radial-gradient(ellipse 82% 62% at 100% 0%, rgba(148, 163, 184, 0.1) 0%, transparent 56%),
+    linear-gradient(165deg, #f8fbfd 0%, #f0f5fb 48%, #e8f0f8 100%);
 }
 
 .productShelfSection[data-shelf-tone="care"] .productShelfGrid {
   background:
-    radial-gradient(ellipse 100% 78% at 0% 100%, rgba(31, 107, 70, 0.16) 0%, transparent 62%),
-    radial-gradient(ellipse 92% 68% at 100% 0%, rgba(100, 116, 139, 0.14) 0%, transparent 58%),
-    linear-gradient(165deg, #e4ede8 0%, #d9e8df 48%, #cedfd4 100%);
+    radial-gradient(ellipse 88% 68% at 0% 100%, rgba(31, 107, 70, 0.07) 0%, transparent 58%),
+    radial-gradient(ellipse 82% 62% at 100% 0%, rgba(148, 163, 184, 0.1) 0%, transparent 56%),
+    linear-gradient(165deg, #f7fbf9 0%, #f0f7f3 48%, #e9f3ec 100%);
 }
 
 .productShelfSection[data-shelf-tone="global"] .productShelfGrid {
   background:
-    radial-gradient(ellipse 100% 78% at 0% 100%, rgba(31, 107, 70, 0.15) 0%, transparent 62%),
-    radial-gradient(ellipse 92% 68% at 100% 0%, rgba(100, 116, 139, 0.18) 0%, transparent 58%),
-    linear-gradient(165deg, #e4eaf0 0%, #d9e2eb 48%, #cfd9e4 100%);
+    radial-gradient(ellipse 92% 72% at 0% 100%, rgba(31, 107, 70, 0.07) 0%, transparent 58%),
+    radial-gradient(ellipse 84% 64% at 100% 0%, rgba(148, 163, 184, 0.12) 0%, transparent 56%),
+    linear-gradient(165deg, #fafbfc 0%, #f3f6f9 48%, #eef2f6 100%);
 }
 
 .productCard {
@@ -559,9 +562,9 @@
   color: var(--home-ink);
   text-decoration: none;
   isolation: isolate;
-  --shelf-product-floor: radial-gradient(ellipse 72% 50% at 50% 94%, rgba(15, 23, 42, 0.2) 0%, rgba(15, 23, 42, 0.07) 48%, transparent 76%);
-  --shelf-product-halo: radial-gradient(ellipse 82% 64% at 50% 52%, rgba(148, 163, 184, 0.26) 0%, rgba(241, 245, 249, 0.12) 46%, transparent 84%);
-  --shelf-product-radial: radial-gradient(ellipse at center, rgba(15, 23, 42, 0.12) 0%, rgba(100, 116, 139, 0.05) 54%, transparent 84%);
+  --shelf-product-floor: radial-gradient(ellipse 78% 54% at 50% 96%, rgba(15, 23, 42, 0.11) 0%, rgba(31, 107, 70, 0.04) 46%, transparent 78%);
+  --shelf-product-halo: radial-gradient(ellipse 88% 68% at 50% 46%, rgba(226, 232, 240, 0.48) 0%, rgba(241, 245, 249, 0.14) 50%, transparent 88%);
+  --shelf-product-radial: radial-gradient(ellipse at center, rgba(23, 77, 51, 0.06) 0%, rgba(148, 163, 184, 0.05) 56%, transparent 88%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
     0 20px 42px -16px rgba(15, 23, 42, 0.22),
@@ -574,33 +577,13 @@
     transform 300ms var(--ease-cinematic);
 }
 
-.productShelfSection[data-shelf-tone="world"] .productCard {
-  --shelf-product-floor: radial-gradient(ellipse 82% 54% at 50% 100%, rgba(15, 23, 42, 0.28) 0%, rgba(31, 107, 70, 0.1) 44%, transparent 74%);
-  --shelf-product-halo: radial-gradient(ellipse 92% 72% at 50% 40%, rgba(148, 163, 184, 0.38) 0%, rgba(226, 232, 240, 0.16) 52%, transparent 88%);
-  --shelf-product-radial: radial-gradient(ellipse at center, rgba(15, 23, 42, 0.14) 0%, rgba(100, 116, 139, 0.08) 54%, transparent 86%);
-}
-
-.productShelfSection[data-shelf-tone="care"] .productCard {
-  --shelf-product-floor: radial-gradient(ellipse 82% 54% at 50% 100%, rgba(15, 23, 42, 0.26) 0%, rgba(31, 107, 70, 0.12) 44%, transparent 74%);
-  --shelf-product-halo: radial-gradient(ellipse 92% 72% at 50% 40%, rgba(148, 163, 184, 0.34) 0%, rgba(226, 232, 240, 0.14) 52%, transparent 88%);
-  --shelf-product-radial: radial-gradient(ellipse at center, rgba(23, 77, 51, 0.12) 0%, rgba(100, 116, 139, 0.07) 54%, transparent 86%);
-}
-
 .productShelfSection[data-shelf-tone="world"] .productCard,
 .productShelfSection[data-shelf-tone="care"] .productCard,
 .productShelfSection[data-shelf-tone="global"] .productCard {
   border: none;
-  border-radius: 12px;
-  background: transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.74);
   box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-
-.productShelfSection[data-shelf-tone="global"] .productCard {
-  --shelf-product-floor: radial-gradient(ellipse 84% 56% at 50% 100%, rgba(15, 23, 42, 0.32) 0%, rgba(31, 107, 70, 0.12) 44%, transparent 76%);
-  --shelf-product-halo: radial-gradient(ellipse 94% 76% at 50% 38%, rgba(148, 163, 184, 0.42) 0%, rgba(226, 232, 240, 0.18) 52%, transparent 90%);
-  --shelf-product-radial: radial-gradient(ellipse at center, rgba(15, 23, 42, 0.16) 0%, rgba(100, 116, 139, 0.09) 56%, transparent 88%);
 }
 
 .productCard::after {
@@ -644,7 +627,7 @@
 .productShelfSection[data-shelf-tone="care"] .productCard:focus-visible,
 .productShelfSection[data-shelf-tone="global"] .productCard:hover,
 .productShelfSection[data-shelf-tone="global"] .productCard:focus-visible {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: none;
   transform: none;
   border-color: transparent;
@@ -653,51 +636,17 @@
 .productShelfSection[data-shelf-tone="world"] .productImageWell,
 .productShelfSection[data-shelf-tone="care"] .productImageWell,
 .productShelfSection[data-shelf-tone="global"] .productImageWell {
-  background: var(--shelf-product-floor), var(--shelf-product-halo), transparent;
-}
-
-.productShelfSection[data-shelf-tone="world"] .productImageWell::after,
-.productShelfSection[data-shelf-tone="care"] .productImageWell::after,
-.productShelfSection[data-shelf-tone="global"] .productImageWell::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 6%;
-  z-index: 0;
-  width: 84%;
-  height: 44%;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  background: radial-gradient(ellipse at center, rgba(15, 23, 42, 0.34) 0%, rgba(15, 23, 42, 0.14) 42%, rgba(31, 107, 70, 0.06) 58%, transparent 82%);
-  pointer-events: none;
-}
-
-.productShelfSection[data-shelf-tone="world"] .productImageWell::before,
-.productShelfSection[data-shelf-tone="care"] .productImageWell::before,
-.productShelfSection[data-shelf-tone="global"] .productImageWell::before {
-  width: 88%;
-  height: 72%;
-  top: 46%;
-  opacity: 1;
-}
-
-.productShelfSection[data-shelf-tone="world"] .productBody,
-.productShelfSection[data-shelf-tone="care"] .productBody,
-.productShelfSection[data-shelf-tone="global"] .productBody {
-  background: rgba(255, 255, 255, 0.9);
-  border-top: 1px solid rgba(15, 23, 42, 0.05);
+  background: var(--shelf-product-floor), var(--shelf-product-halo), rgba(255, 255, 255, 0.55);
 }
 
 .productShelfSection[data-shelf-tone="world"] .guideCard,
 .productShelfSection[data-shelf-tone="care"] .guideCard,
 .productShelfSection[data-shelf-tone="global"] .guideCard {
   border: none;
-  border-radius: 12px;
-  background: transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.74);
   color: var(--home-ink);
   box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
 }
 
 .productShelfSection[data-shelf-tone="world"] .guideCard:hover,
@@ -706,7 +655,7 @@
 .productShelfSection[data-shelf-tone="care"] .guideCard:focus-visible,
 .productShelfSection[data-shelf-tone="global"] .guideCard:hover,
 .productShelfSection[data-shelf-tone="global"] .guideCard:focus-visible {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: none;
   transform: none;
   border-color: transparent;
@@ -916,12 +865,10 @@
 .productShelfSection[data-shelf-tone="care"] .guideCard,
 .productShelfSection[data-shelf-tone="global"] .guideCard {
   border: none;
-  border-radius: 12px;
-  background: transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.74);
   color: var(--home-ink);
   box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
 }
 
 .guideCard[data-shelf-tone="world"]::before,
@@ -974,7 +921,7 @@
 .guideCard[data-shelf-tone="care"]:focus-visible,
 .guideCard[data-shelf-tone="global"]:hover,
 .guideCard[data-shelf-tone="global"]:focus-visible {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: none;
   transform: none;
   border-color: transparent;
@@ -1059,8 +1006,15 @@
 .productShelfSection[data-shelf-tone="global"] .guideImageWell {
   border-top: none;
   background:
-    radial-gradient(ellipse 88% 66% at 50% 100%, rgba(15, 23, 42, 0.24) 0%, rgba(31, 107, 70, 0.1) 44%, transparent 76%),
-    radial-gradient(ellipse 80% 58% at 50% 36%, rgba(148, 163, 184, 0.28) 0%, transparent 72%);
+    var(--shelf-product-floor),
+    var(--shelf-product-halo),
+    rgba(255, 255, 255, 0.42);
+}
+
+.productShelfSection[data-shelf-tone="world"] .guideCard,
+.productShelfSection[data-shelf-tone="care"] .guideCard,
+.productShelfSection[data-shelf-tone="global"] .guideCard {
+  grid-template-rows: auto minmax(220px, 1fr);
 }
 
 .productShelfSection[data-shelf-tone="world"] .guideCopy,
@@ -1068,7 +1022,6 @@
 .productShelfSection[data-shelf-tone="global"] .guideCopy {
   min-height: 176px;
   padding: 22px 22px 16px;
-  background: rgba(255, 255, 255, 0.72);
 }
 
 .productShelfSection[data-shelf-tone="world"] .guideImageWell,
