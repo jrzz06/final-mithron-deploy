@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth/access-control";
 import { buildContentSecurityPolicy, generateCspNonce } from "@/lib/csp";
 import { isStorefrontGuestOnly } from "@/lib/storefront/guest-demo";
+import { resolveSupabaseCookieOptions, resolveSupabasePublishableKey } from "@/lib/supabase/cookie-config";
 import { extractSecurityCorrelationId, recordSecurityEventFromMiddleware } from "@/services/security-observability";
 
 const DEFAULT_SESSION_TIMEOUT_MINUTES = 60;
@@ -59,14 +60,13 @@ function sessionTimeoutMs() {
 }
 
 function createSupabaseOnRequest(request: NextRequest, response: NextResponse) {
-  const publishableKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const publishableKey = resolveSupabasePublishableKey();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    publishableKey!,
+    publishableKey,
     {
+      cookieOptions: resolveSupabaseCookieOptions(),
       cookies: {
         getAll() {
           return request.cookies.getAll();

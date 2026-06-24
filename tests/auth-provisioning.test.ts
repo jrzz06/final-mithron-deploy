@@ -10,7 +10,7 @@ describe("auth provisioning and google login", () => {
     expect(readFileSync(join(root, "app/api/auth/provision/route.ts"), "utf8")).toContain("provisionAuthenticatedUserIfMissing");
   });
 
-  it("routes password login through the server auth endpoint", () => {
+  it("routes password login through the server auth endpoint and google through supabase oauth", () => {
     const loginForm = readFileSync(join(process.cwd(), "app/login/login-form.tsx"), "utf8");
     expect(loginForm).toContain('fetch("/api/auth/login"');
     expect(loginForm).toContain("signInWithOAuth");

@@ -1,12 +1,12 @@
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from "@supabase/ssr";
+import { resolveSupabaseCookieOptions, resolveSupabasePublishableKey } from "@/lib/supabase/cookie-config";
 
 export function createClient() {
-  const publishableKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    publishableKey!
-  )
+    resolveSupabasePublishableKey(),
+    {
+      cookieOptions: resolveSupabaseCookieOptions()
+    }
+  );
 }

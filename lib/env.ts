@@ -16,6 +16,8 @@ function isPaymentGatewayConfigured(env: Record<string, string | undefined> = pr
 
 type EnvSource = Record<string, string | undefined>;
 
+export type { EnvSource };
+
 export type SupabasePublicConfig =
   | {
       configured: true;
@@ -46,7 +48,16 @@ function getValue(env: EnvSource, key: string) {
   return value ? value : undefined;
 }
 
-export function getSupabasePublicConfig(env: EnvSource = process.env): SupabasePublicConfig {
+/** Next.js only inlines NEXT_PUBLIC_* when each variable is read statically. */
+function readNextPublicSupabaseEnv(): EnvSource {
+  return {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  };
+}
+
+export function getSupabasePublicConfig(env: EnvSource = readNextPublicSupabaseEnv()): SupabasePublicConfig {
   const url = getValue(env, "NEXT_PUBLIC_SUPABASE_URL");
   const publishableKey = getValue(env, "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ?? getValue(env, "NEXT_PUBLIC_SUPABASE_ANON_KEY");
   const missing = [

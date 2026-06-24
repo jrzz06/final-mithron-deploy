@@ -45,11 +45,73 @@ export async function ensureAllCanonicalRoles(env: EnvSource = process.env) {
   }
 }
 
+async function syncProfileIdentityFields(
+  supabase: ReturnType<typeof serviceClient>,
+  input: {
+    userId: string;
+    email?: string | null;
+    displayName?: string | null;
+    firebaseUid?: string | null;
+    phone?: string | null;
+  }
+) {
+  const patch: Record<string, string | null> = {
+    updated_at: new Date().toISOString()
+  };
+  if (input.firebaseUid) patch.firebase_uid = input.firebaseUid;
+  if (input.phone) patch.phone = input.phone;
+  if (input.email) patch.email = input.email.trim().toLowerCase();
+  if (input.displayName?.trim()) patch.display_name = input.displayName.trim();
+
+  if (Object.keys(patch).length <= 1) return;
+
+  const { error } = await supabase.from("profiles").update(patch).eq("id", input.userId);
+  if (error) {
+    throw new Error(`Failed to sync profile identity for ${input.userId}: ${error.message}`);
+  }
+}
+
+export async function syncGuestProfileFromIdentity(
+  input: {
+    userId: string;
+    email?: string | null;
+    displayName?: string | null;
+    firebaseUid?: string | null;
+    phone?: string | null;
+  },
+  env: EnvSource = process.env
+) {
+  const supabase = serviceClient(env);
+  await syncProfileIdentityFields(supabase, input);
+
+  const authUser = await supabase.auth.admin.getUserById(input.userId);
+  if (authUser.error || !authUser.data.user) return;
+
+  const user = authUser.data.user;
+  const metadataPatch: Record<string, string> = {};
+  if (input.displayName?.trim()) metadataPatch.display_name = input.displayName.trim();
+  if (input.displayName?.trim()) metadataPatch.full_name = input.displayName.trim();
+
+  if (!Object.keys(metadataPatch).length) return;
+
+  const { error } = await supabase.auth.admin.updateUserById(input.userId, {
+    user_metadata: {
+      ...(user.user_metadata ?? {}),
+      ...metadataPatch
+    }
+  });
+  if (error) {
+    throw new Error(`Failed to sync auth metadata for ${input.userId}: ${error.message}`);
+  }
+}
+
 export async function provisionAuthenticatedUser(input: {
   userId: string;
   email?: string | null;
   displayName?: string | null;
   preferredRole?: string | null;
+  firebaseUid?: string | null;
+  phone?: string | null;
   actorId?: string | null;
 }, env: EnvSource = process.env) {
   const userId = input.userId.trim();
@@ -101,17 +163,18 @@ export async function provisionAuthenticatedUser(input: {
   const explicitRole = input.preferredRole ? normalizeCmsRole(input.preferredRole) : null;
   const assignedRole = explicitRole ?? roleKeys[0] ?? metadataRole;
 
-  const { error: profileError } = await supabase.from("profiles").upsert(
-    {
-      id: userId,
-      email: email || null,
-      display_name: displayName,
-      default_role: assignedRole,
-      governance_status: "active",
-      updated_at: now
-    },
-    { onConflict: "id" }
-  );
+  const profileRow: Record<string, string | null> = {
+    id: userId,
+    email: email || null,
+    display_name: displayName,
+    default_role: assignedRole,
+    governance_status: "active",
+    updated_at: now
+  };
+  if (input.firebaseUid) profileRow.firebase_uid = input.firebaseUid;
+  if (input.phone) profileRow.phone = input.phone;
+
+  const { error: profileError } = await supabase.from("profiles").upsert(profileRow, { onConflict: "id" });
   if (profileError) {
     throw new Error(`Failed to upsert profile for ${userId}: ${profileError.message}`);
   }
@@ -155,6 +218,8 @@ export async function provisionAuthenticatedUserIfMissing(input: {
   email?: string | null;
   displayName?: string | null;
   preferredRole?: string | null;
+  firebaseUid?: string | null;
+  phone?: string | null;
 }, env: EnvSource = process.env) {
   const supabase = serviceClient(env);
   const { data: profile, error } = await supabase
@@ -180,6 +245,13 @@ export async function provisionAuthenticatedUserIfMissing(input: {
   }
 
   if (profile && (count ?? 0) > 0 && profile.governance_status !== "disabled") {
+    await syncProfileIdentityFields(supabase, {
+      userId: input.userId,
+      email: input.email,
+      displayName: input.displayName,
+      firebaseUid: input.firebaseUid,
+      phone: input.phone
+    });
     return null;
   }
 

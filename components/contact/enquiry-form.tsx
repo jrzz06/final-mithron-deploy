@@ -7,14 +7,20 @@ import { Button } from "@/components/ui/button";
 
 type EnquiryFormProps = {
   defaultEmail?: string;
+  defaultPhone?: string;
   defaultRegion?: string;
   isGuest?: boolean;
   auditToken?: string | null;
 };
 
-export function EnquiryForm({ defaultEmail = "", defaultRegion = "India", isGuest = true }: EnquiryFormProps) {
+export function EnquiryForm({
+  defaultEmail = "",
+  defaultPhone = "",
+  defaultRegion = "India",
+  isGuest = true
+}: EnquiryFormProps) {
   const [email, setEmail] = useState(defaultEmail);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(defaultPhone);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [region, setRegion] = useState(defaultRegion);

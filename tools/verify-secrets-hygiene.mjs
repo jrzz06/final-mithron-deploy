@@ -16,6 +16,19 @@ const SECRET_PATTERNS = [
   { name: "Hardcoded live password", regex: /password:\s*["'][^"']{8,}["']/g }
 ];
 
+function isEnvVarNamePasswordLiteral(match) {
+  const inner = match.match(/password:\s*["']([^"']+)["']/)?.[1];
+  if (!inner) return false;
+  if (!/^[A-Z][A-Z0-9_]*$/.test(inner)) return false;
+  return (
+    inner.startsWith("E2E_")
+    || inner.endsWith("_PASSWORD")
+    || inner.endsWith("_SECRET")
+    || inner.endsWith("_KEY")
+    || inner.endsWith("_TOKEN")
+  );
+}
+
 function fail(message) {
   console.error(`[secrets-hygiene] FAIL: ${message}`);
   exitCode = 1;
@@ -82,7 +95,11 @@ for (const file of trackedFiles()) {
   for (const pattern of SECRET_PATTERNS) {
     const matches = content.match(pattern.regex);
     if (!matches) continue;
-    const filtered = matches.filter((value) => !value.includes("...") && !value.includes("YOUR_"));
+    const filtered = matches.filter((value) => {
+      if (value.includes("...") || value.includes("YOUR_")) return false;
+      if (pattern.name === "Hardcoded live password" && isEnvVarNamePasswordLiteral(value)) return false;
+      return true;
+    });
     if (filtered.length > 0) {
       fail(`${pattern.name} pattern found in tracked file ${file}`);
     }

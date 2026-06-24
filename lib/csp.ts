@@ -34,14 +34,35 @@ function buildImageSrcDirective(env: EnvSource) {
 export function buildContentSecurityPolicy(nonce: string, env: EnvSource = process.env) {
   const devScriptDirectives = env.NODE_ENV !== "production" ? ["'unsafe-eval'"] : [];
   const devConnectDirectives = env.NODE_ENV !== "production" ? ["ws:", "wss:"] : [];
-  const scriptSrc = ["'self'", `'nonce-${nonce}'`, ...devScriptDirectives, "https://checkout.razorpay.com"].join(" ");
-  const connectSrc = ["'self'", "https://*.supabase.co", ...devConnectDirectives].join(" ");
+  const scriptSrc = [
+    "'self'",
+    `'nonce-${nonce}'`,
+    ...devScriptDirectives,
+    "https://checkout.razorpay.com",
+    "https://www.gstatic.com",
+    "https://www.google.com",
+    "https://apis.google.com"
+  ].join(" ");
+  const connectSrc = [
+    "'self'",
+    "https://*.supabase.co",
+    "https://accounts.google.com",
+    "https://www.googleapis.com",
+    "https://www.google.com",
+    "https://*.googleapis.com",
+    ...devConnectDirectives
+  ].join(" ");
+  const frameSrc = [
+    "https://*.razorpay.com",
+    "https://www.google.com",
+    "https://accounts.google.com"
+  ].join(" ");
 
   return [
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
-    "frame-src https://*.razorpay.com",
+    `frame-src ${frameSrc}`,
     `connect-src ${connectSrc}`,
     `img-src ${buildImageSrcDirective(env)}`,
     "base-uri 'self'",

@@ -14,23 +14,23 @@ const ROLE_HOME: Record<E2ERole, string> = {
 };
 
 function readRoleCredentials(role: E2ERole): RoleCredentials | null {
-  const envMap: Record<E2ERole, { email: string; password: string }> = {
+  const envMap: Record<E2ERole, { emailEnvKey: string; passwordEnvKey: string }> = {
     admin: {
-      email: "E2E_ADMIN_EMAIL",
-      password: "E2E_ADMIN_PASSWORD"
+      emailEnvKey: "E2E_ADMIN_EMAIL",
+      passwordEnvKey: "E2E_ADMIN_PASSWORD"
     },
     warehouse: {
-      email: "E2E_WAREHOUSE_EMAIL",
-      password: "E2E_WAREHOUSE_PASSWORD"
+      emailEnvKey: "E2E_WAREHOUSE_EMAIL",
+      passwordEnvKey: "E2E_WAREHOUSE_PASSWORD"
     },
     supplier: {
-      email: "E2E_SUPPLIER_EMAIL",
-      password: "E2E_SUPPLIER_PASSWORD"
+      emailEnvKey: "E2E_SUPPLIER_EMAIL",
+      passwordEnvKey: "E2E_SUPPLIER_PASSWORD"
     }
   };
 
-  const email = process.env[envMap[role].email]?.trim() ?? "";
-  const password = process.env[envMap[role].password]?.trim() ?? "";
+  const email = process.env[envMap[role].emailEnvKey]?.trim() ?? "";
+  const password = process.env[envMap[role].passwordEnvKey]?.trim() ?? "";
 
   if (!email || !password) {
     return null;

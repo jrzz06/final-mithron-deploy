@@ -15,9 +15,9 @@ describe("logout CSRF protection", () => {
   });
 
   it("sets sameSite cookie options on Supabase server clients", () => {
-    const server = readFileSync(join(process.cwd(), "lib/server.ts"), "utf8");
-    expect(server).toContain('sameSite: "lax"');
-    expect(server).toContain("cookieOptions");
+    const cookieConfig = readFileSync(join(process.cwd(), "lib/supabase/cookie-config.ts"), "utf8");
+    expect(cookieConfig).toContain('sameSite: "lax"');
+    expect(cookieConfig).toContain("resolveSupabaseCookieOptions");
   });
 
   it("uses POST forms for account and control panel logout buttons", () => {
@@ -28,6 +28,7 @@ describe("logout CSRF protection", () => {
 
     expect(accountLayout).toContain("LogoutForm");
     expect(readFileSync(join(process.cwd(), "components/auth/logout-form.tsx"), "utf8")).toContain('action="/auth/logout"');
+    expect(readFileSync(join(process.cwd(), "components/auth/logout-form.tsx"), "utf8")).not.toContain("firebaseSignOut");
     expect(accountLayout).not.toContain('href="/auth/logout"');
     expect(platformNav).toContain('action="/auth/logout"');
     expect(warehouseFrame).toContain("PlatformShell");

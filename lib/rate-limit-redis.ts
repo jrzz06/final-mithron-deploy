@@ -67,3 +67,33 @@ export async function checkDistributedRateLimit(
     return applyInMemoryFallback(key, maxRequests, windowMs);
   }
 }
+
+export async function peekDistributedRateLimit(
+  key: string,
+  maxRequests: number
+): Promise<RateLimitResult> {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+  if (!url || !token) {
+    return applyInMemoryFallback(key, maxRequests, 60_000);
+  }
+
+  const redisKey = `ratelimit:${key}`;
+
+  try {
+    const getResponse = await fetch(`${url}/get/${encodeURIComponent(redisKey)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store"
+    });
+    if (!getResponse.ok) {
+      return { allowed: true, remaining: maxRequests };
+    }
+    const count = Number(await getResponse.text() || 0);
+    if (count >= maxRequests) {
+      return { allowed: false, remaining: 0 };
+    }
+    return { allowed: true, remaining: Math.max(0, maxRequests - count) };
+  } catch {
+    return { allowed: true, remaining: maxRequests };
+  }
+}

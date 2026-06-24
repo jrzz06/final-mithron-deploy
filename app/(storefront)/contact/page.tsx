@@ -16,6 +16,16 @@ export default async function ContactPage() {
   const email = typeof data?.claims?.email === "string" ? data.claims.email : "";
   const userId = typeof data?.claims?.sub === "string" ? data.claims.sub : null;
 
+  let profilePhone = "";
+  if (userId) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("phone")
+      .eq("id", userId)
+      .maybeSingle();
+    profilePhone = typeof profile?.phone === "string" ? profile.phone.trim() : "";
+  }
+
   return (
     <main className="surface-page inner-page min-h-screen">
       <section className="mx-auto max-w-[1180px]">
@@ -43,7 +53,7 @@ export default async function ContactPage() {
               ))}
             </div>
           </div>
-          <EnquiryForm defaultEmail={email} isGuest={!userId} />
+          <EnquiryForm defaultEmail={email} defaultPhone={profilePhone} isGuest={!userId} />
         </div>
       </section>
     </main>

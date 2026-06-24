@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { CartNavButton } from "@/components/navigation/cart-nav-button";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -9,7 +8,7 @@ import { ArrowRight, ChevronDown, Globe2, Menu, Search, UserRound, X } from "luc
 import { useAdaptiveNavbarTone } from "@/hooks/use-adaptive-navbar-tone";
 import type { NavbarInkTone } from "@/hooks/use-adaptive-navbar-tone";
 import { MithronCardImage } from "@/components/media/mithron-card-image";
-import { resolveBrandMarkSrc } from "@/lib/media/brand-mark";
+import { MithronBrandMark } from "@/components/brand/mithron-brand-mark";
 import type { NavigationNode } from "@/config/types";
 import type { EnterpriseMenuConfig, EnterpriseMenuOption, FeaturedMenuCard, MegaMenuConfig } from "@/lib/nav-menu-types";
 import { catalogCategoryDefinitions } from "@/lib/catalog-categories";
@@ -575,23 +574,6 @@ function EnterpriseFeaturedCard({
       </div>
       <span className="sr-only">{card.imageAlt}</span>
     </div>
-  );
-}
-
-function MithronBrandMark() {
-  const src = resolveBrandMarkSrc();
-  return (
-    <span aria-hidden="true" className="mithron-brand-mark relative inline-flex h-[22px] w-auto max-w-[108px] shrink-0 items-center md:h-[26px] md:max-w-[128px]">
-      <Image
-        src={src}
-        alt="Mithron"
-        width={925}
-        height={111}
-        className="block h-full w-auto max-w-full object-contain object-left"
-        priority
-        unoptimized
-      />
-    </span>
   );
 }
 

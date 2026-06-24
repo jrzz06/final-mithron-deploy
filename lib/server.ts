@@ -1,22 +1,16 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { resolveSupabaseCookieOptions, resolveSupabasePublishableKey } from '@/lib/supabase/cookie-config'
 
 type CookieToSet = { name: string; value: string; options: CookieOptions }
 
 function resolvePublishableKey() {
-  return (
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )!
+  return resolveSupabasePublishableKey()
 }
 
 function resolveCookieOptions(): CookieOptions {
-  return {
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/"
-  }
+  return resolveSupabaseCookieOptions()
 }
 
 /**
