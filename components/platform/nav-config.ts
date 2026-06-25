@@ -128,7 +128,7 @@ export const supplierNavGroups: PlatformNavGroup[] = [
     items: [
       { label: "Overview", href: "/supplier", icon: "gauge" },
       { label: "Products", href: "/supplier/products", icon: "products" },
-      { label: "Submissions", href: "/supplier/submissions", icon: "tasks" },
+      { label: "Submissions", href: "/supplier/submissions", icon: "enquiries" },
       { label: "Stock levels", href: "/supplier/inventory", icon: "inventory" },
       { label: "Orders", href: "/supplier/orders", icon: "orders" }
     ]

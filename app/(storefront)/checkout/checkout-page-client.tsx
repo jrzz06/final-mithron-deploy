@@ -326,7 +326,7 @@ export function CheckoutPageClient({ auditToken }: { auditToken?: string | null 
 
     for (let attempt = 0; attempt < 15; attempt += 1) {
       const response = await fetch(`/api/checkout/status?${query.toString()}`, {
-        headers: input.signedIn ? undefined : guestHeaders!.headers,
+        headers: input.signedIn ? undefined : (guestHeaders!.headers as Record<string, string>),
         cache: "no-store"
       });
       if (response.ok) {
@@ -402,15 +402,11 @@ export function CheckoutPageClient({ auditToken }: { auditToken?: string | null 
       return;
     }
 
-    const headers = isSignedIn
-      ? {
-          "Content-Type": "application/json",
-          "X-Idempotency-Key": getCheckoutIdempotencyKey()
-        }
-      : {
-          ...guestHeaders!.headers,
-          "X-Idempotency-Key": getCheckoutIdempotencyKey()
-        };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": getCheckoutIdempotencyKey(),
+      ...(isSignedIn ? {} : (guestHeaders!.headers as Record<string, string>))
+    };
 
     const response = await fetch("/api/checkout", {
       method: "POST",
@@ -469,9 +465,9 @@ export function CheckoutPageClient({ auditToken }: { auditToken?: string | null 
       return;
     }
 
-    const headers = isSignedIn
+    const headers: Record<string, string> = isSignedIn
       ? { "Content-Type": "application/json" }
-      : guestHeaders!.headers;
+      : { "Content-Type": "application/json", ...(guestHeaders!.headers as Record<string, string>) };
 
     const response = await fetch("/api/checkout/enquiry", {
       method: "POST",

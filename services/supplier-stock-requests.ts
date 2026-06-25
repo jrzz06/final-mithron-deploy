@@ -157,6 +157,7 @@ export async function approveAndApplyStockRequest(
     if (row?.id) {
       await updateAdminRecord(
         "inventory",
+        "id",
         String(row.id),
         { quantity, stock_status: quantity > 0 ? "in_stock" : "out_of_stock", updated_at: new Date().toISOString() },
         input.actorId,

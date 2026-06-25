@@ -165,7 +165,7 @@ export async function confirmAdminOrderWorkflow(
     env,
     {
       status: nextStatus,
-      expectedUpdatedAt: input.expectedUpdatedAt ?? String(order.updated_at ?? "") || null,
+      expectedUpdatedAt: input.expectedUpdatedAt ?? (String(order.updated_at ?? "") || null),
       idempotencyKey
     }
   );
@@ -227,7 +227,7 @@ export async function rejectAdminOrderWorkflow(
     {
       status: "cancelled",
       fulfillmentStatus: "cancelled",
-      expectedUpdatedAt: input.expectedUpdatedAt ?? String(order.updated_at ?? "") || null,
+      expectedUpdatedAt: input.expectedUpdatedAt ?? (String(order.updated_at ?? "") || null),
       idempotencyKey
     }
   );
@@ -288,7 +288,7 @@ export async function assignOrderToWarehouseWorkflow(
     {
       status: nextStatus,
       fulfillmentStatus: nextFulfillment,
-      expectedUpdatedAt: input.expectedUpdatedAt ?? String(order.updated_at ?? "") || null,
+      expectedUpdatedAt: input.expectedUpdatedAt ?? (String(order.updated_at ?? "") || null),
       idempotencyKey
     }
   );
