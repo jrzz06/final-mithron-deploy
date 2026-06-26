@@ -2,8 +2,11 @@ import { redirect } from "next/navigation";
 import { ControlShell } from "@/components/admin/control-shell";
 import { OperationalFeedback } from "@/components/admin/module-panel";
 import { WarehousePickingTable, type PickingLineRow } from "@/components/warehouse/warehouse-picking-table";
+import { WarehousePickingBarcodePanel } from "@/components/warehouse/warehouse-picking-barcode-panel";
 import { getWarehouseSnapshot } from "@/services/admin";
 import { getAdminSettingsPolicy } from "@/services/admin-settings-policy";
+import { getCurrentAuthContext } from "@/services/auth";
+import { filterOrdersForWarehouseScope, filterStockForWarehouseScope, resolveWarehouseScope } from "@/services/warehouse-scope";
 import { updateWarehouseOrderLifecycleFormAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -45,22 +48,26 @@ async function updatePickingStatus(formData: FormData) {
 }
 
 export default async function PickingQueuePage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
-  const [snapshot, policy] = await Promise.all([
+  const [snapshot, policy, auth] = await Promise.all([
     getWarehouseSnapshot({ scope: "picking" }),
-    getAdminSettingsPolicy()
+    getAdminSettingsPolicy(),
+    getCurrentAuthContext()
   ]);
+  const scope = await resolveWarehouseScope({ userId: auth.userId, role: auth.role });
   const defaultWarehouseCode = policy.defaultWarehouseCode;
   const params = searchParams ? await searchParams : {};
   const operationStatus = value(params, "operation_status");
   const operationMessage = value(params, "operation_message");
-  const stockBySku = new Map(snapshot.data.stock.map((row) => [`${text(row.product_slug, "")}:${text(row.sku, "")}`, row]));
+  const stockBySku = new Map(
+    filterStockForWarehouseScope(snapshot.data.stock, scope).map((row) => [`${text(row.product_slug, "")}:${text(row.sku, "")}`, row])
+  );
   const itemsByOrder = new Map<string, Array<Record<string, unknown>>>();
   for (const item of snapshot.data.orderItems) {
     const orderId = text(item.order_id, "");
     if (!orderId) continue;
     itemsByOrder.set(orderId, [...(itemsByOrder.get(orderId) ?? []), item]);
   }
-  const queue = snapshot.data.orders.filter((order) => {
+  const queue = filterOrdersForWarehouseScope(snapshot.data.orders, scope, defaultWarehouseCode).filter((order) => {
     const fulfillment = text(order.fulfillment_status, "pending");
     if (!["pending", "processing"].includes(fulfillment)) return false;
     const payment = text(order.payment_status, "not_required");
@@ -94,6 +101,14 @@ export default async function PickingQueuePage({ searchParams }: { searchParams?
     });
   });
 
+  const scanTargets = rows.map((row) => ({
+    orderId: row.orderId,
+    orderNumber: row.orderNumber,
+    sku: row.sku,
+    productSlug: row.productSlug,
+    warehouseCode: row.warehouseCode
+  }));
+
   return (
     <ControlShell
       eyebrow="Picking"
@@ -104,7 +119,8 @@ export default async function PickingQueuePage({ searchParams }: { searchParams?
         { label: "Packing", href: "/warehouse/packing" }
       ]}
     >
-      <section data-picking-queue className="grid gap-4">
+      <section data-picking-queue data-barcode-ready className="grid gap-4">
+        <WarehousePickingBarcodePanel targets={scanTargets} />
         <OperationalFeedback status={operationStatus} message={operationMessage} context="Picking" idle="Picking updates and validation errors appear here." />
         <WarehousePickingTable rows={rows} pickAction={updatePickingStatus} />
       </section>

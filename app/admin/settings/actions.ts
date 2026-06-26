@@ -9,6 +9,7 @@ import { assertSupabaseAdminConfig } from "@/lib/env";
 import { type CmsRole, normalizeCmsRole } from "@/lib/auth/permissions";
 import { requirePermission } from "@/services/auth";
 import { ensureAllCanonicalRoles, provisionAuthenticatedUser } from "@/services/auth-provisioning";
+import { assignWarehouseOperator } from "@/services/warehouses";
 import {
   createActivityLogRecord,
   createAdminRecord,
@@ -25,6 +26,7 @@ import {
   assertPasswordResetPolicyAllowed,
   getAdminSettingsPolicy
 } from "@/services/admin-settings-policy";
+import type { CreateUserFormState } from "@/components/admin/create-user-form";
 
 const manageableUserRoles = [
   "admin",
@@ -654,6 +656,10 @@ export async function createManagedUserAction(formData: FormData): Promise<Manag
   assertAdminEmailDomainAllowed(email, policy);
   const displayName = readOptionalString(formData, "display_name");
   const role = assertManageableUserRole(readRequiredString(formData, "role_key", "User"));
+  const assignedWarehouseCode = readOptionalString(formData, "assigned_warehouse_code");
+  if (role === "warehouse" && !assignedWarehouseCode) {
+    throw new Error("Warehouse users must be assigned to a warehouse site.");
+  }
   const providedPassword = readOptionalString(formData, "temporary_password");
   const passwordGenerated = !providedPassword;
   const password = passwordGenerated ? generatedTemporaryPassword() : assertTemporaryPassword(providedPassword);
@@ -706,8 +712,17 @@ export async function createManagedUserAction(formData: FormData): Promise<Manag
     email,
     displayName,
     preferredRole: role,
+    assignedWarehouseCode: role === "warehouse" ? assignedWarehouseCode : null,
     actorId
   });
+
+  if (role === "warehouse" && assignedWarehouseCode) {
+    await assignWarehouseOperator({
+      userId: created.data.user.id,
+      warehouseCode: assignedWarehouseCode,
+      actorId
+    });
+  }
 
   await verifyManagedUserCredentials(email, password);
 
@@ -735,6 +750,27 @@ export async function createManagedUserAction(formData: FormData): Promise<Manag
     temporaryPassword: password,
     passwordGenerated
   };
+}
+
+export async function createUserFormAction(
+  _prevState: CreateUserFormState,
+  formData: FormData
+): Promise<CreateUserFormState> {
+  try {
+    const result = await createManagedUserAction(formData);
+    return {
+      status: "success",
+      message: `Created ${result.email} with the ${result.role} role.`,
+      email: result.email,
+      temporaryPassword: result.temporaryPassword,
+      passwordGenerated: result.passwordGenerated
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Failed to create user."
+    };
+  }
 }
 
 export async function resetManagedUserPasswordAction(formData: FormData) {

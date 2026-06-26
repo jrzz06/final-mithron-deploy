@@ -17,7 +17,7 @@ type EnvSource = Record<string, string | undefined>;
 type JsonRecord = Record<string, unknown>;
 
 const shipmentReadColumns = {
-  orders: "select=id,status,timeline",
+  orders: "select=id,status,payment_status,fulfillment_status,timeline",
   orderItems: "select=id,order_id,product_slug,sku,quantity,created_at",
   shipments: "select=id,order_id,shipment_number,shipment_status,warehouse_id,carrier_name,tracking_number,notes,created_at,updated_at",
   shipmentItems: "select=id,shipment_id,order_item_id,product_id,variant_id,quantity,created_at"

@@ -100,7 +100,7 @@ const warehouseSnapshotScopes: Record<WarehouseSnapshotScope, Set<WarehouseSnaps
   returns: new Set(["shipments", "orders"]),
   transfers: new Set(["stock", "movements"]),
   movements: new Set(["movements"]),
-  activity: new Set(["movements", "shipmentTimeline", "activityLogs", "orders", "shipments"]),
+  activity: new Set(["movements", "shipmentTimeline", "activityLogs"]),
   settings: new Set(["inventory", "stock", "shipments"])
 };
 

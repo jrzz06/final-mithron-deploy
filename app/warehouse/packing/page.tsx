@@ -5,6 +5,8 @@ import { WarehousePackingOrderCard } from "@/components/warehouse/warehouse-pack
 import { getWarehouseSnapshot } from "@/services/admin";
 import { getWarehouseConfiguration } from "@/services/warehouse-config";
 import { listActiveWarehouses } from "@/services/warehouses";
+import { getCurrentAuthContext } from "@/services/auth";
+import { filterOrdersForWarehouseScope, filterShipmentsForWarehouseScope, resolveWarehouseScope } from "@/services/warehouse-scope";
 import { completeWarehousePackingFormAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -46,11 +48,13 @@ async function completePackingWithFeedback(formData: FormData) {
 }
 
 export default async function PackingStationPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
-  const [snapshot, warehouses, warehouseConfig] = await Promise.all([
+  const [snapshot, warehouses, warehouseConfig, auth] = await Promise.all([
     getWarehouseSnapshot({ scope: "packing" }),
     listActiveWarehouses(),
-    getWarehouseConfiguration()
+    getWarehouseConfiguration(),
+    getCurrentAuthContext()
   ]);
+  const scope = await resolveWarehouseScope({ userId: auth.userId, role: auth.role });
   const defaultWarehouseCode = warehouseConfig.defaultWarehouseCode;
   const params = searchParams ? await searchParams : {};
   const operationStatus = queryValue(params, "operation_status");
@@ -61,8 +65,11 @@ export default async function PackingStationPage({ searchParams }: { searchParam
     if (!orderId) continue;
     itemsByOrder.set(orderId, [...(itemsByOrder.get(orderId) ?? []), item]);
   }
-  const pickedOrders = snapshot.data.orders.filter((order) => text(order.fulfillment_status, "pending") === "picked").slice(0, 30);
-  const dispatchQueue = snapshot.data.shipments.filter((shipment) => ["packed", "ready_for_pickup"].includes(text(shipment.shipment_status, "pending")));
+  const pickedOrders = filterOrdersForWarehouseScope(snapshot.data.orders, scope, defaultWarehouseCode)
+    .filter((order) => text(order.fulfillment_status, "pending") === "picked")
+    .slice(0, 30);
+  const dispatchQueue = filterShipmentsForWarehouseScope(snapshot.data.shipments, scope)
+    .filter((shipment) => ["packed", "ready_for_pickup"].includes(text(shipment.shipment_status, "pending")));
 
   return (
     <ControlShell

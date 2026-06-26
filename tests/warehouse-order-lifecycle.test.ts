@@ -30,7 +30,10 @@ describe("warehouse order lifecycle hardening", () => {
   it("validates warehouse codes against active warehouses", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => [{ code: "IN-WEST-01" }, { code: "IN-EAST-01" }]
+      json: async () => [
+        { code: "IN-WEST-01", name: "West", is_active: true },
+        { code: "IN-EAST-01", name: "East", is_active: true }
+      ]
     }));
 
     await expect(assertValidWarehouseCode("IN-WEST-01", env)).resolves.toBe("IN-WEST-01");

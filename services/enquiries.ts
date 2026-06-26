@@ -10,7 +10,7 @@ import {
 } from "@/services/admin-actions";
 import { requirePermission } from "@/services/auth";
 import { buildValidatedOrderDraft, type CheckoutOrderInput, type OrderCatalogProduct } from "@/services/orders";
-import { reserveCheckoutStock } from "@/services/checkout-stock";
+import { reserveCheckoutStock, resolveCheckoutStockSkus } from "@/services/checkout-stock";
 import { notifyCustomerAboutOrder } from "@/services/order-workflow";
 import {
   type AdminEnquiryRow,
@@ -1146,7 +1146,21 @@ export async function convertEnquiryToOrder(
 ) {
   const enquiry = await loadEnquiryRecord(enquiryId, env);
   const customerUserId = text(enquiry.customer_user_id) || null;
-  const draft = buildValidatedOrderDraft(checkoutInput, catalogProducts);
+  const itemsWithSku = await resolveCheckoutStockSkus(
+    checkoutInput.items.map((item) => ({ productSlug: item.productSlug, quantity: item.quantity })),
+    env
+  );
+  const draft = buildValidatedOrderDraft(
+    {
+      ...checkoutInput,
+      items: itemsWithSku.map((item) => ({
+        productSlug: item.productSlug,
+        quantity: item.quantity,
+        sku: item.sku ?? undefined
+      }))
+    },
+    catalogProducts
+  );
   const order = await createAdminRecord(
     "orders",
     {

@@ -64,7 +64,7 @@ export function WarehouseConfigurationForm({ config, warehouses, carrierNames, s
         </label>
         <label className="grid gap-1.5">
           <span className={fieldLabelClass}>Printer name (default)</span>
-          <Input name="printer_name" defaultValue={config.printerName} placeholder="Warehouse label printer" />
+          <Input name="printer_name" defaultValue={config.printerName} />
         </label>
         <label className="grid gap-1.5">
           <span className={fieldLabelClass}>Label width (mm)</span>

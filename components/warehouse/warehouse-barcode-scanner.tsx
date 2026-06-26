@@ -50,6 +50,7 @@ export function WarehouseBarcodeScanner({
   return (
     <form
       onSubmit={submit}
+      data-barcode-ready
       className="sticky top-3 z-20 grid gap-3 rounded-[var(--platform-radius)] border border-[var(--platform-border)] bg-[var(--platform-surface-raised)] p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
     >
       <Input

@@ -125,16 +125,17 @@ describe("final CMS cutover and real-data cleanup", () => {
     expect(cmsWorkspace).not.toContain("fallbackPages");
   });
 
-  it("retires standalone users and settings admin modules", () => {
+  it("keeps dedicated users route while settings remains a redirect", () => {
     const usersPage = source("app/admin/users/page.tsx");
     const settingsPage = source("app/admin/settings/page.tsx");
 
-    expect(usersPage).toContain('redirect("/admin")');
+    expect(usersPage).toContain("getUserGovernanceSnapshot");
+    expect(usersPage).toContain("UserManagementPanel");
     expect(settingsPage).toContain('redirect("/admin")');
 
     const navConfig = source("components/platform/nav-config.ts");
 
-    expect(navConfig).not.toContain('href: "/admin/users"');
+    expect(navConfig).toContain('href: "/admin/users"');
     expect(navConfig).not.toContain('href: "/admin/settings"');
     expect(navConfig).not.toContain('href: "/admin/settings#users"');
   });

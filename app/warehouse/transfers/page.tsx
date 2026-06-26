@@ -111,7 +111,6 @@ export default async function TransfersPage({ searchParams }: { searchParams?: P
             jsonName="notes_json"
             documentType="warehouse_transfer_note"
             documentId="transfer-form"
-            placeholder="Internal transfer instructions..."
             minHeight={140}
           />
           <input name="change_summary" type="hidden" value="Record warehouse stock transfer" />

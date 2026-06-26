@@ -15,7 +15,7 @@ const baseUrl = process.argv.find((arg) => arg.startsWith("--base-url="))?.slice
 const marker = `business-${Date.now()}`;
 const productSlug = process.env.AUTH_VALIDATION_PRODUCT_SLUG ?? "source-agri-kisan-drone-small-8-liter";
 const variantId = "business-validation-base";
-const warehouseCode = "BUSINESS-WH";
+const warehouseCode = process.env.AUTH_VALIDATION_WAREHOUSE_CODE ?? "IN-WEST-01";
 const cleanup = [];
 
 if (!url || !publishableKey || !serviceRoleKey) {

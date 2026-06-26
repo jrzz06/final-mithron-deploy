@@ -6,6 +6,8 @@ import { OperationalSubmitButton } from "@/components/admin/operational-submit-b
 import { WarehouseKpiStrip } from "@/components/warehouse/warehouse-kpi-strip";
 import { shipmentStatusLabel } from "@/lib/warehouse/operational-labels";
 import { getWarehouseSnapshot } from "@/services/admin";
+import { getCurrentAuthContext } from "@/services/auth";
+import { filterShipmentsForWarehouseScope, resolveWarehouseScope } from "@/services/warehouse-scope";
 import { updateShipmentLifecycleFormAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -61,15 +63,26 @@ async function updateShipmentStatus(formData: FormData) {
 const actionButtonClass = "inline-flex min-h-8 items-center justify-center rounded-md border border-[var(--platform-border)] px-3 text-[11px] font-semibold text-[var(--platform-text-primary)] transition hover:border-[var(--platform-accent)]/40 disabled:cursor-not-allowed disabled:opacity-55";
 
 export default async function DispatchPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
-  const snapshot = await getWarehouseSnapshot({ scope: "dispatch" });
+  const [snapshot, auth] = await Promise.all([
+    getWarehouseSnapshot({ scope: "dispatch" }),
+    getCurrentAuthContext()
+  ]);
+  const scope = await resolveWarehouseScope({ userId: auth.userId, role: auth.role });
   const params = searchParams ? await searchParams : {};
   const operationStatus = queryValue(params, "operation_status");
   const operationMessage = queryValue(params, "operation_message");
   const ordersById = new Map(snapshot.data.orders.map((order) => [text(order.id, ""), order]));
-  const dispatchRows = snapshot.data.shipments.filter((shipment) =>
+  const itemsByShipment = new Map<string, number>();
+  for (const item of snapshot.data.shipmentItems) {
+    const shipmentId = text(item.shipment_id, "");
+    if (!shipmentId) continue;
+    itemsByShipment.set(shipmentId, (itemsByShipment.get(shipmentId) ?? 0) + Number(item.quantity ?? 0));
+  }
+  const scopedShipments = filterShipmentsForWarehouseScope(snapshot.data.shipments, scope);
+  const dispatchRows = scopedShipments.filter((shipment) =>
     ["packed", "ready_for_pickup"].includes(text(shipment.shipment_status, "pending"))
   );
-  const dispatchedToday = snapshot.data.shipments.filter((shipment) =>
+  const dispatchedToday = scopedShipments.filter((shipment) =>
     ["shipped", "in_transit", "delivered"].includes(text(shipment.shipment_status, "pending")) && isToday(shipment.updated_at)
   );
 
@@ -103,7 +116,8 @@ export default async function DispatchPage({ searchParams }: { searchParams?: Pr
             href="/warehouse/dispatch/export"
             className="inline-flex min-h-9 items-center rounded-md border border-[var(--platform-border)] px-3 text-xs font-semibold text-[var(--platform-text-primary)] transition hover:border-[var(--platform-accent)]/40"
           >
-            Export manifest CSV
+            Export shipment CSV
+            {/* export shipment CSV */}
           </Link>
         </div>
 
@@ -126,8 +140,9 @@ export default async function DispatchPage({ searchParams }: { searchParams?: Pr
                 const order = ordersById.get(text(shipment.order_id, ""));
                 const status = text(shipment.shipment_status, "pending");
                 const shipmentNumber = text(shipment.shipment_number, shipmentId);
+                const itemCount = itemsByShipment.get(shipmentId) ?? 0;
                 return (
-                  <tr key={shipmentId}>
+                  <tr key={shipmentId} data-shipment-item-count={itemCount}>
                     <td className="px-4 py-3 font-medium text-[var(--platform-text-primary)]">
                       {text(order?.order_number, shipmentNumber)}
                     </td>

@@ -141,12 +141,25 @@ export async function orderHasCheckoutReservations(
     cache: "no-store"
   });
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Unable to verify checkout reservations (${response.status})${body ? `: ${body.slice(0, 200)}` : ""}`);
+  if (response.ok) {
+    return Boolean(await response.json());
   }
 
-  return Boolean(await response.json());
+  if (response.status === 404) {
+    const fallback = await fetch(
+      `${config.url}/rest/v1/inventory_movements?select=id&related_order_id=eq.${encodeURIComponent(orderId)}&movement_type=eq.reservation&limit=1`,
+      { headers: headers(config.serviceRoleKey), cache: "no-store" }
+    );
+    if (!fallback.ok) {
+      const body = await fallback.text().catch(() => "");
+      throw new Error(`Unable to verify checkout reservations (${fallback.status})${body ? `: ${body.slice(0, 200)}` : ""}`);
+    }
+    const rows = (await fallback.json()) as unknown[];
+    return rows.length > 0;
+  }
+
+  const body = await response.text().catch(() => "");
+  throw new Error(`Unable to verify checkout reservations (${response.status})${body ? `: ${body.slice(0, 200)}` : ""}`);
 }
 
 export async function releaseCheckoutStock(

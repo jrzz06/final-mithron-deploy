@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { OperationalSubmitButton } from "@/components/admin/operational-submit-button";
 import { CopyPasswordPanel } from "@/components/admin/copy-password-panel";
@@ -36,13 +36,16 @@ function feedbackClass(status: CreateUserFormState["status"]) {
 }
 
 export function CreateUserForm({
-  action
+  action,
+  warehouses
 }: {
   action: (prevState: CreateUserFormState, formData: FormData) => Promise<CreateUserFormState>;
+  warehouses: Array<{ code: string; name: string }>;
 }) {
   const router = useRouter();
   const feedbackRef = useRef<HTMLDivElement>(null);
   const [state, formAction] = useActionState(action, initialState);
+  const [role, setRole] = useState<typeof roleOptions[number]["value"]>("warehouse");
 
   useEffect(() => {
     if (state.status === "idle") return;
@@ -74,13 +77,31 @@ export function CreateUserForm({
       />
       <select
         name="role_key"
-        defaultValue="warehouse"
+        value={role}
+        onChange={(event) => setRole(event.target.value as typeof role)}
         className="h-10 rounded-lg border border-slate-700 bg-[#0c1118] px-3 text-sm text-slate-100 outline-none focus:border-emerald-500/70"
       >
-        {roleOptions.map((role) => (
-          <option key={role.value} value={role.value}>{role.label}</option>
+        {roleOptions.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
+      {role === "warehouse" ? (
+        <select
+          name="assigned_warehouse_code"
+          required
+          defaultValue={warehouses[0]?.code ?? ""}
+          className="h-10 rounded-lg border border-slate-700 bg-[#0c1118] px-3 text-sm text-slate-100 outline-none focus:border-emerald-500/70"
+        >
+          {warehouses.length ? warehouses.map((warehouse) => (
+            <option key={warehouse.code} value={warehouse.code}>
+              {warehouse.name} ({warehouse.code})
+            </option>
+          )) : (
+            <option value="">Create a warehouse site first</option>
+          )}
+        </select>
+      ) : null}
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Login credentials</p>
       <input
         name="temporary_password"
         type="text"

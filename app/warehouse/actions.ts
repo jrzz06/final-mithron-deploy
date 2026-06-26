@@ -42,7 +42,10 @@ import { buildValidatedOrderDraft, buildOrderTimelineEntry, appendOrderTimeline,
 import { getCheckoutPricingBySlugs } from "@/services/catalog";
 import { reserveCheckoutStock, orderHasCheckoutReservations, releaseCheckoutStock } from "@/services/checkout-stock";
 import { getDefaultWarehouseCode, getWarehouseConfiguration, parseWarehouseConfigurationFormData } from "@/services/warehouse-config";
-import { requirePermission } from "@/services/auth";
+import { requirePermission, getCurrentAuthContext } from "@/services/auth";
+import { resolveWarehouseScope } from "@/services/warehouse-scope";
+import { roleHasPermission, PermissionDeniedError } from "@/lib/auth/permissions";
+import { ProfileDisabledError } from "@/lib/auth/profile-disabled";
 import {
   applyFulfillmentStockMovements,
   applyWarehouseStockMovement,
@@ -83,9 +86,25 @@ async function requireWarehouseActor() {
   return requirePermission("orders.lifecycle");
 }
 
+async function requireWarehouseScope() {
+  const context = await requireWarehouseActor();
+  return resolveWarehouseScope({ userId: context.userId, role: context.role });
+}
+
 async function requireProductCatalogActor() {
   const context = await requirePermission("products.write");
   return context.userId;
+}
+
+async function requireInventoryImportActor() {
+  const context = await getCurrentAuthContext();
+  if (context.disabled) {
+    throw new ProfileDisabledError();
+  }
+  if (roleHasPermission(context.role, "products.write") || roleHasPermission(context.role, "warehouse.write")) {
+    return context.userId;
+  }
+  throw new PermissionDeniedError("The current user does not have permission to import inventory CSV.");
 }
 
 function orderNumberFromTimestamp(timestamp: Date) {
@@ -805,8 +824,13 @@ export async function saveInventoryQuickEditFormAction(formData: FormData) {
   revalidateInventoryPaths(productSlug);
 }
 
-async function importInventoryCsvRecord(record: InventoryCsvRecord, actorId: string | null, now: string) {
-  const previousStock = await fetchWarehouseStockBySku(record.productSlug, record.sku, "IN-WEST-01");
+async function importInventoryCsvRecord(
+  record: InventoryCsvRecord,
+  actorId: string | null,
+  now: string,
+  warehouseCode: string
+) {
+  const previousStock = await fetchWarehouseStockBySku(record.productSlug, record.sku, warehouseCode);
   const quantityBefore = Number(previousStock?.available_quantity ?? 0);
   const product = await upsertProductRecord(
     {
@@ -838,7 +862,7 @@ async function importInventoryCsvRecord(record: InventoryCsvRecord, actorId: str
   );
   const stock = await upsertWarehouseStockRecord(
     {
-      warehouse_code: "IN-WEST-01",
+      warehouse_code: warehouseCode,
       product_slug: record.productSlug,
       sku: record.sku,
       variant_id: null,
@@ -856,7 +880,7 @@ async function importInventoryCsvRecord(record: InventoryCsvRecord, actorId: str
       productId: record.productSlug,
       sku: record.sku,
       variantId: null,
-      warehouseCode: "IN-WEST-01",
+      warehouseCode,
       warehouseStockId: String(previousStock?.id ?? "") || null,
       movementType: "correction",
       quantityBefore,
@@ -875,7 +899,7 @@ async function importInventoryCsvRecord(record: InventoryCsvRecord, actorId: str
 }
 
 export async function importInventoryCsvFormAction(formData: FormData) {
-  await requireProductCatalogActor();
+  await requireInventoryImportActor();
   const file = formData.get("inventory_csv");
   if (!(file instanceof File) || file.size <= 0) {
     throw new Error("Choose an inventory CSV file before importing.");
@@ -893,12 +917,13 @@ export async function importInventoryCsvFormAction(formData: FormData) {
   }
 
   const actorId = await currentActorId();
+  const scope = await requireWarehouseScope();
   const now = new Date().toISOString();
   const sourceSlugs = await fetchInventoryCsvSourceSlugs();
   const cleared = await clearInventorySourceTables(actorId, sourceSlugs);
 
   for (const record of mapped.records) {
-    await importInventoryCsvRecord(record, actorId, now);
+    await importInventoryCsvRecord(record, actorId, now, scope.warehouseCode);
   }
 
   await createActivityLogRecord(
@@ -932,11 +957,12 @@ export async function saveInventoryBulkUpdateFormAction(formData: FormData) {
     await requireProductCatalogActor();
   }
   const actorId = await currentActorId();
+  const scope = await requireWarehouseScope();
   const now = new Date().toISOString();
   let updated = 0;
 
   for (const selected of selectedRows) {
-    const [warehouseCode = "IN-WEST-01", productSlug = "", sku = ""] = selected.split("::");
+    const [warehouseCode = scope.warehouseCode, productSlug = "", sku = ""] = selected.split("::");
     if (!productSlug || !sku) continue;
     const previousInventory = await fetchInventoryBySku(productSlug, sku);
     const previousStock = await fetchWarehouseStockBySku(productSlug, sku, warehouseCode);
@@ -1018,6 +1044,8 @@ export async function duplicateInventoryProductFormAction(formData: FormData) {
   if (!productSlug || !sku) throw new Error("Product and SKU are required before duplicating inventory.");
 
   const actorId = await requireProductCatalogActor();
+  const context = await getCurrentAuthContext();
+  const scope = await resolveWarehouseScope({ userId: context.userId, role: context.role });
   const now = new Date().toISOString();
   const copySlug = `${productSlug}-copy-${Date.now()}`;
   const copySku = `${sku}-COPY`;
@@ -1057,7 +1085,7 @@ export async function duplicateInventoryProductFormAction(formData: FormData) {
   );
   await upsertWarehouseStockRecord(
     {
-      warehouse_code: "IN-WEST-01",
+      warehouse_code: scope.warehouseCode,
       product_slug: copySlug,
       sku: copySku,
       variant_id: null,
@@ -1452,6 +1480,7 @@ export async function saveWarehouseConfigurationFormAction(formData: FormData) {
   );
 
   revalidatePath("/warehouse/settings");
+  revalidatePath("/admin/inventory");
   revalidateWarehouseFulfillmentPaths();
 }
 

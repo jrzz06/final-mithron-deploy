@@ -32,6 +32,7 @@ type UserManagementPanelProps = {
   users: ManagedUser[];
   invites: AdminRow[];
   activity: UserActivityItem[];
+  warehouses: Array<{ code: string; name: string }>;
   createUserFormAction: (prevState: CreateUserFormState, formData: FormData) => Promise<CreateUserFormState>;
   inviteUserAction: UserAction;
   resetPasswordAction: UserAction;
@@ -151,6 +152,7 @@ export function UserManagementPanel({
   users,
   invites,
   activity,
+  warehouses,
   createUserFormAction,
   inviteUserAction,
   resetPasswordAction,
@@ -235,7 +237,7 @@ export function UserManagementPanel({
                 Add user
               </summary>
               <div className="absolute right-0 z-40 mt-2 w-[min(92vw,420px)] rounded-xl border border-slate-800 bg-[#0b1017] p-3 shadow-2xl shadow-black/30">
-                <CreateUserForm action={createUserFormAction} />
+                <CreateUserForm action={createUserFormAction} warehouses={warehouses} />
               </div>
             </details>
 

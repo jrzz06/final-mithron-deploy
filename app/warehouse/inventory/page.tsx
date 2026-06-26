@@ -4,6 +4,8 @@ import { OperationalFeedback } from "@/components/admin/module-panel";
 import { WarehouseInventoryManager } from "@/components/warehouse/warehouse-inventory-manager";
 import { inventoryFeedbackQueryParams } from "@/lib/admin/conflict-handling";
 import { getCsvInventoryRows } from "@/services/csv-inventory-source";
+import { getCurrentAuthContext } from "@/services/auth";
+import { resolveWarehouseScope } from "@/services/warehouse-scope";
 import { saveInventoryQuickEditFormAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +30,12 @@ async function saveWarehouseInventoryWithFeedback(formData: FormData) {
 
 export default async function InventoryPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = searchParams ? await searchParams : {};
+  const auth = await getCurrentAuthContext();
+  const scope = await resolveWarehouseScope({ userId: auth.userId, role: auth.role });
   const inventorySource = await getCsvInventoryRows({ all: true, publishedOnly: true });
+  const rows = scope.isGlobal
+    ? inventorySource.rows
+    : inventorySource.rows.filter((row) => row.warehouseCode === scope.warehouseCode);
   const inventoryStatus = searchValue(params, "inventory_status");
   const inventoryMessage = searchValue(params, "inventory_message");
 
@@ -51,7 +58,7 @@ export default async function InventoryPage({ searchParams }: { searchParams?: P
         />
 
         <WarehouseInventoryManager
-          rows={inventorySource.rows}
+          rows={rows}
           action={saveWarehouseInventoryWithFeedback}
           totalProductCount={inventorySource.totalProductCount}
         />

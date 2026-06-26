@@ -121,6 +121,7 @@ export async function provisionAuthenticatedUser(input: {
   email?: string | null;
   displayName?: string | null;
   preferredRole?: string | null;
+  assignedWarehouseCode?: string | null;
   firebaseUid?: string | null;
   phone?: string | null;
   actorId?: string | null;
@@ -184,6 +185,9 @@ export async function provisionAuthenticatedUser(input: {
   };
   if (input.firebaseUid) profileRow.firebase_uid = input.firebaseUid;
   if (input.phone) profileRow.phone = input.phone;
+  if (input.assignedWarehouseCode) {
+    profileRow.assigned_warehouse_code = input.assignedWarehouseCode.trim();
+  }
 
   const { error: profileError } = await supabase.from("profiles").upsert(profileRow, { onConflict: "id" });
   if (profileError) {

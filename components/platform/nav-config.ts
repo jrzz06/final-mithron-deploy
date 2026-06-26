@@ -48,6 +48,8 @@ const adminNavGroups: AdminNavGroupDef[] = [
     label: "System",
     defaultCollapsed: true,
     items: [
+      { label: "Warehouses", href: "/admin/warehouses", section: "warehouse", icon: "inventory" },
+      { label: "Users", href: "/admin/users", section: "settings", icon: "operations" },
       { label: "Operations", href: "/operations", section: "operations", icon: "operations" },
       { label: "System Diagnostics", href: "/admin/audit", section: "audit", icon: "audit" }
     ]
@@ -84,6 +86,8 @@ export const adminRouteTitles: PlatformRouteTitle[] = [
   { href: "/admin/suppliers/products", title: "Submissions", kicker: "Partners" },
   { href: "/admin/enquiries", title: "Enquiries", kicker: "Partners" },
   { href: "/admin/audit", title: "System Diagnostics", kicker: "System" },
+  { href: "/admin/users", title: "Users", kicker: "System" },
+  { href: "/admin/warehouses", title: "Warehouses", kicker: "Fulfillment" },
   { href: "/operations", title: "Operations", kicker: "System" },
   { href: "/operations/deployments", title: "Field requests", kicker: "System" },
   { href: "/operations/tasks", title: "Tasks", kicker: "System" },
@@ -96,10 +100,14 @@ export const warehouseNavGroups: PlatformNavGroup[] = [
   {
     label: "Operations",
     items: [
-      { label: "Dashboard", href: "/warehouse/dashboard", icon: "gauge" },
+      { label: "Today", href: "/warehouse/dashboard", icon: "gauge" },
       { label: "Orders", href: "/warehouse/orders", icon: "orders" },
-      { label: "Inventory", href: "/warehouse/inventory", icon: "inventory" },
-      { label: "Dispatch", href: "/warehouse/dispatch", icon: "truck" }
+      { label: "Fulfillment", href: "/warehouse/picking", icon: "orders" },
+      { label: "Shipments", href: "/warehouse/shipments", icon: "truck" },
+      { label: "Stock", href: "/warehouse/inventory", icon: "inventory" },
+      { label: "Returns", href: "/warehouse/returns", icon: "returns" },
+      { label: "History", href: "/warehouse/activity", icon: "audit" },
+      { label: "Settings", href: "/warehouse/settings", icon: "operations" }
     ]
   }
 ];
@@ -123,7 +131,11 @@ export const warehouseRouteTitles: PlatformRouteTitle[] = [
   { href: "/warehouse/picking", title: "Picking", kicker: "Picking" },
   { href: "/warehouse/packing", title: "Packing", kicker: "Packing" },
   { href: "/warehouse/dispatch", title: "Dispatch", kicker: "Dispatch" },
-  { href: "/warehouse/inventory", title: "Inventory", kicker: "Inventory" }
+  { href: "/warehouse/inventory", title: "Inventory", kicker: "Inventory" },
+  { href: "/warehouse/shipments", title: "Shipments", kicker: "Fulfillment" },
+  { href: "/warehouse/returns", title: "Returns", kicker: "Returns" },
+  { href: "/warehouse/activity", title: "Activity", kicker: "History" },
+  { href: "/warehouse/settings", title: "Settings", kicker: "Settings" }
 ];
 
 export const supplierRouteTitles: PlatformRouteTitle[] = [

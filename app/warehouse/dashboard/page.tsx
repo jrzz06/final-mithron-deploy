@@ -1,8 +1,16 @@
 import Link from "next/link";
 import { ControlShell } from "@/components/admin/control-shell";
+import { WarehouseDashboardLiveSync } from "@/components/warehouse/warehouse-dashboard-live-sync";
 import { WarehouseKpiStrip } from "@/components/warehouse/warehouse-kpi-strip";
 import { fulfillmentStepLabel } from "@/lib/warehouse/operational-labels";
 import { getWarehouseSnapshot } from "@/services/admin";
+import { getAdminSettingsPolicy } from "@/services/admin-settings-policy";
+import { getCurrentAuthContext } from "@/services/auth";
+import {
+  filterInventoryForWarehouseScope,
+  filterOrdersForWarehouseScope,
+  resolveWarehouseScope
+} from "@/services/warehouse-scope";
 
 export const dynamic = "force-dynamic";
 
@@ -41,17 +49,28 @@ function assignedEmployee(order: Record<string, unknown>) {
 }
 
 export default async function WarehouseDashboardPage() {
-  const snapshot = await getWarehouseSnapshot({ scope: "dashboard" });
-  const ordersWaiting = snapshot.data.orders.filter((order) => text(order.fulfillment_status, "pending") === "pending");
-  const currentlyPicking = snapshot.data.orders.filter((order) => text(order.fulfillment_status, "pending") === "processing");
-  const readyToPack = snapshot.data.orders.filter((order) => text(order.fulfillment_status, "pending") === "picked");
-  const readyToDispatch = snapshot.data.orders.filter((order) =>
+  const [snapshot, policy, auth] = await Promise.all([
+    getWarehouseSnapshot({ scope: "dashboard" }),
+    getAdminSettingsPolicy(),
+    getCurrentAuthContext()
+  ]);
+  const scope = await resolveWarehouseScope({ userId: auth.userId, role: auth.role });
+  const scopedOrders = filterOrdersForWarehouseScope(snapshot.data.orders, scope, policy.defaultWarehouseCode);
+  const scopedInventory = filterInventoryForWarehouseScope(
+    snapshot.data.inventory,
+    snapshot.data.stock,
+    scope
+  );
+  const ordersWaiting = scopedOrders.filter((order) => text(order.fulfillment_status, "pending") === "pending");
+  const currentlyPicking = scopedOrders.filter((order) => text(order.fulfillment_status, "pending") === "processing");
+  const readyToPack = scopedOrders.filter((order) => text(order.fulfillment_status, "pending") === "picked");
+  const readyToDispatch = scopedOrders.filter((order) =>
     ["packed", "ready_to_dispatch"].includes(text(order.fulfillment_status, "pending"))
   );
-  const completedToday = snapshot.data.orders.filter((order) =>
+  const completedToday = scopedOrders.filter((order) =>
     ["shipped", "delivered"].includes(text(order.fulfillment_status, "pending")) && isToday(order.updated_at)
   );
-  const lowStock = snapshot.data.inventory.filter((row) =>
+  const lowStock = scopedInventory.filter((row) =>
     ["low_stock", "out_of_stock"].includes(text(row.stock_status, "available"))
   );
 
@@ -62,7 +81,7 @@ export default async function WarehouseDashboardPage() {
     itemsByOrder.set(orderId, (itemsByOrder.get(orderId) ?? 0) + Number(item.quantity ?? 0));
   }
 
-  const workQueue = snapshot.data.orders
+  const workQueue = scopedOrders
     .filter((order) => {
       const step = text(order.fulfillment_status, "pending");
       return ["pending", "processing", "picked", "packed", "ready_to_dispatch"].includes(step);
@@ -81,6 +100,8 @@ export default async function WarehouseDashboardPage() {
       ]}
     >
       <section data-warehouse-operational-dashboard className="grid gap-6">
+        <WarehouseDashboardLiveSync enabled={policy.realtimeUpdatesEnabled} />
+        {/* pending orders | picking queue | dispatched today */}
         <WarehouseKpiStrip
           tiles={[
             { label: "Orders Waiting", value: ordersWaiting.length, href: "/warehouse/orders?fulfillment_status=pending" },

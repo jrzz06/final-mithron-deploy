@@ -14,6 +14,8 @@ import {
 } from "@/lib/warehouse/order-helpers";
 import { getWarehouseSnapshot } from "@/services/admin";
 import { getAdminSettingsPolicy } from "@/services/admin-settings-policy";
+import { getCurrentAuthContext } from "@/services/auth";
+import { filterOrdersForWarehouseScope, filterInventoryForWarehouseScope, resolveWarehouseScope } from "@/services/warehouse-scope";
 import {
   advanceWarehouseOrderStepFormAction,
   dispatchWarehouseOrderFormAction
@@ -94,10 +96,12 @@ function buildOrderRows(
 }
 
 export default async function WarehouseOrdersPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
-  const [snapshot, policy] = await Promise.all([
+  const [snapshot, policy, auth] = await Promise.all([
     getWarehouseSnapshot({ scope: "orders" }),
-    getAdminSettingsPolicy()
+    getAdminSettingsPolicy(),
+    getCurrentAuthContext()
   ]);
+  const scope = await resolveWarehouseScope({ userId: auth.userId, role: auth.role });
   const defaultWarehouseCode = policy.defaultWarehouseCode;
   const params = searchParams ? await searchParams : {};
   const fulfillmentFilter = searchValue(params, "fulfillment_status");
@@ -105,13 +109,7 @@ export default async function WarehouseOrdersPage({ searchParams }: { searchPara
   const operationStatus = searchValue(params, "operation_status");
   const operationMessage = searchValue(params, "operation_message");
 
-  const assignedOrders = defaultWarehouseCode
-    ? snapshot.data.orders.filter((order) => {
-        const metadata = order.metadata;
-        if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return false;
-        return String((metadata as Record<string, unknown>).assigned_warehouse_code ?? "") === defaultWarehouseCode;
-      })
-    : snapshot.data.orders;
+  const assignedOrders = filterOrdersForWarehouseScope(snapshot.data.orders, scope, defaultWarehouseCode);
 
   const itemsByOrder = new Map<string, number>();
   for (const item of snapshot.data.orderItems) {
