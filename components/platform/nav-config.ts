@@ -49,7 +49,7 @@ const adminNavGroups: AdminNavGroupDef[] = [
     defaultCollapsed: true,
     items: [
       { label: "Warehouses", href: "/admin/warehouses", section: "warehouse", icon: "inventory" },
-      { label: "Users", href: "/admin/users", section: "settings", icon: "operations" },
+      { label: "Users", href: "/admin/users", section: "overview", icon: "operations" },
       { label: "Operations", href: "/operations", section: "operations", icon: "operations" },
       { label: "System Diagnostics", href: "/admin/audit", section: "audit", icon: "audit" }
     ]

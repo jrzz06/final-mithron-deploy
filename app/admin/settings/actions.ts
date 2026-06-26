@@ -812,8 +812,6 @@ export async function resetManagedUserPasswordAction(formData: FormData) {
   });
 
   revalidateSettings();
-
-  return { userId, email, temporaryPassword: password };
 }
 
 export async function inviteManagedUserAction(formData: FormData) {
