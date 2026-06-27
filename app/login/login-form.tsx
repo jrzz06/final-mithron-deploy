@@ -5,6 +5,7 @@ import Link from "next/link";
 import { recordClientAuthEvent } from "@/lib/auth/audit-client";
 import { mapAuthErrorForClient } from "@/lib/auth/client-errors";
 import { GUEST_AUTH_HOME, isGuestStorefrontNextPath } from "@/lib/auth/guest-auth";
+import { resolveClientAuthRedirectPath } from "@/lib/auth/redirects";
 import { hasSocialSignIn, type AuthProviderAvailability } from "@/lib/auth/provider-registry";
 import { createClient } from "@/lib/client";
 import styles from "./login.module.css";
@@ -200,7 +201,7 @@ export function LoginForm({ nextPath, auditToken = null, providers }: LoginFormP
         provider: "email"
       }, auditToken);
       if (!isMountedRef.current) return;
-      setRedirectTo(typeof payload.redirectPath === "string" ? payload.redirectPath : "/account");
+      setRedirectTo(resolveClientAuthRedirectPath(payload.redirectPath));
     } catch (authError) {
       if (!isMountedRef.current) return;
       await recordClientAuthEvent("auth.failed_login", {

@@ -20,6 +20,12 @@ export function getSafeAuthRedirectPath(value: string | null | undefined, fallba
   }
 }
 
+export function resolveClientAuthRedirectPath(path: string | null | undefined, fallback = "/account") {
+  const value = typeof path === "string" ? path.trim() : "";
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return fallback;
+  return value;
+}
+
 export function getRoleAwareAuthRedirectPath(value: string | null | undefined, roleValue: CmsRole | string | null | undefined) {
   const role = normalizeCmsRole(roleValue);
   if (!role) return "/login?auth_status=role_required";

@@ -127,6 +127,13 @@ async function validateActiveProfile(
 
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
   const pathname = request.nextUrl.pathname;
+  const authCode = request.nextUrl.searchParams.get("code");
+  if (authCode && pathname !== "/auth/callback") {
+    const callbackUrl = request.nextUrl.clone();
+    callbackUrl.pathname = "/auth/callback";
+    return secureRedirectResponse(request, callbackUrl);
+  }
+
   if (
     pathname.startsWith("/_next/static")
     || pathname.startsWith("/_next/image")

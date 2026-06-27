@@ -1,7 +1,7 @@
 "use server";
 
+import { resolveServerRequestOrigin, buildPasswordResetUrl } from "@/lib/auth/request-origin";
 import { createClient } from "@/lib/server";
-import { getSiteOrigin } from "@/lib/site-url";
 
 export async function sendPasswordResetAction() {
   const supabase = await createClient();
@@ -12,8 +12,9 @@ export async function sendPasswordResetAction() {
     return { ok: false as const, message: "No email address is associated with this account." };
   }
 
+  const origin = await resolveServerRequestOrigin();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${getSiteOrigin()}/reset-password`
+    redirectTo: buildPasswordResetUrl(origin)
   });
 
   if (error) {

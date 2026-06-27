@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveAuthRedirectUrlFromRequest } from "@/lib/auth/request-origin";
 import { checkDistributedRateLimit } from "@/lib/rate-limit-redis";
 import { createAuthRouteClient } from "@/lib/server";
 
@@ -19,7 +20,11 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as SignupBody;
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
-  const redirectTo = typeof body.redirectTo === "string" ? body.redirectTo : "";
+  const emailRedirectTo = resolveAuthRedirectUrlFromRequest(request, {
+    clientRedirectTo: typeof body.redirectTo === "string" ? body.redirectTo : "",
+    defaultPath: "/auth/callback",
+    defaultNext: "/onboarding"
+  });
   const inviteToken = typeof body.inviteToken === "string" ? body.inviteToken : null;
 
   if (!email || !password) {
@@ -35,7 +40,7 @@ export async function POST(request: Request) {
     email,
     password,
     options: {
-      emailRedirectTo: redirectTo || undefined,
+      emailRedirectTo,
       data: inviteToken ? { invite_token: inviteToken } : undefined
     }
   });

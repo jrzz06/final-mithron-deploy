@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveAuthRedirectUrlFromRequest } from "@/lib/auth/request-origin";
 import { checkDistributedRateLimit } from "@/lib/rate-limit-redis";
 import { createAuthRouteClient } from "@/lib/server";
 
@@ -16,7 +17,10 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as ForgotPasswordBody;
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  const redirectTo = typeof body.redirectTo === "string" ? body.redirectTo : "";
+  const redirectTo = resolveAuthRedirectUrlFromRequest(request, {
+    clientRedirectTo: typeof body.redirectTo === "string" ? body.redirectTo : "",
+    defaultPath: "/reset-password"
+  });
 
   if (!email) {
     return NextResponse.json({ error: "Email is required." }, { status: 400 });
@@ -24,7 +28,7 @@ export async function POST(request: Request) {
 
   const { supabase } = await createAuthRouteClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: redirectTo || undefined
+    redirectTo
   });
 
   if (error) {

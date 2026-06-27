@@ -1,5 +1,7 @@
 // Inline payment gateway check to avoid importing server-only modules
 // (prevents bundlers from pulling `node:crypto` into Edge runtime)
+import { hasConfiguredSiteUrl } from "@/lib/site-url";
+
 function isPaymentGatewayConfigured(env: Record<string, string | undefined> = process.env) {
   const hasRazorpay = Boolean(env.RAZORPAY_KEY_ID?.trim() && env.RAZORPAY_KEY_SECRET?.trim());
   const hasCashfree = Boolean(env.CASHFREE_APP_ID?.trim() && env.CASHFREE_SECRET_KEY?.trim());
@@ -110,7 +112,7 @@ export function assertProductionRuntimeConfig(env: EnvSource = process.env) {
   if (!env.EMAIL_FROM?.trim()) missing.push("EMAIL_FROM");
   if (!env.NEXT_PUBLIC_SUPABASE_URL?.trim()) missing.push("NEXT_PUBLIC_SUPABASE_URL");
   if (!env.SUPABASE_SERVICE_ROLE_KEY?.trim()) missing.push("SUPABASE_SERVICE_ROLE_KEY");
-  if (!env.NEXT_PUBLIC_SITE_URL?.trim()) missing.push("NEXT_PUBLIC_SITE_URL");
+  if (!hasConfiguredSiteUrl(env)) missing.push("NEXT_PUBLIC_SITE_URL or Vercel deployment URL");
   if (!env.AUTH_AUDIT_CLIENT_SECRET?.trim()) missing.push("AUTH_AUDIT_CLIENT_SECRET");
   if (!env.PAYMENT_EXPIRE_SECRET?.trim()) missing.push("PAYMENT_EXPIRE_SECRET");
 
