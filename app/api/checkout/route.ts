@@ -14,7 +14,7 @@ import {
   updateAdminRecord
 } from "@/services/admin-actions";
 import { buildCustomerCheckoutDraft } from "@/services/orders";
-import { releaseCheckoutStock, reserveCheckoutStock, resolveCheckoutStockSkus, verifyCheckoutStockAvailability } from "@/services/checkout-stock";
+import { releaseCheckoutStock, reserveCheckoutStock, resolveCheckoutStockSkus, verifyCheckoutStockAvailability, CheckoutStockVerificationError } from "@/services/checkout-stock";
 import {
   buildCheckoutPaymentResponse,
   markCheckoutPaymentInitiated
@@ -206,8 +206,21 @@ export async function POST(request: Request) {
     stockItems = await resolveCheckoutStockSkus(body.items);
   } catch (error) {
     const internal = error instanceof Error ? error.message : "Unable to resolve product inventory.";
-    logPaymentError("checkout_stock_verification_failed", error);
-    const isStockError = /insufficient stock|out of stock/i.test(internal);
+    const stockContext = error instanceof CheckoutStockVerificationError
+      ? {
+          warehouseCode: error.warehouseCode,
+          stockIssues: JSON.stringify(
+            error.issues.map((issue) => ({
+              productSlug: issue.productSlug,
+              requested: issue.requested,
+              available: issue.available,
+              hasWarehouseRow: issue.hasWarehouseRow
+            }))
+          )
+        }
+      : {};
+    logPaymentError("checkout_stock_verification_failed", error, stockContext);
+    const isStockError = error instanceof CheckoutStockVerificationError || /insufficient stock|out of stock/i.test(internal);
     return NextResponse.json(
       { error: isStockError ? "One or more items are out of stock or unavailable." : "Unable to process your order at this time." },
       { status: 409 }

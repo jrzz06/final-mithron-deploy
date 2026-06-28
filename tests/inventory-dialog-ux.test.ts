@@ -20,6 +20,8 @@ const inventoryRow: SimpleInventoryRow = {
   warehouseCode: "IN-WEST-01",
   stockStatus: "available",
   quantity: 19,
+  catalogQuantity: 19,
+  isDesynced: false,
   category: "Power",
   price: 1200,
   inventoryValue: 22800,

@@ -49,6 +49,7 @@
     "products:fetch-wix": "node --experimental-strip-types tools/fetch-wix-catalog.ts",
     "products:fetch-wix-reviews": "node --experimental-strip-types tools/fetch-wix-reviews.ts",
     "products:audit-catalog-parity": "node --experimental-strip-types tools/audit-product-catalog-parity.ts",
+    "inventory:repair-checkout-stock": "node tools/repair-checkout-warehouse-stock.mjs",
     "products:audit-wix-migration": "node --experimental-strip-types tools/audit-wix-migration-gaps.ts",
     "products:sync-wix-migration": "node --experimental-strip-types tools/sync-wix-migration-gaps.ts",
     "products:sync-wix-migration:apply": "node --experimental-strip-types tools/sync-wix-migration-gaps.ts --apply",

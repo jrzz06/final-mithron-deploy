@@ -4,6 +4,31 @@ import { getCheckoutWarehouseCode } from "@/services/warehouse-config";
 
 type EnvSource = Record<string, string | undefined>;
 
+export type CheckoutStockIssue = {
+  productSlug: string;
+  requested: number;
+  available: number;
+  warehouseCode: string;
+  hasWarehouseRow: boolean;
+};
+
+export class CheckoutStockVerificationError extends Error {
+  readonly issues: CheckoutStockIssue[];
+  readonly warehouseCode: string;
+
+  constructor(issues: CheckoutStockIssue[], warehouseCode: string) {
+    const first = issues[0];
+    super(
+      first
+        ? `Insufficient stock for ${first.productSlug}. Requested ${first.requested}, available ${first.available}.`
+        : "Insufficient stock for one or more checkout items."
+    );
+    this.name = "CheckoutStockVerificationError";
+    this.issues = issues;
+    this.warehouseCode = warehouseCode;
+  }
+}
+
 export type CheckoutStockItem = {
   productSlug: string;
   quantity: number;
@@ -86,9 +111,11 @@ export async function verifyCheckoutStockAvailability(
 
   const rows = (await response.json()) as Array<{ product_slug?: string; available_quantity?: number }>;
   const availableBySlug = new Map<string, number>();
+  const hasWarehouseRow = new Set<string>();
   for (const row of rows) {
     const slug = String(row.product_slug ?? "");
     if (!slug) continue;
+    hasWarehouseRow.add(slug);
     const available = Number(row.available_quantity ?? 0);
     availableBySlug.set(slug, Math.max(availableBySlug.get(slug) ?? 0, available));
   }
@@ -98,13 +125,22 @@ export async function verifyCheckoutStockAvailability(
     requestedBySlug.set(item.productSlug, (requestedBySlug.get(item.productSlug) ?? 0) + item.quantity);
   }
 
+  const issues: CheckoutStockIssue[] = [];
   for (const [slug, requested] of requestedBySlug) {
     const available = availableBySlug.get(slug) ?? 0;
     if (available < requested) {
-      throw new Error(
-        `Insufficient stock for ${slug}. Requested ${requested}, available ${available}.`
-      );
+      issues.push({
+        productSlug: slug,
+        requested,
+        available,
+        warehouseCode: resolvedWarehouseCode,
+        hasWarehouseRow: hasWarehouseRow.has(slug)
+      });
     }
+  }
+
+  if (issues.length) {
+    throw new CheckoutStockVerificationError(issues, resolvedWarehouseCode);
   }
 }
 

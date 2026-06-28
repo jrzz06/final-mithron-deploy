@@ -12,6 +12,8 @@ export type SimpleInventoryRow = {
   warehouseCode: string;
   stockStatus: SimpleInventoryStatus;
   quantity: number;
+  catalogQuantity: number;
+  isDesynced: boolean;
   category: string;
   price: number;
   inventoryValue: number;
@@ -92,10 +94,14 @@ export function readAdminNumber(value: unknown, fallback = 0) {
   return asNumber(value, fallback);
 }
 
-function pickWarehouseStockRow(stock: AdminRow[], productSlug: string, defaultWarehouseCode: string) {
+export function pickWarehouseStockRow(stock: AdminRow[], productSlug: string, preferredWarehouseCode: string) {
   const rows = stock.filter((row) => asText(row.product_slug, "") === productSlug);
   if (!rows.length) return undefined;
-  return rows.find((row) => asText(row.warehouse_code, "") === defaultWarehouseCode) ?? rows[0];
+  return rows.find((row) => asText(row.warehouse_code, "") === preferredWarehouseCode) ?? rows[0];
+}
+
+export function isInventoryWarehouseDesynced(catalogQuantity: number, warehouseAvailable: number) {
+  return catalogQuantity !== warehouseAvailable;
 }
 
 /** Builds exactly one warehouse inventory row per product in the loaded set. */
@@ -103,7 +109,7 @@ export function buildSimpleInventoryRows(
   products: AdminRow[],
   inventory: AdminRow[],
   stock: AdminRow[],
-  defaultWarehouseCode = ""
+  preferredWarehouseCode = ""
 ): SimpleInventoryRow[] {
   const inventoryBySlug = new Map<string, AdminRow>();
   for (const row of inventory) {
@@ -118,10 +124,13 @@ export function buildSimpleInventoryRows(
   const rows = products.map((product) => {
     const productSlug = asText(product.slug, "");
     const inv = inventoryBySlug.get(productSlug);
-    const stockRow = pickWarehouseStockRow(stock, productSlug, defaultWarehouseCode);
+    const stockRow = pickWarehouseStockRow(stock, productSlug, preferredWarehouseCode);
     const sku = asText(inv?.sku, deriveProductSku(productSlug));
-    const warehouseCode = asText(stockRow?.warehouse_code, defaultWarehouseCode);
-    const quantity = asNumber(inv?.quantity, asNumber(stockRow?.available_quantity));
+    const warehouseCode = asText(stockRow?.warehouse_code, preferredWarehouseCode);
+    const catalogQuantity = asNumber(inv?.quantity);
+    const availableQuantity = asNumber(stockRow?.available_quantity);
+    const quantity = availableQuantity;
+    const isDesynced = Boolean(inv) && isInventoryWarehouseDesynced(catalogQuantity, availableQuantity);
     const price = asNumber(product.price);
 
     return {
@@ -134,6 +143,8 @@ export function buildSimpleInventoryRows(
       warehouseCode,
       stockStatus: asStockStatus(inv?.stock_status, quantity, product),
       quantity,
+      catalogQuantity,
+      isDesynced,
       category: asText(product.category, "Uncategorized"),
       price,
       inventoryValue: price * quantity,
@@ -142,7 +153,7 @@ export function buildSimpleInventoryRows(
       inventoryUpdatedAt: asText(inv?.updated_at, "") || null,
       reservedQuantity: asNumber(inv?.reserved_quantity),
       reorderThreshold: asNumber(inv?.reorder_threshold),
-      availableQuantity: asNumber(stockRow?.available_quantity, quantity),
+      availableQuantity,
       committedQuantity: asNumber(stockRow?.committed_quantity),
       supplierName: asText(product.supplier_name, ""),
       isArchived: isProductArchived(product)

@@ -11,7 +11,8 @@ import { ProductCategoryField, type ProductCategoryOption } from "./product-cate
 import { connectivityMessage, emptyMessage } from "@/lib/platform/copy";
 import { ProductCreateDetailFields } from "./product-create-detail-fields";
 import { WarehouseCodeSelect } from "@/components/warehouse/warehouse-code-select";
-import { getDefaultWarehouseCode } from "@/services/warehouse-config";
+import { getCheckoutWarehouseCode, getDefaultWarehouseCode } from "@/services/warehouse-config";
+import { pickWarehouseStockRow, isInventoryWarehouseDesynced } from "@/services/simple-inventory-view";
 import { listActiveWarehouses } from "@/services/warehouses";
 
 const platformLabelClass = "text-xs text-[var(--platform-text-muted)]";
@@ -112,10 +113,11 @@ function readProductTool(value: string): ProductToolKey | "" {
 }
 
 export default async function AdminProductsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
-  const [snapshot, warehouses, defaultWarehouseCode, catalogMetrics] = await Promise.all([
+  const [snapshot, warehouses, defaultWarehouseCode, checkoutWarehouseCode, catalogMetrics] = await Promise.all([
     getProductManagerSnapshot(),
     listActiveWarehouses(),
     getDefaultWarehouseCode(),
+    getCheckoutWarehouseCode(),
     getProductCatalogMetrics()
   ]);
   const params = searchParams ? await searchParams : {};
@@ -143,13 +145,14 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   });
   const activeProductSlug = selectedProductSlug || String(filteredProducts[0]?.slug ?? snapshot.data.products[0]?.slug ?? "");
   const inventoryBySlug = new Map(snapshot.data.inventory.map((row) => [String(row.product_slug ?? ""), row]));
-  const stockBySlug = new Map(snapshot.data.stock.map((row) => [String(row.product_slug ?? ""), row]));
   const productRows: ProductCatalogGridRow[] = filteredProducts.map((product) => {
     const slug = String(product.slug ?? "");
     const inventory = inventoryBySlug.get(slug);
-    const stock = stockBySlug.get(slug);
+    const stock = pickWarehouseStockRow(snapshot.data.stock, slug, checkoutWarehouseCode);
     const status = String(product.workflow_status ?? "published");
     const stockStatus = String(inventory?.stock_status ?? "unlinked");
+    const catalogQuantity = Number(inventory?.quantity ?? 0);
+    const checkoutAvailable = Number(stock?.available_quantity ?? 0);
     return {
       id: slug || String(product.name ?? "product"),
       title: String(product.name ?? product.slug ?? "Product"),
@@ -173,8 +176,10 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       taxGroup: product.tax_group ? String(product.tax_group) : "products-default",
       taxRate: product.tax_rate ? String(product.tax_rate) : null,
       taxIncluded: Boolean(product.tax_included),
-      stockQuantity: String(stock?.available_quantity ?? inventory?.quantity ?? "0"),
+      stockQuantity: String(checkoutAvailable),
       stockStatus,
+      stockDesynced: Boolean(inventory) && isInventoryWarehouseDesynced(catalogQuantity, checkoutAvailable),
+      checkoutWarehouseCode,
       sourceAvailability: String(product.source_availability ?? "catalog"),
       isVisible: Boolean(product.is_visible ?? true),
       updatedAt: product.updated_at ? String(product.updated_at) : null

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { deriveProductSku } from "@/services/product-inventory-sync";
-import { buildSimpleInventoryRows } from "@/services/simple-inventory-view";
+import { buildSimpleInventoryRows, isInventoryWarehouseDesynced, pickWarehouseStockRow } from "@/services/simple-inventory-view";
 
 vi.mock("@/services/admin-actions", () => ({
   createAdminRecord: vi.fn(),
@@ -12,15 +12,27 @@ vi.mock("@/services/admin-actions", () => ({
 }));
 
 vi.mock("@/services/warehouse-config", () => ({
-  getDefaultWarehouseCode: vi.fn(async () => "IN-WEST-01")
+  getDefaultWarehouseCode: vi.fn(async () => "IN-WEST-01"),
+  getCheckoutWarehouseCode: vi.fn(async () => "IN-WEST-01")
+}));
+
+vi.mock("@/services/warehouse-movements", () => ({
+  fetchWarehouseStockBySku: vi.fn()
+}));
+
+vi.mock("@/services/product-inventory-workflow", () => ({
+  syncProductInventoryWorkflow: vi.fn()
 }));
 
 import { createAdminRecord, fetchAdminRecordsByColumn, upsertInventoryRecord, upsertWarehouseStockRecord } from "@/services/admin-actions";
 import {
   ensureProductCatalogInventoryRecord,
   ensureProductInventoryRecord,
-  ensureWarehouseStockRecord
+  ensureWarehouseStockRecord,
+  repairCheckoutWarehouseStock
 } from "@/services/product-inventory-sync";
+import { fetchWarehouseStockBySku } from "@/services/warehouse-movements";
+import { syncProductInventoryWorkflow } from "@/services/product-inventory-workflow";
 
 describe("product inventory integrity", () => {
   beforeEach(() => {
@@ -122,6 +134,72 @@ describe("product inventory integrity", () => {
     expect(rows.find((row) => row.productSlug === "agri-drone-x1")?.quantity).toBe(4);
     expect(rows.find((row) => row.productSlug === "archived-kit")?.isArchived).toBe(true);
     expect(rows.find((row) => row.productSlug === "archived-kit")?.quantity).toBe(0);
+  });
+
+  it("uses checkout warehouse availability as the primary quantity", () => {
+    const products = [{ slug: "agri-drone-x1", name: "Agri Drone", workflow_status: "published" }];
+    const inventory = [{ product_slug: "agri-drone-x1", sku: "AGRI-DRONE-X1", quantity: 10, stock_status: "available" }];
+    const stock = [{ warehouse_code: "IN-WEST-01", product_slug: "agri-drone-x1", sku: "AGRI-DRONE-X1", available_quantity: 0 }];
+
+    const rows = buildSimpleInventoryRows(products, inventory, stock, "IN-WEST-01");
+    expect(rows[0]?.quantity).toBe(0);
+    expect(rows[0]?.catalogQuantity).toBe(10);
+    expect(rows[0]?.isDesynced).toBe(true);
+  });
+
+  it("picks the preferred warehouse row for admin product stock display", () => {
+    const stock = [
+      { warehouse_code: "IN-EAST-01", product_slug: "agri-drone-x1", available_quantity: 2 },
+      { warehouse_code: "IN-WEST-01", product_slug: "agri-drone-x1", available_quantity: 7 }
+    ];
+    expect(pickWarehouseStockRow(stock, "agri-drone-x1", "IN-WEST-01")?.available_quantity).toBe(7);
+    expect(isInventoryWarehouseDesynced(10, 0)).toBe(true);
+  });
+
+  it("repairs missing checkout warehouse stock from catalog inventory", async () => {
+    vi.mocked(fetchWarehouseStockBySku).mockResolvedValue(null as never);
+    vi.mocked(upsertWarehouseStockRecord).mockResolvedValue({ id: "stock-1" });
+
+    const config = {
+      configured: true,
+      url: "https://example.supabase.co",
+      serviceRoleKey: "service-role-key"
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [
+          {
+            product_slug: "agri-drone-x1",
+            sku: "AGRI-DRONE-X1",
+            quantity: 6,
+            reserved_quantity: 1,
+            reorder_threshold: 2,
+            stock_status: "available"
+          }
+        ]
+      })
+    );
+
+    const result = await repairCheckoutWarehouseStock("actor-1", {
+      NEXT_PUBLIC_SUPABASE_URL: config.url,
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "publishable-key",
+      SUPABASE_SERVICE_ROLE_KEY: config.serviceRoleKey
+    });
+
+    expect(result.created).toBe(1);
+    expect(result.desyncedFixed).toBe(1);
+    expect(upsertWarehouseStockRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        warehouse_code: "IN-WEST-01",
+        product_slug: "agri-drone-x1",
+        available_quantity: 5
+      }),
+      "actor-1",
+      expect.any(Object)
+    );
+    expect(syncProductInventoryWorkflow).not.toHaveBeenCalled();
   });
 });
 

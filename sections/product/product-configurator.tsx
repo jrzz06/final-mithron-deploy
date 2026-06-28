@@ -10,7 +10,6 @@ import { productBadgeCssClass } from "@/lib/product-badge";
 import { isSpecLikeBlob } from "@/lib/product-spec-text";
 import { glassPillClassName } from "@/lib/glass-ui";
 import { cn, formatINR } from "@/lib/utils";
-import { formatProductTaxPriceLabel } from "@/lib/product-tax";
 import { useCartStore } from "@/store/cart";
 import styles from "./product-detail.module.css";
 
@@ -121,15 +120,7 @@ export function ProductConfigurator({ product }: { product: ProductConfiguratorM
         ) : null}
 
         <div className={styles.priceRow}>
-          <p className={cn("type-price", styles.priceCurrent)}>
-            {formatProductTaxPriceLabel({
-              unitPrice: displayPrice,
-              chargeTax: product.chargeTax,
-              taxGroup: product.taxGroup,
-              taxRate: product.taxRate,
-              taxIncluded: product.taxIncluded
-            })}
-          </p>
+          <p className={cn("type-price", styles.priceCurrent)}>{formatINR(displayPrice)}</p>
           {product.compareAt && product.compareAt > displayPrice ? (
             <p className={cn("type-body", styles.priceCompare)}>{formatINR(product.compareAt)}</p>
           ) : null}

@@ -142,17 +142,17 @@ export function CartDrawer() {
                 <span className="type-price mb-4 grid gap-2 text-sm font-medium">
                   <span className="flex items-center justify-between">
                     <span>Subtotal</span>
-                    <span>{formatINR(subtotal)}</span>
+                    <span className="tabular-nums">{formatINR(subtotal)}</span>
                   </span>
                   {taxTotal > 0 ? (
-                    <span className="flex items-center justify-between text-white/70">
+                    <span className="flex items-center justify-between text-white/80">
                       <span>GST</span>
-                      <span>{formatINR(taxTotal)}</span>
+                      <span className="tabular-nums font-semibold">{formatINR(taxTotal)}</span>
                     </span>
                   ) : null}
                   <span className="flex items-center justify-between text-lg">
                     <span>Total</span>
-                    <span>{formatINR(grandTotal)}</span>
+                    <span className="tabular-nums">{formatINR(grandTotal)}</span>
                   </span>
                 </span>
                 <span className={glassButtonClassName({ className: "type-button block h-14 w-full rounded-full text-center text-base leading-[3.5rem]" })}>

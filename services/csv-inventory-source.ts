@@ -1,7 +1,7 @@
 import { getSupabaseAdminConfig } from "@/lib/env";
 import { getInventoryStockMetrics, type InventoryStockMetrics } from "@/services/inventory-metrics";
 import { buildSimpleInventoryRows, type SimpleInventoryRow } from "@/services/simple-inventory-view";
-import { getDefaultWarehouseCode } from "@/services/warehouse-config";
+import { getCheckoutWarehouseCode } from "@/services/warehouse-config";
 import { countProductsMissingInventoryRecords as countMissingInventoryRecords } from "@/services/product-inventory-sync";
 
 export { countMissingInventoryRecords as countProductsMissingInventoryRecords };
@@ -176,7 +176,7 @@ export async function getCsvInventoryRows(input: EnvSource | CsvInventoryOptions
     const inventorySlugFilter = columnInFilter("product_slug", productSlugList);
     const warehouseSlugFilter = columnInFilter("product_slug", productSlugList);
 
-    const [inventory, stock, defaultWarehouseCode, suppliers] = await Promise.all([
+    const [inventory, stock, checkoutWarehouseCode, suppliers] = await Promise.all([
       fetchRows<AdminRow>(
         config,
         "inventory",
@@ -197,7 +197,7 @@ export async function getCsvInventoryRows(input: EnvSource | CsvInventoryOptions
           `limit=${relationLimit}`
         ].join("&")
       ),
-      getDefaultWarehouseCode(env),
+      getCheckoutWarehouseCode(env),
       fetchRows<AdminRow>(config, "profiles", "select=id,display_name,email&limit=500")
     ]);
 
@@ -216,7 +216,7 @@ export async function getCsvInventoryRows(input: EnvSource | CsvInventoryOptions
       totalProductCount,
       catalogFilter,
       inventoryMetrics,
-      rows: buildSimpleInventoryRows(productsWithSupplier, inventory, stock, defaultWarehouseCode)
+      rows: buildSimpleInventoryRows(productsWithSupplier, inventory, stock, checkoutWarehouseCode)
     };
   } catch (error) {
     return {

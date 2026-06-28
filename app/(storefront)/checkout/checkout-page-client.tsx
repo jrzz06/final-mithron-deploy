@@ -1215,20 +1215,20 @@ export function CheckoutPageClient() {
                     <p className="type-price mt-3 font-bold">{formatINR(item.unitPrice * item.quantity)}</p>
                   </div>
                 ))}
-                <div className="type-price mt-3 grid gap-2 border-t border-white/10 pt-5 text-sm font-medium">
+                <div className="type-price mt-3 grid gap-2.5 border-t border-white/10 pt-5 text-sm font-medium">
                   <div className="flex items-center justify-between text-white/75">
                     <span>Subtotal</span>
-                    <span>{formatINR(subtotal)}</span>
+                    <span className="tabular-nums">{formatINR(subtotal)}</span>
                   </div>
                   {taxTotal > 0 ? (
-                    <div className="flex items-center justify-between text-white/75">
+                    <div className="flex items-center justify-between text-base text-white/90">
                       <span>GST</span>
-                      <span>{formatINR(taxTotal)}</span>
+                      <span className="tabular-nums font-semibold">{formatINR(taxTotal)}</span>
                     </div>
                   ) : null}
-                  <div className="flex items-center justify-between text-xl font-bold">
+                  <div className="flex items-center justify-between border-t border-white/10 pt-2.5 text-xl font-bold">
                     <span>Total</span>
-                    <span>{formatINR(grandTotal)}</span>
+                    <span className="tabular-nums">{formatINR(grandTotal)}</span>
                   </div>
                 </div>
               </div>

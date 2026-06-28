@@ -5,7 +5,7 @@ import { InventoryManager } from "@/components/admin/inventory-manager-loader";
 import { AdminInventoryLiveSync } from "@/components/admin/admin-inventory-live-sync";
 import { inventoryFeedbackQueryParams } from "@/lib/admin/conflict-handling";
 import { CSV_INVENTORY_PAGE_SIZE, countProductsMissingInventoryRecords, getCsvInventoryRows, type CatalogFilter } from "@/services/csv-inventory-source";
-import { repairMissingProductInventory } from "@/services/product-inventory-sync";
+import { repairCheckoutWarehouseStock, repairMissingProductInventory } from "@/services/product-inventory-sync";
 import { getAdminSettingsPolicy } from "@/services/admin-settings-policy";
 import { getCurrentAuthContext } from "@/services/auth";
 import { AdminStockRequestReviewPanel } from "@/components/admin/admin-stock-request-review-panel";
@@ -15,7 +15,7 @@ import {
   saveInventoryBulkUpdateFormAction,
   saveInventoryQuickEditFormAction
 } from "@/app/warehouse/actions";
-import { syncMissingInventoryAction } from "./stock-request-actions";
+import { syncCheckoutWarehouseStockAction, syncMissingInventoryAction } from "./stock-request-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +90,9 @@ export default async function AdminInventoryPage({ searchParams }: { searchParam
     await repairMissingProductInventory(auth.userId).catch((error) => {
       console.error("[mithron-inventory] Auto-repair on inventory page failed.", error);
     });
+    await repairCheckoutWarehouseStock(auth.userId).catch((error) => {
+      console.error("[mithron-inventory] Checkout warehouse auto-sync failed.", error);
+    });
     missingInventoryCount = await countProductsMissingInventoryRecords();
   }
   const inventorySource = await getCsvInventoryRows({ page: currentPage, pageSize: CSV_INVENTORY_PAGE_SIZE, catalogFilter });
@@ -99,6 +102,7 @@ export default async function AdminInventoryPage({ searchParams }: { searchParam
   const stockStatus = searchValue(params, "stock_status");
   const stockMessage = searchValue(params, "stock_message");
   const rows = inventorySource.rows;
+  const desyncedCount = rows.filter((row) => row.isDesynced).length;
   const previousPageHref = currentPage > 1 ? `/admin/inventory?page=${currentPage - 1}&catalog=${catalogFilter}` : undefined;
   const nextPageHref = inventorySource.hasNextPage ? `/admin/inventory?page=${currentPage + 1}&catalog=${catalogFilter}` : undefined;
 
@@ -122,6 +126,19 @@ export default async function AdminInventoryPage({ searchParams }: { searchParam
           <form action={syncMissingInventoryAction}>
             <OperationalSubmitButton pendingLabel="Syncing" className="platform-btn-primary h-9 rounded-[8px] px-3 text-xs font-medium">
               Sync missing
+            </OperationalSubmitButton>
+          </form>
+        </div>
+      ) : null}
+
+      {desyncedCount > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-sm text-amber-100">
+          <p>
+            {desyncedCount} product{desyncedCount === 1 ? "" : "s"} show catalog stock that does not match checkout warehouse availability.
+          </p>
+          <form action={syncCheckoutWarehouseStockAction}>
+            <OperationalSubmitButton pendingLabel="Syncing" className="platform-btn-primary h-9 rounded-[8px] px-3 text-xs font-medium">
+              Sync checkout stock
             </OperationalSubmitButton>
           </form>
         </div>
