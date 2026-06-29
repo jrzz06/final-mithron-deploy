@@ -63,6 +63,12 @@ describe("warehouse configuration", () => {
     await expect(getDefaultWarehouseCode(env)).resolves.toBe("IN-EAST-01");
   });
 
+  it("falls back to env default warehouse when configuration fetch fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
+
+    await expect(getDefaultWarehouseCode(env)).resolves.toBe("IN-EAST-01");
+  });
+
   it("parses warehouse configuration form data", () => {
     const formData = new FormData();
     formData.set("default_warehouse_code", "IN-WEST-01");

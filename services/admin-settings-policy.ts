@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { assertSupabaseAdminConfig } from "@/lib/env";
+import { getSupabaseAdminConfig } from "@/lib/env";
 
 type EnvSource = Record<string, string | undefined>;
 type JsonRecord = Record<string, unknown>;
@@ -14,21 +14,29 @@ function enabled(value: unknown, fallback = true) {
 }
 
 async function loadAdminSettingsPayload(env: EnvSource = process.env) {
-  const config = assertSupabaseAdminConfig(env);
-  const response = await fetch(
-    `${config.url}/rest/v1/admin_settings?id=eq.global&select=payload&limit=1`,
-    {
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: `Bearer ${config.serviceRoleKey}`
-      },
-      cache: "no-store"
-    }
-  );
-  if (!response.ok) return {} as JsonRecord;
-  const rows = (await response.json()) as Array<{ payload?: JsonRecord }>;
-  const payload = rows[0]?.payload;
-  return payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
+  const config = getSupabaseAdminConfig(env);
+  if (!config.configured) return {} as JsonRecord;
+
+  try {
+    const response = await fetch(
+      `${config.url}/rest/v1/admin_settings?id=eq.global&select=payload&limit=1`,
+      {
+        headers: {
+          apikey: config.serviceRoleKey,
+          Authorization: `Bearer ${config.serviceRoleKey}`
+        },
+        cache: "no-store"
+      }
+    );
+    if (!response.ok) return {} as JsonRecord;
+    const rows = (await response.json()) as Array<{ payload?: JsonRecord }>;
+    const payload = rows[0]?.payload;
+    return payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[admin-settings-policy] Failed to load admin_settings: ${message}`);
+    return {} as JsonRecord;
+  }
 }
 
 export type AdminSettingsPolicy = {
@@ -75,7 +83,28 @@ export function assertSectionVisibilityPolicyAllowed(policy: AdminSettingsPolicy
   }
 }
 
-export const getAdminSettingsPolicy = cache(async (env: EnvSource = process.env): Promise<AdminSettingsPolicy> => {
+function defaultAdminSettingsPolicy(env: EnvSource): AdminSettingsPolicy {
+  const warehouseCode = env.DEFAULT_WAREHOUSE_CODE?.trim() || "";
+  return {
+    warehouseAlertsEnabled: true,
+    orderAlertsEnabled: true,
+    cmsPublishAlertsEnabled: true,
+    adminLoginAlertsEnabled: true,
+    emailNotificationsEnabled: false,
+    realtimeUpdatesEnabled: true,
+    draftModeEnabled: true,
+    instantPublishEnabled: false,
+    sectionVisibilityControlsEnabled: true,
+    queryCachingEnabled: true,
+    lowBandwidthModeEnabled: false,
+    defaultWarehouseCode: warehouseCode,
+    sessionTimeoutMinutes: 60,
+    passwordResetEnabled: true,
+    allowedAdminDomains: []
+  };
+}
+
+async function resolveAdminSettingsPolicy(env: EnvSource = process.env): Promise<AdminSettingsPolicy> {
   const payload = await loadAdminSettingsPayload(env);
   const notifications = readSection(payload, "notifications");
   const performance = readSection(payload, "performance");
@@ -87,7 +116,24 @@ export const getAdminSettingsPolicy = cache(async (env: EnvSource = process.env)
     .filter(Boolean);
 
   const warehouse = readSection(payload, "warehouse");
-  const warehouseConfig = await import("@/services/warehouse-config").then((module) => module.getWarehouseConfiguration(env));
+  let warehouseConfig: Awaited<ReturnType<typeof import("@/services/warehouse-config").getWarehouseConfiguration>>;
+  try {
+    warehouseConfig = await import("@/services/warehouse-config").then((module) => module.getWarehouseConfiguration(env));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[admin-settings-policy] Failed to resolve warehouse configuration: ${message}`);
+    warehouseConfig = {
+      defaultWarehouseCode: env.DEFAULT_WAREHOUSE_CODE?.trim() || "",
+      checkoutWarehouseCode: env.DEFAULT_WAREHOUSE_CODE?.trim() || "",
+      supplierIntakeWarehouseCode: env.DEFAULT_WAREHOUSE_CODE?.trim() || "",
+      autoReserveOnAllocate: true,
+      defaultCarrier: "Mithron Field",
+      barcodePrefix: "MTH-",
+      printerName: "",
+      labelWidthMm: 100,
+      requireItemScan: true
+    };
+  }
   const configuredDefault = String(warehouse.default_warehouse_code ?? "").trim();
 
   return {
@@ -107,4 +153,14 @@ export const getAdminSettingsPolicy = cache(async (env: EnvSource = process.env)
     passwordResetEnabled: enabled(security.password_reset_enabled, true),
     allowedAdminDomains: domains
   };
+}
+
+export const getAdminSettingsPolicy = cache(async (env: EnvSource = process.env): Promise<AdminSettingsPolicy> => {
+  try {
+    return await resolveAdminSettingsPolicy(env);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[admin-settings-policy] Failed to load admin settings policy: ${message}`);
+    return defaultAdminSettingsPolicy(env);
+  }
 });
