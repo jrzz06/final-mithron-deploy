@@ -11,7 +11,7 @@ import {
   sectionFromPath,
   shouldConfineRoleToControlPanel
 } from "@/lib/auth/access-control";
-import { buildContentSecurityPolicy, generateCspNonce } from "@/lib/csp";
+import { buildContentSecurityPolicyForPath, generateCspNonce } from "@/lib/csp";
 import { isStorefrontGuestOnly } from "@/lib/storefront/guest-demo";
 import { resolveSupabaseCookieOptions, resolveSupabasePublishableKey } from "@/lib/supabase/cookie-config";
 import { extractSecurityCorrelationId, recordSecurityEventFromMiddleware } from "@/services/security-observability";
@@ -25,19 +25,23 @@ function applyRequestSecurityHeaders(request: NextRequest) {
   return { nonce, requestHeaders };
 }
 
-function withContentSecurityPolicy(response: NextResponse, nonce: string) {
-  response.headers.set("Content-Security-Policy", buildContentSecurityPolicy(nonce));
+function withContentSecurityPolicy(response: NextResponse, nonce: string, pathname = "") {
+  response.headers.set("Content-Security-Policy", buildContentSecurityPolicyForPath(pathname, nonce));
   return response;
 }
 
 function secureNextResponse(request: NextRequest) {
   const { nonce, requestHeaders } = applyRequestSecurityHeaders(request);
-  return withContentSecurityPolicy(NextResponse.next({ request: { headers: requestHeaders } }), nonce);
+  return withContentSecurityPolicy(
+    NextResponse.next({ request: { headers: requestHeaders } }),
+    nonce,
+    request.nextUrl.pathname
+  );
 }
 
 function secureRedirectResponse(request: NextRequest, url: URL | string) {
   const { nonce } = applyRequestSecurityHeaders(request);
-  return withContentSecurityPolicy(NextResponse.redirect(url), nonce);
+  return withContentSecurityPolicy(NextResponse.redirect(url), nonce, request.nextUrl.pathname);
 }
 
 async function redirectAfterSystemLogout(
@@ -83,7 +87,7 @@ function createSupabaseOnRequest(request: NextRequest, response: NextResponse) {
 
 function secureJsonResponse(request: NextRequest, body: Record<string, unknown>, status: number, correlationId?: string) {
   const { nonce } = applyRequestSecurityHeaders(request);
-  const response = withContentSecurityPolicy(NextResponse.json(body, { status }), nonce);
+  const response = withContentSecurityPolicy(NextResponse.json(body, { status }), nonce, request.nextUrl.pathname);
   if (correlationId) response.headers.set("x-correlation-id", correlationId);
   return response;
 }

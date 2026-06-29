@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildContentSecurityPolicy } from "@/lib/csp";
+import { buildContentSecurityPolicy, buildPaymentContentSecurityPolicy } from "@/lib/csp";
 
 describe("CSP headers", () => {
   it("configures enforcing CSP via proxy nonce and HSTS in next.config", () => {
@@ -12,7 +12,7 @@ describe("CSP headers", () => {
     expect(config).not.toContain("Content-Security-Policy-Report-Only");
     expect(config).not.toContain("script-src");
     expect(config).toContain("Strict-Transport-Security");
-    expect(proxy).toContain("buildContentSecurityPolicy");
+    expect(proxy).toContain("buildContentSecurityPolicyForPath");
     expect(proxy).toContain("generateCspNonce");
     expect(policy).toContain("checkout.razorpay.com");
     expect(policy).toContain("cdn.razorpay.com");
@@ -29,5 +29,16 @@ describe("CSP headers", () => {
     expect(prodPolicy).not.toContain("'unsafe-eval'");
     expect(prodPolicy).not.toContain("img-src 'self' data: https: blob:");
     expect(prodPolicy).toContain("img-src 'self' data: blob:");
+  });
+
+  it("uses a payment-surface CSP that allows gateway inline scripts and QR assets", () => {
+    const paymentPolicy = buildPaymentContentSecurityPolicy("test-nonce", { NODE_ENV: "production" });
+    expect(paymentPolicy).toContain("script-src 'self' 'unsafe-inline'");
+    expect(paymentPolicy).toContain("style-src 'self' 'unsafe-inline'");
+    expect(paymentPolicy).toContain("font-src 'self' data:");
+    expect(paymentPolicy).toContain("connect-src 'self' https:");
+    expect(paymentPolicy).toContain("img-src 'self' data: blob: https:");
+    expect(paymentPolicy).toContain("worker-src 'self' blob:");
+    expect(paymentPolicy).not.toContain("'nonce-test-nonce'");
   });
 });

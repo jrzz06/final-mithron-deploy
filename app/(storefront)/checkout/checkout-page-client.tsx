@@ -684,14 +684,17 @@ export function CheckoutPageClient() {
     return new Promise<boolean>((resolve) => {
       const rzp = new window.Razorpay!({
         key: input.key,
-        amount: input.amountPaise,
-        currency: "INR",
         name: "Mithron",
         description: `Order ${input.orderNumber}`,
         order_id: input.razorpayOrderId,
         prefill: { email: input.email, contact: phone.trim() },
         theme: { color: "#174d33", backdrop_color: "#f7faf8" },
         retry: { enabled: true, max_count: 3 },
+        config: {
+          display: {
+            preferences: { show_default_blocks: true }
+          }
+        },
         handler: async (response: {
           razorpay_order_id?: string;
           razorpay_payment_id?: string;
@@ -730,6 +733,14 @@ export function CheckoutPageClient() {
         resolve(false);
       });
 
+      rzp.on("payment.error", (response) => {
+        const reason = typeof response.error === "object" && response.error && "description" in response.error
+          ? String((response.error as { description?: string }).description ?? "")
+          : "";
+        setError(reason.trim() || "Payment gateway error. Try cards or another UPI app, or switch to Cashfree.");
+        resolve(false);
+      });
+
       rzp.open();
     });
   }
@@ -750,9 +761,11 @@ export function CheckoutPageClient() {
     }
 
     const cashfree = window.Cashfree({ mode: input.cashfreeMode });
+    const preferRedirect = typeof window !== "undefined"
+      && window.matchMedia("(max-width: 768px)").matches;
     const result = await cashfree.checkout({
       paymentSessionId: input.paymentSessionId,
-      redirectTarget: "_modal"
+      redirectTarget: preferRedirect ? "_self" : "_modal"
     });
 
     if (result?.error) {
