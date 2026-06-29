@@ -1070,31 +1070,25 @@ export function createOrderRecord(payload: JsonRecord, actorId: string | null, e
   return createAdminRecord("orders", payload, actorId, env);
 }
 
-/** Customer checkout — requires orders.checkout for signed-in users; system actor for guests. */
+/** Trusted server checkout mutations — auth is enforced in the checkout API route. */
+const checkoutApiMutationOptions: AdminMutationOptions = {
+  allowSystemActor: true,
+  guard: async () => undefined
+};
+
+/** Customer checkout — auth verified in /api/checkout before calling this. */
 export function createCustomerCheckoutOrderRecord(payload: JsonRecord, actorId: string | null, env: EnvSource = process.env) {
-  return createAdminRecord("orders", payload, actorId, env, {
-    ...(actorId
-      ? { guard: () => requirePermission("orders.checkout") }
-      : { allowSystemActor: true })
-  });
+  return createAdminRecord("orders", payload, actorId, env, checkoutApiMutationOptions);
 }
 
-/** Customer checkout line items — requires orders.checkout for signed-in users; system actor for guests. */
+/** Customer checkout line items — auth verified in /api/checkout before calling this. */
 export function createCustomerCheckoutOrderItemRecord(payload: JsonRecord, actorId: string | null, env: EnvSource = process.env) {
-  return createAdminRecord("order_items", payload, actorId, env, {
-    ...(actorId
-      ? { guard: () => requirePermission("orders.checkout") }
-      : { allowSystemActor: true })
-  });
+  return createAdminRecord("order_items", payload, actorId, env, checkoutApiMutationOptions);
 }
 
-/** Customer checkout payment row — system actor when guest checkout. */
+/** Customer checkout payment row — auth verified in /api/checkout before calling this. */
 export function createCustomerCheckoutPaymentRecord(payload: JsonRecord, actorId: string | null, env: EnvSource = process.env) {
-  return createAdminRecord("payments", payload, actorId, env, {
-    ...(actorId
-      ? { guard: () => requirePermission("orders.checkout") }
-      : { allowSystemActor: true })
-  });
+  return createAdminRecord("payments", payload, actorId, env, checkoutApiMutationOptions);
 }
 
 export function createOrderItemRecord(payload: JsonRecord, actorId: string | null, env: EnvSource = process.env) {

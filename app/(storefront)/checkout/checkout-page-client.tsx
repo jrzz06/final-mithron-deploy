@@ -9,8 +9,34 @@ import { buildGuestRequestHeaders } from "@/lib/api/client-audit-token-client";
 import { CUSTOMER_CONTACT_REQUIRED_MESSAGE } from "@/lib/api/customer-contact";
 import { isStorefrontGuestOnly } from "@/lib/storefront/guest-demo";
 import { Button } from "@/components/ui/button";
-import { formatINR } from "@/lib/utils";
+import { CheckoutOrderSummary } from "@/components/checkout/checkout-order-summary";
+import { cn, formatINR } from "@/lib/utils";
 import { useCartStore } from "@/store/cart";
+import styles from "./checkout.module.css";
+
+function formatPaymentProviderLabel(provider: string) {
+  if (provider === "razorpay") return "Razorpay";
+  if (provider === "cashfree") return "Cashfree";
+  if (provider === "stub") return "Payment gateway";
+  return provider.charAt(0).toUpperCase() + provider.slice(1);
+}
+
+function formatPaymentProviderHint(provider: string) {
+  if (provider === "razorpay") return "Cards, UPI, net banking, and wallets";
+  if (provider === "cashfree") return "Cards, UPI, and bank transfers";
+  return "Secure online payment";
+}
+
+function readCheckoutErrorMessage(response: Response, payload: Record<string, unknown>) {
+  if (typeof payload.error === "string" && payload.error.trim()) {
+    return payload.error.trim();
+  }
+  if (response.status === 401) return "Session verification failed. Refresh the page and try again.";
+  if (response.status === 409) return "One or more items are unavailable.";
+  if (response.status === 503) return "Payment service is temporarily unavailable.";
+  if (response.status === 429) return "Too many attempts. Wait a moment and try again.";
+  return `Checkout failed (${response.status}). Please try again.`;
+}
 
 type AddressRow = {
   id: string;
@@ -124,45 +150,45 @@ function CheckoutInvoice({
   const issuedAt = new Date().toLocaleString();
 
   return (
-    <div className="mt-8 rounded-[24px] border border-slate-200 bg-slate-50 p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-4">
+    <div className={styles.invoiceCard}>
+      <div className={styles.invoiceHeader}>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Invoice</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{completed.orderNumber}</p>
+          <p className={styles.invoiceLabel}>Tax invoice</p>
+          <p className={styles.invoiceNumber}>{completed.orderNumber}</p>
         </div>
-        <div className="text-right text-sm text-slate-600">
+        <div className={styles.invoiceMeta}>
           <p>{issuedAt}</p>
-          <p className="mt-1">{completed.mode === "payment" ? "Paid" : "Enquiry"}</p>
+          <p>{completed.mode === "payment" ? "Payment received" : "Enquiry submitted"}</p>
         </div>
       </div>
 
-      <div className="mt-4 grid gap-2 text-sm text-slate-700">
-        <p><span className="font-medium text-slate-900">Name:</span> {completed.fullName || "—"}</p>
-        <p><span className="font-medium text-slate-900">Email:</span> {completed.email}</p>
-        <p><span className="font-medium text-slate-900">Phone:</span> {completed.phone}</p>
+      <div className={styles.invoiceContact}>
+        <p><strong>Name:</strong> {completed.fullName || "—"}</p>
+        <p><strong>Email:</strong> {completed.email}</p>
+        <p><strong>Phone:</strong> {completed.phone}</p>
       </div>
 
-      <div className="mt-5 grid gap-3">
+      <div className={styles.invoiceItems}>
         {items.map((item) => (
-          <div key={`${item.productName}-${item.bundleName}`} className="flex items-start justify-between gap-4 text-sm">
+          <div key={`${item.productName}-${item.bundleName}`} className={styles.invoiceItem}>
             <div>
-              <p className="font-medium text-slate-900">{item.productName}</p>
-              <p className="text-slate-600">{item.bundleName} x {item.quantity}</p>
+              <p className={styles.invoiceItemName}>{item.productName}</p>
+              <p className={styles.invoiceItemMeta}>{item.bundleName} × {item.quantity}</p>
             </div>
-            <p className="font-medium text-slate-900">{formatINR(item.unitPrice * item.quantity)}</p>
+            <p className={styles.invoiceItemName}>{formatINR(item.unitPrice * item.quantity)}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-5 flex items-center justify-between border-t border-slate-200 pt-4 text-base font-semibold text-slate-900">
-        <span>Total</span>
+      <div className={styles.invoiceTotal}>
+        <span>Total payable</span>
         <span>{formatINR(completed.total)}</span>
       </div>
 
-      <p className="mt-4 text-sm text-slate-600">
+      <p className={styles.invoiceFootnote}>
         {completed.mode === "payment"
-          ? "Payment received. Our team will review your order and confirm it manually before fulfillment begins."
-          : "Your enquiry is in our review queue. Our team will contact you using the phone number above."}
+          ? "Your payment has been received. Our team will verify the order and share dispatch updates by email and phone."
+          : "Your enquiry has been received. Our team will contact you using the details above."}
       </p>
     </div>
   );
@@ -178,8 +204,6 @@ export function CheckoutPageClient() {
   const setShippingAddressId = useCartStore((state) => state.setShippingAddressId);
   const setBillingAddressId = useCartStore((state) => state.setBillingAddressId);
   const setCheckoutOrderMeta = useCartStore((state) => state.setCheckoutOrderMeta);
-  const subtotal = useCartStore((state) => state.subtotal());
-  const taxTotal = useCartStore((state) => state.taxTotal());
   const grandTotal = useCartStore((state) => state.grandTotal());
   const clearCart = useCartStore((state) => state.clearCart);
 
@@ -224,6 +248,40 @@ export function CheckoutPageClient() {
   );
 
   const usingSavedAddress = Boolean(isSignedIn && checkout.shippingAddressId && shippingAddresses.length);
+
+  const shippingDestination = useMemo(() => {
+    if (usingSavedAddress) {
+      const address = shippingAddresses.find((entry) => entry.id === checkout.shippingAddressId);
+      if (!address) return null;
+      return {
+        line1: address.line1,
+        city: address.city,
+        region: address.region,
+        postalCode: address.postal_code,
+        ...(address.label && address.label.toLowerCase() !== "shipping" ? { label: address.label } : {})
+      };
+    }
+
+    const trimmedLine1 = guestAddress.line1.trim();
+    const trimmedCity = guestAddress.city.trim();
+    const trimmedRegion = guestAddress.region.trim();
+    const trimmedPostal = guestAddress.postalCode.trim();
+    if (!trimmedLine1 || !trimmedCity || !trimmedPostal) {
+      return null;
+    }
+
+    return {
+      line1: trimmedLine1,
+      city: trimmedCity,
+      region: trimmedRegion,
+      postalCode: trimmedPostal
+    };
+  }, [
+    usingSavedAddress,
+    shippingAddresses,
+    checkout.shippingAddressId,
+    guestAddress
+  ]);
   const usingSavedBillingAddress = Boolean(
     isSignedIn
       && !billingSameAsShipping
@@ -428,7 +486,7 @@ export function CheckoutPageClient() {
         markComplete("payment", stubOrderId, stubOrderId);
         router.replace("/checkout", { scroll: false });
       } else {
-        setError("Test payment could not be confirmed. Please try again.");
+        setError("Payment could not be confirmed. Please try again.");
       }
       setLoading(null);
     })();
@@ -604,13 +662,12 @@ export function CheckoutPageClient() {
     return new Promise<boolean>((resolve) => {
       const rzp = new window.Razorpay!({
         key: input.key,
-        amount: Math.round(input.amount * 100),
         currency: "INR",
         name: "Mithron",
         description: `Order ${input.orderNumber}`,
         order_id: input.razorpayOrderId,
         prefill: { email: input.email, contact: phone.trim() },
-        theme: { color: "#174d33" },
+        theme: { color: "#174d33", backdrop_color: "#f7faf8" },
         handler: async (response: {
           razorpay_order_id?: string;
           razorpay_payment_id?: string;
@@ -687,6 +744,10 @@ export function CheckoutPageClient() {
 
   async function placeOrder() {
     if (!validateBase(true)) return;
+    if (!paymentProvider && paymentProviders.length) {
+      setError("Choose a payment method to continue.");
+      return;
+    }
 
     setLoading("payment");
     setError("");
@@ -712,7 +773,7 @@ export function CheckoutPageClient() {
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      setError(typeof payload.error === "string" ? payload.error : "Checkout failed.");
+      setError(readCheckoutErrorMessage(response, payload));
       setLoading(null);
       return;
     }
@@ -722,6 +783,26 @@ export function CheckoutPageClient() {
 
     if (payload.checkoutUrl) {
       window.location.href = payload.checkoutUrl;
+      return;
+    }
+
+    if (payload.provider === "razorpay") {
+      if (!payload.clientSecret || !payload.razorpayKeyId) {
+        setError("Razorpay checkout could not be started. Please try again or choose another payment method.");
+        setLoading(null);
+        return;
+      }
+      const paid = await openRazorpayCheckout({
+        key: payload.razorpayKeyId,
+        orderId: payload.orderId,
+        orderNumber,
+        razorpayOrderId: payload.clientSecret,
+        amount: Number(payload.amount ?? 0),
+        email: checkout.email,
+        signedIn: isSignedIn
+      });
+      setLoading(null);
+      if (!paid) setError("Payment was not completed.");
       return;
     }
 
@@ -740,18 +821,9 @@ export function CheckoutPageClient() {
       return;
     }
 
-    if (payload.clientSecret && payload.razorpayKeyId) {
-      const paid = await openRazorpayCheckout({
-        key: payload.razorpayKeyId,
-        orderId: payload.orderId,
-        orderNumber,
-        razorpayOrderId: payload.clientSecret,
-        amount: Number(payload.amount ?? grandTotal),
-        email: checkout.email,
-        signedIn: isSignedIn
-      });
+    if (payload.provider === "cashfree") {
+      setError("Cashfree checkout could not be started. Please try again or choose another payment method.");
       setLoading(null);
-      if (!paid) setError("Payment was not completed.");
       return;
     }
 
@@ -797,44 +869,45 @@ export function CheckoutPageClient() {
     setLoading(null);
   }
 
+  const checkoutBusy = Boolean(loading);
+
   return (
-    <div className="checkout-page surface-section-cool min-h-screen px-6 py-20 md:px-16">
-      <div className="mx-auto max-w-[1180px]">
-        <div className="mb-10">
-          <p className="type-meta text-slate-500">Checkout</p>
-          <h1 className="type-page mt-2 text-5xl">Complete your order</h1>
-          <p className="type-body mt-3 max-w-2xl text-slate-600">
-            Checkout with or without an account. Email and phone are required for every order and enquiry.
-            Paid orders receive an invoice and are manually confirmed by our team.
+    <div className={styles.page}>
+      <div className={styles.container}>
+        <header className={styles.pageHeader}>
+          <p className={styles.eyebrow}>Checkout</p>
+          <h1 className={styles.pageTitle}>Complete your purchase</h1>
+          <p className={styles.pageLead}>
+            Provide your contact and delivery details to place your order securely. A GST invoice is issued for every paid order.
           </p>
           {!isSignedIn && !isStorefrontGuestOnly() ? (
-            <p className="type-body mt-2 text-sm text-slate-500">
+            <p className={styles.pageNote}>
               Already have an account?{" "}
-              <Link href={`/login?next=${encodeURIComponent("/checkout")}`} className="font-medium text-[#1f6b46] underline-offset-2 hover:underline">
+              <Link href={`/login?next=${encodeURIComponent("/checkout")}`}>
                 Sign in
               </Link>{" "}
-              to use saved addresses.
+              to use saved addresses and order history.
             </p>
           ) : null}
-        </div>
+        </header>
 
-        <div className="grid gap-6 md:grid-cols-[1fr_390px]">
-          <section className="checkout-panel rounded-[28px] border border-[var(--surface-border)] bg-white p-7 shadow-sm md:p-9">
+        <div className={styles.layout}>
+          <section className={styles.formPanel}>
             {completed ? (
-              <div className="py-4">
-                <CheckCircle2 className="mb-5 size-12 text-[#1f6b46]" />
-                <h2 className="type-section text-3xl">
-                  {completed.mode === "payment" ? "Payment received" : "Enquiry sent"}
+              <div className="py-2">
+                <CheckCircle2 className={styles.successIcon} aria-hidden="true" />
+                <h2 className={styles.successTitle}>
+                  {completed.mode === "payment" ? "Payment received" : "Enquiry submitted"}
                 </h2>
-                <p className="type-body mt-3 text-slate-600">
+                <p className={styles.successBody}>
                   {completed.mode === "payment"
-                    ? `Reference ${completed.orderNumber}. Save this invoice for your records.`
-                    : `${completed.orderNumber} received. Our team will review your cart and contact ${completed.fullName || "you"} at ${completed.phone}.`}
+                    ? `Order reference ${completed.orderNumber}. Keep this invoice for your records and tax filing.`
+                    : `Reference ${completed.orderNumber}. Our team will review your request and contact ${completed.fullName || "you"} at ${completed.phone}.`}
                 </p>
 
                 <CheckoutInvoice completed={completed} items={items} />
 
-                <div className="mt-7 flex flex-wrap gap-3">
+                <div className={styles.actions}>
                   {completed.mode === "payment" ? (
                     <>
                       {completed.isSignedIn && !isStorefrontGuestOnly() ? (
@@ -877,90 +950,88 @@ export function CheckoutPageClient() {
               </div>
             ) : (
               <form
-                className="grid gap-8"
+                className={styles.form}
                 onSubmit={(event) => {
                   event.preventDefault();
                   void placeOrder();
                 }}
               >
-                <fieldset className="grid gap-4 border-0 p-0">
-                  <legend className="type-section mb-1 text-2xl">Contact</legend>
-                  <p className="text-sm text-slate-500">{CUSTOMER_CONTACT_REQUIRED_MESSAGE}</p>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="grid gap-2">
-                      <span className="text-sm font-medium text-slate-700">Full name <span className="text-red-600">*</span></span>
+                <fieldset className={styles.fieldset}>
+                  <legend className={styles.legend}>Contact information</legend>
+                  <p className={styles.fieldHint}>{CUSTOMER_CONTACT_REQUIRED_MESSAGE}</p>
+                  <div className={cn(styles.fieldGrid, styles.fieldGridTwo)}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Full name <span className={styles.required}>*</span></span>
                       <input
                         required
                         type="text"
                         autoComplete="name"
                         value={fullName}
                         onChange={(event) => setFullName(event.target.value)}
-                        className="type-body h-12 rounded-full border border-slate-200 bg-white px-5 text-[#0f172a] outline-none focus:border-[#1f6b46]"
-                        placeholder="Your full name"
+                        className={styles.input}
                       />
                     </label>
-                    <label className="grid gap-2">
-                      <span className="text-sm font-medium text-slate-700">Company</span>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Company</span>
                       <input
                         type="text"
                         autoComplete="organization"
                         value={company}
                         onChange={(event) => setCompany(event.target.value)}
-                        className="type-body h-12 rounded-full border border-slate-200 bg-white px-5 text-[#0f172a] outline-none focus:border-[#1f6b46]"
-                        placeholder="Optional"
+                        className={styles.input}
                       />
                     </label>
-                    <label className="grid gap-2">
-                      <span className="text-sm font-medium text-slate-700">Email <span className="text-red-600">*</span></span>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Email <span className={styles.required}>*</span></span>
                       <input
                         required
                         type="email"
                         autoComplete="email"
                         value={checkout.email}
                         onChange={(event) => setCheckoutEmail(event.target.value)}
-                        className="type-body h-12 rounded-full border border-slate-200 bg-white px-5 text-[#0f172a] outline-none focus:border-[#1f6b46]"
-                        placeholder="you@company.com"
+                        className={styles.input}
                       />
                     </label>
-                    <label className="grid gap-2">
-                      <span className="text-sm font-medium text-slate-700">Phone <span className="text-red-600">*</span></span>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Phone <span className={styles.required}>*</span></span>
                       <input
                         required
                         type="tel"
                         autoComplete="tel"
                         value={phone}
                         onChange={(event) => setPhone(event.target.value)}
-                        className="type-body h-12 rounded-full border border-slate-200 bg-white px-5 text-[#0f172a] outline-none focus:border-[#1f6b46]"
-                        placeholder="+91 98765 43210"
+                        className={styles.input}
                       />
                     </label>
                   </div>
-                  <label className="grid gap-2">
-                    <span className="text-sm font-medium text-slate-700">Region</span>
+                  <label className={styles.field}>
+                    <span className={styles.label}>Country / region</span>
                     <input
                       value={checkout.region}
                       onChange={(event) => setCheckoutRegion(event.target.value)}
-                      className="type-body h-12 rounded-full border border-slate-200 bg-white px-5 text-[#0f172a] outline-none focus:border-[#1f6b46]"
-                      placeholder="India"
+                      className={styles.input}
                     />
                   </label>
                 </fieldset>
 
-                <fieldset className="grid gap-4 border-0 p-0">
-                  <legend className="type-section mb-1 text-2xl">Shipping address</legend>
-                  <p className="text-sm text-slate-500">Required for online payment. Optional for product enquiries.</p>
+                <fieldset className={styles.fieldset}>
+                  <legend className={styles.legend}>Shipping address</legend>
+                  <p className={styles.fieldHint}>Required for online payment. Optional when submitting a product enquiry.</p>
 
                   {isSignedIn && shippingAddresses.length ? (
-                    <div className="grid gap-3">
+                    <div className={styles.fieldGrid}>
                       {shippingAddresses.map((address) => (
                         <button
                           key={address.id}
                           type="button"
                           onClick={() => setShippingAddressId(address.id)}
-                          className={`rounded-2xl border p-4 text-left transition ${checkout.shippingAddressId === address.id ? "border-[#1f6b46] bg-[#f7faf8]" : "border-slate-200 bg-white hover:border-slate-300"}`}
+                          className={cn(
+                            styles.addressCard,
+                            checkout.shippingAddressId === address.id && styles.addressCardSelected
+                          )}
                         >
-                          <p className="font-semibold">{address.label ?? "Address"}</p>
-                          <p className="mt-1 text-sm text-slate-600">
+                          <p className={styles.addressCardTitle}>{address.label ?? "Address"}</p>
+                          <p className={styles.addressCardBody}>
                             {address.line1}, {address.city}, {address.region} {address.postal_code}
                           </p>
                         </button>
@@ -972,65 +1043,68 @@ export function CheckoutPageClient() {
                   ) : null}
 
                   {!usingSavedAddress ? (
-                    <div className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm font-medium text-slate-700">
-                        {isSignedIn ? "Or enter a shipping address" : "Enter shipping address"}
+                    <div className={styles.addressForm}>
+                      <p className={styles.label}>
+                        {isSignedIn ? "Enter a shipping address" : "Shipping address"}
                       </p>
-                      <label className="grid gap-2">
-                        <span className="text-sm text-slate-600">Address line</span>
+                      <label className={styles.field}>
+                        <span className={styles.label}>Address line</span>
                         <input
                           value={guestAddress.line1}
                           onChange={(event) => setGuestAddress((current) => ({ ...current, line1: event.target.value }))}
-                          className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
-                          placeholder="Street, building, area"
+                          className={styles.input}
+                          autoComplete="street-address"
                         />
                       </label>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="grid gap-2">
-                          <span className="text-sm text-slate-600">City</span>
+                      <div className={cn(styles.fieldGrid, styles.fieldGridTwo)}>
+                        <label className={styles.field}>
+                          <span className={styles.label}>City</span>
                           <input
                             value={guestAddress.city}
                             onChange={(event) => setGuestAddress((current) => ({ ...current, city: event.target.value }))}
-                            className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
+                            className={styles.input}
+                            autoComplete="address-level2"
                           />
                         </label>
-                        <label className="grid gap-2">
-                          <span className="text-sm text-slate-600">Postal code</span>
+                        <label className={styles.field}>
+                          <span className={styles.label}>Postal code</span>
                           <input
                             value={guestAddress.postalCode}
                             onChange={(event) => setGuestAddress((current) => ({ ...current, postalCode: event.target.value }))}
-                            className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
+                            className={styles.input}
+                            autoComplete="postal-code"
                           />
                         </label>
                       </div>
-                      <label className="grid gap-2">
-                        <span className="text-sm text-slate-600">State / region</span>
+                      <label className={styles.field}>
+                        <span className={styles.label}>State / region</span>
                         <input
                           value={guestAddress.region}
                           onChange={(event) => setGuestAddress((current) => ({ ...current, region: event.target.value }))}
-                          className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
+                          className={styles.input}
+                          autoComplete="address-level1"
                         />
                       </label>
                     </div>
                   ) : null}
 
-                  <label className="flex items-start gap-3 border-t border-slate-200 pt-4 text-sm text-slate-700">
+                  <label className={styles.checkboxRow}>
                     <input
                       type="checkbox"
                       checked={billingSameAsShipping}
                       onChange={(event) => setBillingSameAsShipping(event.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-slate-300 text-[#1f6b46] focus:ring-[#1f6b46]"
+                      className={styles.checkbox}
                     />
                     <span>Billing address is the same as shipping address</span>
                   </label>
                 </fieldset>
 
                 {!billingSameAsShipping ? (
-                <fieldset className="grid gap-4 border-0 p-0">
-                  <legend className="type-section mb-1 text-2xl">Billing address</legend>
+                <fieldset className={styles.fieldset}>
+                  <legend className={styles.legend}>Billing address</legend>
                   {isSignedIn && billingAddresses.length > 0 ? (
-                    <div className="grid gap-3">
-                      <p className="text-sm text-slate-500">Select a saved billing address or enter one below.</p>
+                    <div className={styles.fieldGrid}>
+                      <p className={styles.fieldHint}>Select a saved billing address or enter a new one.</p>
                       {billingAddresses.map((address) => (
                         <button
                           key={`billing-${address.id}`}
@@ -1039,10 +1113,13 @@ export function CheckoutPageClient() {
                             setBillingAddressId(address.id);
                             setShowManualBillingForm(false);
                           }}
-                          className={`rounded-2xl border p-4 text-left transition ${billingAddressId === address.id && !showManualBillingForm ? "border-[#1f6b46] bg-[#f7faf8]" : "border-slate-200 bg-white hover:border-slate-300"}`}
+                          className={cn(
+                            styles.addressCard,
+                            billingAddressId === address.id && !showManualBillingForm && styles.addressCardSelected
+                          )}
                         >
-                          <p className="font-semibold">{address.label ?? "Address"}</p>
-                          <p className="mt-1 text-sm text-slate-600">
+                          <p className={styles.addressCardTitle}>{address.label ?? "Address"}</p>
+                          <p className={styles.addressCardBody}>
                             {address.line1}, {address.city}, {address.region} {address.postal_code}
                           </p>
                         </button>
@@ -1061,87 +1138,93 @@ export function CheckoutPageClient() {
                             setShowManualBillingForm(true);
                           }
                         }}
-                        className="text-left text-sm font-medium text-[#1f6b46] underline-offset-2 hover:underline"
+                        className={styles.textLink}
                       >
                         {showManualBillingForm ? "Use a saved address" : "Enter a different address"}
                       </button>
                       {showManualBillingForm ? (
-                        <div className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                          <p className="text-sm font-medium text-slate-700">Enter billing address</p>
-                          <label className="grid gap-2">
-                            <span className="text-sm text-slate-600">Address line</span>
+                        <div className={styles.addressForm}>
+                          <p className={styles.label}>Billing address</p>
+                          <label className={styles.field}>
+                            <span className={styles.label}>Address line</span>
                             <input
                               value={guestBillingAddress.line1}
                               onChange={(event) => setGuestBillingAddress((current) => ({ ...current, line1: event.target.value }))}
-                              className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
-                              placeholder="Street, building, area"
+                              className={styles.input}
+                              autoComplete="billing street-address"
                             />
                           </label>
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <label className="grid gap-2">
-                              <span className="text-sm text-slate-600">City</span>
+                          <div className={cn(styles.fieldGrid, styles.fieldGridTwo)}>
+                            <label className={styles.field}>
+                              <span className={styles.label}>City</span>
                               <input
                                 value={guestBillingAddress.city}
                                 onChange={(event) => setGuestBillingAddress((current) => ({ ...current, city: event.target.value }))}
-                                className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
+                                className={styles.input}
+                                autoComplete="billing address-level2"
                               />
                             </label>
-                            <label className="grid gap-2">
-                              <span className="text-sm text-slate-600">Postal code</span>
+                            <label className={styles.field}>
+                              <span className={styles.label}>Postal code</span>
                               <input
                                 value={guestBillingAddress.postalCode}
                                 onChange={(event) => setGuestBillingAddress((current) => ({ ...current, postalCode: event.target.value }))}
-                                className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
+                                className={styles.input}
+                                autoComplete="billing postal-code"
                               />
                             </label>
                           </div>
-                          <label className="grid gap-2">
-                            <span className="text-sm text-slate-600">State / region</span>
+                          <label className={styles.field}>
+                            <span className={styles.label}>State / region</span>
                             <input
                               value={guestBillingAddress.region}
                               onChange={(event) => setGuestBillingAddress((current) => ({ ...current, region: event.target.value }))}
-                              className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
+                              className={styles.input}
+                              autoComplete="billing address-level1"
                             />
                           </label>
                         </div>
                       ) : null}
                     </div>
                   ) : (
-                    <div className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm font-medium text-slate-700">Enter billing address</p>
-                      <label className="grid gap-2">
-                        <span className="text-sm text-slate-600">Address line</span>
+                    <div className={styles.addressForm}>
+                      <p className={styles.label}>Billing address</p>
+                      <label className={styles.field}>
+                        <span className={styles.label}>Address line</span>
                         <input
                           value={guestBillingAddress.line1}
                           onChange={(event) => setGuestBillingAddress((current) => ({ ...current, line1: event.target.value }))}
-                          className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
-                          placeholder="Street, building, area"
+                          className={styles.input}
+                          autoComplete="billing street-address"
                         />
                       </label>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="grid gap-2">
-                          <span className="text-sm text-slate-600">City</span>
+                      <div className={cn(styles.fieldGrid, styles.fieldGridTwo)}>
+                        <label className={styles.field}>
+                          <span className={styles.label}>City</span>
                           <input
                             value={guestBillingAddress.city}
                             onChange={(event) => setGuestBillingAddress((current) => ({ ...current, city: event.target.value }))}
-                            className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
+                            className={styles.input}
+                            autoComplete="billing address-level2"
                           />
                         </label>
-                        <label className="grid gap-2">
-                          <span className="text-sm text-slate-600">Postal code</span>
+                        <label className={styles.field}>
+                          <span className={styles.label}>Postal code</span>
                           <input
                             value={guestBillingAddress.postalCode}
                             onChange={(event) => setGuestBillingAddress((current) => ({ ...current, postalCode: event.target.value }))}
-                            className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
+                            className={styles.input}
+                            autoComplete="billing postal-code"
                           />
                         </label>
                       </div>
-                      <label className="grid gap-2">
-                        <span className="text-sm text-slate-600">State / region</span>
+                      <label className={styles.field}>
+                        <span className={styles.label}>State / region</span>
                         <input
                           value={guestBillingAddress.region}
                           onChange={(event) => setGuestBillingAddress((current) => ({ ...current, region: event.target.value }))}
-                          className="type-body h-11 rounded-xl border border-slate-200 bg-white px-4 text-[#0f172a] outline-none focus:border-[#1f6b46]"
+                          className={styles.input}
+                          autoComplete="billing address-level1"
                         />
                       </label>
                     </div>
@@ -1149,98 +1232,79 @@ export function CheckoutPageClient() {
                 </fieldset>
                 ) : null}
 
-                <fieldset className="grid gap-4 border-0 p-0">
-                  <legend className="type-section mb-1 text-2xl">Product enquiry</legend>
-                  <label className="grid gap-2">
-                    <span className="text-sm font-medium text-slate-700">Message (for enquiry only)</span>
+                <fieldset className={styles.fieldset}>
+                  <legend className={styles.legend}>Product enquiry</legend>
+                  <label className={styles.field}>
+                    <span className={styles.label}>Message</span>
                     <textarea
                       value={enquiryMessage}
                       onChange={(event) => setEnquiryMessage(event.target.value)}
                       rows={4}
-                      className="type-body rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[#0f172a] outline-none focus:border-[#1f6b46]"
-                      placeholder="Tell us about your mission, quantity, certification needs, or delivery timeline..."
+                      className={styles.textarea}
+                      placeholder="Share quantity requirements, certification needs, delivery timeline, or technical questions."
                     />
                   </label>
                 </fieldset>
 
-                {error ? <p className="text-sm text-red-600">{error}</p> : null}
+                {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
-                {paymentProviders.length > 1 ? (
-                  <fieldset className="grid gap-3 border-0 p-0">
-                    <legend className="type-section mb-1 text-2xl">Payment method</legend>
-                    <div className="flex flex-wrap gap-3">
+                {paymentProviders.length > 0 ? (
+                  <fieldset className={styles.fieldset}>
+                    <legend className={styles.legend}>Payment method</legend>
+                    <p className={styles.paymentLead}>Choose how you would like to pay. You will complete payment in a secure gateway window.</p>
+                    <div className={styles.paymentOptions}>
                       {paymentProviders.map((provider) => (
-                        <label key={provider} className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm">
+                        <label
+                          key={provider}
+                          className={cn(styles.paymentOption, paymentProvider === provider && styles.paymentOptionSelected)}
+                        >
                           <input
                             type="radio"
                             name="paymentProvider"
                             value={provider}
                             checked={paymentProvider === provider}
                             onChange={() => setPaymentProvider(provider)}
+                            className={styles.paymentOptionInput}
                           />
-                          <span className="capitalize">{provider}</span>
+                          <span className={styles.paymentOptionBody}>
+                            <span className={styles.paymentOptionTitle}>{formatPaymentProviderLabel(provider)}</span>
+                            <span className={styles.paymentOptionHint}>{formatPaymentProviderHint(provider)}</span>
+                          </span>
                         </label>
                       ))}
                     </div>
                   </fieldset>
                 ) : null}
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                  <Button type="submit" variant="accent" disabled={Boolean(loading) || !items.length}>
-                    {loading === "payment" || loading === "stub" ? "Processing..." : "Pay & place order"}
+                <div className={styles.actions}>
+                  <Button type="submit" variant="accent" disabled={checkoutBusy || !items.length}>
+                    {loading === "payment" || loading === "stub"
+                      ? "Processing payment..."
+                      : "Pay and place order"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={Boolean(loading) || !items.length}
+                    disabled={checkoutBusy || !items.length}
                     onClick={() => void sendEnquiry()}
                   >
-                    {loading === "enquiry" ? "Sending..." : "Send product enquiry"}
+                    {loading === "enquiry" ? "Submitting enquiry..." : "Submit product enquiry"}
                   </Button>
                 </div>
               </form>
             )}
           </section>
 
-          <aside className="checkout-summary h-fit rounded-[28px] bg-[#0f172a] p-7 text-white shadow-[0_24px_56px_rgba(15,23,42,0.18)]">
-            <h2 className="type-card-title text-2xl">Order summary</h2>
-            {items.length ? (
-              <div className="mt-5 flex flex-col gap-4">
-                {items.map((item) => (
-                  <div key={`${item.productSlug}-${item.bundleId}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="type-card-title text-base">{item.productName}</p>
-                    <p className="type-body mt-1 text-sm text-white/55">
-                      {item.bundleName} x {item.quantity}
-                    </p>
-                    <p className="type-price mt-3 font-bold">{formatINR(item.unitPrice * item.quantity)}</p>
-                  </div>
-                ))}
-                <div className="type-price mt-3 grid gap-2.5 border-t border-white/10 pt-5 text-sm font-medium">
-                  <div className="flex items-center justify-between text-white/75">
-                    <span>Subtotal</span>
-                    <span className="tabular-nums">{formatINR(subtotal)}</span>
-                  </div>
-                  {taxTotal > 0 ? (
-                    <div className="flex items-center justify-between text-base text-white/90">
-                      <span>GST</span>
-                      <span className="tabular-nums font-semibold">{formatINR(taxTotal)}</span>
-                    </div>
-                  ) : null}
-                  <div className="flex items-center justify-between border-t border-white/10 pt-2.5 text-xl font-bold">
-                    <span>Total</span>
-                    <span className="tabular-nums">{formatINR(grandTotal)}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="mt-5 text-white/65">
-                No items in cart.{" "}
-                <Link href="/products" className="text-emerald-300 underline-offset-2 hover:underline">
-                  Browse products
-                </Link>
-              </p>
-            )}
-          </aside>
+          {!completed ? (
+            <div className={styles.summarySlot}>
+              <CheckoutOrderSummary
+                paymentProvider={paymentProvider}
+                promoCode={checkout.promoCode}
+                shippingDestination={shippingDestination}
+                checkoutBusy={checkoutBusy}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

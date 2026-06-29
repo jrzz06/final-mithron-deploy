@@ -14,7 +14,7 @@ import {
   updateAdminRecord
 } from "@/services/admin-actions";
 import { buildCustomerCheckoutDraft } from "@/services/orders";
-import { releaseCheckoutStock, reserveCheckoutStock, resolveCheckoutStockSkus, verifyCheckoutStockAvailability, CheckoutStockVerificationError } from "@/services/checkout-stock";
+import { releaseCheckoutStock, reserveCheckoutStock, resolveCheckoutStockSkus, verifyCheckoutStockAvailability, CheckoutStockVerificationError, CheckoutWarehouseConfigurationError } from "@/services/checkout-stock";
 import {
   buildCheckoutPaymentResponse,
   markCheckoutPaymentInitiated
@@ -220,6 +220,9 @@ export async function POST(request: Request) {
         }
       : {};
     logPaymentError("checkout_stock_verification_failed", error, stockContext);
+    if (error instanceof CheckoutWarehouseConfigurationError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
     const isStockError = error instanceof CheckoutStockVerificationError || /insufficient stock|out of stock/i.test(internal);
     return NextResponse.json(
       { error: isStockError ? "One or more items are out of stock or unavailable." : "Unable to process your order at this time." },
@@ -227,41 +230,72 @@ export async function POST(request: Request) {
     );
   }
 
-  const catalog = await getCheckoutPricingBySlugs(body.items.map((item) => item.productSlug));
+  let catalog;
+  try {
+    catalog = await getCheckoutPricingBySlugs(body.items.map((item) => item.productSlug));
+  } catch (error) {
+    logPaymentError("checkout_catalog_load_failed", error);
+    return NextResponse.json({ error: "Unable to load product pricing. Please try again shortly." }, { status: 503 });
+  }
 
-  const addressMetadata = await buildCheckoutAddressMetadata(
-    {
-      addressId: body.addressId,
-      billingAddressId: body.billingAddressId,
-      guestAddress: body.guestAddress,
-      guestBillingAddress: body.guestBillingAddress,
-      billingSameAsShipping: body.billingSameAsShipping
-    },
-    userId
-  );
+  const catalogSlugs = new Set(catalog.map((product) => product.slug));
+  const unavailableSlugs = body.items
+    .map((item) => item.productSlug)
+    .filter((slug) => !catalogSlugs.has(slug));
+  if (unavailableSlugs.length) {
+    return NextResponse.json(
+      { error: "One or more products are no longer available for checkout." },
+      { status: 409 }
+    );
+  }
 
-  const draft = buildCustomerCheckoutDraft(
-    {
-      customerEmail: body.email,
-      phone: body.phone,
-      region: body.region,
-      items: stockItems.map((item) => ({
-        productSlug: item.productSlug,
-        quantity: item.quantity,
-        sku: item.sku ?? undefined
-      })),
-      metadata: {
-        ...addressMetadata,
-        customer_full_name: body.fullName,
-        ...(body.company ? { customer_company: body.company } : {}),
-        ...(body.promoCode ? { promo_code: body.promoCode } : {}),
-        ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
-        payment_provider: paymentProvider
-      }
-    },
-    catalog,
-    userId
-  );
+  let addressMetadata;
+  try {
+    addressMetadata = await buildCheckoutAddressMetadata(
+      {
+        addressId: body.addressId,
+        billingAddressId: body.billingAddressId,
+        guestAddress: body.guestAddress,
+        guestBillingAddress: body.guestBillingAddress,
+        billingSameAsShipping: body.billingSameAsShipping
+      },
+      userId
+    );
+  } catch (error) {
+    logPaymentError("checkout_address_resolution_failed", error);
+    const message = error instanceof Error ? error.message : "Unable to resolve shipping address.";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  let draft;
+  try {
+    draft = buildCustomerCheckoutDraft(
+      {
+        customerEmail: body.email,
+        phone: body.phone,
+        region: body.region,
+        items: stockItems.map((item) => ({
+          productSlug: item.productSlug,
+          quantity: item.quantity,
+          sku: item.sku ?? undefined
+        })),
+        metadata: {
+          ...addressMetadata,
+          customer_full_name: body.fullName,
+          ...(body.company ? { customer_company: body.company } : {}),
+          ...(body.promoCode ? { promo_code: body.promoCode } : {}),
+          ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+          payment_provider: paymentProvider
+        }
+      },
+      catalog,
+      userId
+    );
+  } catch (error) {
+    logPaymentError("checkout_draft_build_failed", error);
+    const message = error instanceof Error ? error.message : "Unable to prepare your order.";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 
   const orderNumber = `ORD-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
   let order: Record<string, unknown>;
@@ -289,7 +323,9 @@ export async function POST(request: Request) {
         return NextResponse.json(existing);
       }
     }
-    throw error;
+    logPaymentError("checkout_order_create_failed", error, { idempotencyKey: idempotencyKey || null });
+    const message = error instanceof Error ? error.message : "Order creation failed.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   const orderId = String(order.id ?? "");

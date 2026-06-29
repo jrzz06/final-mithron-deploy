@@ -43,9 +43,20 @@ function headers(serviceRoleKey: string) {
   };
 }
 
+export class CheckoutWarehouseConfigurationError extends Error {
+  constructor() {
+    super("Checkout warehouse is not configured. Set DEFAULT_WAREHOUSE_CODE or warehouse settings.");
+    this.name = "CheckoutWarehouseConfigurationError";
+  }
+}
+
 async function resolveWarehouseCode(warehouseCode: string | undefined, env: EnvSource) {
   if (warehouseCode?.trim()) return warehouseCode.trim();
-  return getCheckoutWarehouseCode(env);
+  const resolved = (await getCheckoutWarehouseCode(env)).trim();
+  if (!resolved) {
+    throw new CheckoutWarehouseConfigurationError();
+  }
+  return resolved;
 }
 
 export async function resolveCheckoutStockSkus(
