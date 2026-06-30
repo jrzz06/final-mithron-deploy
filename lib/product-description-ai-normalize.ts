@@ -3,8 +3,7 @@ import {
   isUnstructuredDescription,
   normalizeProductDescriptionHtml
 } from "./product-description-normalize.ts";
-
-const DEFAULT_TEXT_MODEL = "gemini-2.5-flash";
+import { generateGeminiText } from "./gemini-client.ts";
 
 const PRODUCT_NORMALIZE_PROMPT = `Refine this product description into clean structured plain text.
 Rules:
@@ -27,54 +26,6 @@ export type ProductDescriptionNormalizeResult = {
 
 function getGeminiApiKey(env: Record<string, string | undefined> = process.env) {
   return env.GEMINI_API_KEY?.trim() || env.GOOGLE_GENERATIVE_AI_API_KEY?.trim() || "";
-}
-
-function getGeminiTextModel(env: Record<string, string | undefined> = process.env) {
-  return env.GEMINI_TEXT_MODEL?.trim() || DEFAULT_TEXT_MODEL;
-}
-
-async function generateGeminiNormalizeText(input: {
-  text: string;
-  env?: Record<string, string | undefined>;
-}) {
-  const env = input.env ?? process.env;
-  const apiKey = getGeminiApiKey(env);
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured.");
-  }
-
-  const model = getGeminiTextModel(env);
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: PRODUCT_NORMALIZE_SYSTEM }] },
-        contents: [{
-          role: "user",
-          parts: [{ text: `${PRODUCT_NORMALIZE_PROMPT}\n\nText:\n${input.text}` }]
-        }],
-        generationConfig: { temperature: 0.2 }
-      })
-    }
-  );
-
-  const payload = (await response.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    error?: { message?: string };
-  };
-
-  if (!response.ok) {
-    throw new Error(payload.error?.message ?? `Gemini text request failed (${response.status}).`);
-  }
-
-  const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("").trim();
-  if (!text) {
-    throw new Error("Gemini returned an empty text response.");
-  }
-
-  return text;
 }
 
 function shouldUseGeminiFallback(env: Record<string, string | undefined> = process.env) {
@@ -104,7 +55,13 @@ export async function normalizeProductDescriptionWithAiFallback(
 
   try {
     const sourcePlain = descriptionNormalizePlainText(trimmed);
-    const rewritten = await generateGeminiNormalizeText({ text: sourcePlain, env });
+    const rewritten = await generateGeminiText({
+      system: PRODUCT_NORMALIZE_SYSTEM,
+      prompt: `${PRODUCT_NORMALIZE_PROMPT}\n\nText:\n${sourcePlain}`,
+      temperature: 0.2,
+      env,
+      maxWaitMs: Number(env.GEMINI_BATCH_RATE_LIMIT_MAX_WAIT_MS ?? "180000")
+    });
     const geminiHtml = normalizeProductDescriptionHtml(rewritten) ?? normalizeProductDescriptionHtml(trimmed);
     const geminiPlain = descriptionNormalizePlainText(geminiHtml ?? rewritten);
 
