@@ -54,7 +54,6 @@ export function useResolvedCart() {
       setResolvedItems(payload.lines);
     } catch (resolveError) {
       setError(resolveError instanceof Error ? resolveError.message : "Unable to load current cart pricing.");
-      setResolvedItems([]);
     } finally {
       setIsResolving(false);
     }

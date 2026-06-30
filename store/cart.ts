@@ -35,6 +35,7 @@ export type CartSlice = {
   setBillingAddressId: (addressId: string) => void;
   setCheckoutOrderMeta: (meta: Partial<Pick<CheckoutDraft, "paymentIntentId" | "orderId">>) => void;
   itemCount: () => number;
+  addItemWithQuantity: (item: NewCartItem & { quantity: number }) => void;
 };
 
 const initialCheckout: CheckoutDraft = {
@@ -141,6 +142,27 @@ export const useCartStore = create<CartStore>()(
               items: state.items.map((entry) =>
                 entry.productSlug === persisted.productSlug && entry.bundleId === persisted.bundleId
                   ? { ...entry, quantity: entry.quantity + 1 }
+                  : entry
+              ),
+              isCartOpen: true,
+              hasOpenedCart: true
+            };
+          }
+          return { items: [...state.items, persisted], isCartOpen: true, hasOpenedCart: true };
+        });
+      },
+      addItemWithQuantity(item) {
+        const quantity = Math.max(1, Math.min(99, Math.trunc(item.quantity ?? 1)));
+        const persisted = toPersistedItem({ ...item, quantity });
+        set((state) => {
+          const existing = state.items.find(
+            (entry) => entry.productSlug === persisted.productSlug && entry.bundleId === persisted.bundleId
+          );
+          if (existing) {
+            return {
+              items: state.items.map((entry) =>
+                entry.productSlug === persisted.productSlug && entry.bundleId === persisted.bundleId
+                  ? { ...entry, quantity: persisted.quantity }
                   : entry
               ),
               isCartOpen: true,

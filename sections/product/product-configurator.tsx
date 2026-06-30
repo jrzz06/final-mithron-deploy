@@ -83,8 +83,7 @@ export function ProductConfigurator({ product }: { product: ProductConfiguratorM
     [bundleId, product.bundles]
   );
   const selectedVariant = product.variants.find((variant) => variant.id === variantId) ?? product.variants[0];
-  const addItem = useCartStore((state) => state.addItem);
-  const setCartQuantity = useCartStore((state) => state.setQuantity);
+  const addItemWithQuantity = useCartStore((state) => state.addItemWithQuantity);
   const setCartOpen = useCartStore((state) => state.setCartOpen);
   const showVariantPicker = product.variants.length > 1 && !isAvailabilityVariant(product.variants);
   const showBundlePicker = product.bundles.length > 1;
@@ -101,9 +100,10 @@ export function ProductConfigurator({ product }: { product: ProductConfiguratorM
     if (!bundle || isAdding) return;
 
     setIsAdding(true);
-    addItem({
+    addItemWithQuantity({
       productSlug: product.slug,
       bundleId: bundle.id,
+      quantity,
       chargeTax: product.chargeTax,
       taxGroup: product.taxGroup,
       taxRate: product.taxRate,
@@ -115,7 +115,6 @@ export function ProductConfigurator({ product }: { product: ProductConfiguratorM
       bundleName: bundle.name,
       image: product.image.src
     });
-    setCartQuantity(product.slug, bundle.id, quantity);
 
     if (mode === "checkout") {
       router.push("/checkout");

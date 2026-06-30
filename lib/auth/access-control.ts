@@ -199,6 +199,7 @@ export function resolveApiRoutePolicy(pathname: string): ApiRoutePolicy | null {
     normalized === "/api/health"
     || normalized === "/api/csp-report"
     || matchesApiPrefix(normalized, "/api/catalog/search")
+    || matchesApiPrefix(normalized, "/api/cart/pricing")
     || matchesApiPrefix(normalized, "/api/orders/track")
     || matchesApiPrefix(normalized, "/api/payments/webhooks")
     || normalized === "/api/payments/providers"

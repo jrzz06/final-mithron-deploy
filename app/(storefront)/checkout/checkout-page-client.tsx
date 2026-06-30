@@ -1490,7 +1490,7 @@ export function CheckoutPageClient() {
                 ) : null}
 
                 <div className={styles.actions}>
-                  <Button type="submit" variant="accent" disabled={checkoutBusy || !items.length}>
+                  <Button type="submit" variant="accent" disabled={checkoutBusy || !persistedItems.length}>
                     {loading === "payment" || loading === "stub"
                       ? "Processing payment..."
                       : "Pay and place order"}
@@ -1498,7 +1498,7 @@ export function CheckoutPageClient() {
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={checkoutBusy || !items.length}
+                    disabled={checkoutBusy || !persistedItems.length}
                     onClick={() => void sendEnquiry()}
                   >
                     {loading === "enquiry" ? "Submitting enquiry..." : "Submit product enquiry"}
