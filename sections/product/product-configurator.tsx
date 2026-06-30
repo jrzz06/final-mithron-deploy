@@ -88,7 +88,7 @@ export function ProductConfigurator({ product }: { product: ProductConfiguratorM
   const setCartOpen = useCartStore((state) => state.setCartOpen);
   const showVariantPicker = product.variants.length > 1 && !isAvailabilityVariant(product.variants);
   const showBundlePicker = product.bundles.length > 1;
-  const displayPrice = selectedBundle?.price ?? product.price;
+  const displayPrice = product.price;
   const showGstNote = Boolean(product.chargeTax) && !product.taxIncluded;
   const showCompareAt = Boolean(product.compareAt && product.compareAt > displayPrice);
   const stockLabel = isAvailabilityVariant(product.variants)
@@ -103,18 +103,17 @@ export function ProductConfigurator({ product }: { product: ProductConfiguratorM
     setIsAdding(true);
     addItem({
       productSlug: product.slug,
-      productName: product.name,
       bundleId: bundle.id,
-      bundleName: bundle.name,
-      unitPrice: bundle.price,
-      image: product.image.src,
       chargeTax: product.chargeTax,
       taxGroup: product.taxGroup,
       taxRate: product.taxRate,
       taxIncluded: product.taxIncluded,
       category: product.category,
       sku: deriveProductSku(product.slug),
-      availabilityLabel: isAvailabilityVariant(product.variants) ? selectedVariant?.name : undefined
+      availabilityLabel: isAvailabilityVariant(product.variants) ? selectedVariant?.name : undefined,
+      productName: product.name,
+      bundleName: bundle.name,
+      image: product.image.src
     });
     setCartQuantity(product.slug, bundle.id, quantity);
 
@@ -190,7 +189,7 @@ export function ProductConfigurator({ product }: { product: ProductConfiguratorM
                     className={cn(styles.compactBundleRow, isSelected && styles.compactBundleRowSelected)}
                   >
                     <span className={styles.compactBundleName}>{bundle.name}</span>
-                    <span className={styles.compactBundlePrice}>{formatINR(bundle.price)}</span>
+                    <span className={styles.compactBundlePrice}>{formatINR(product.price)}</span>
                   </button>
                 );
               })}

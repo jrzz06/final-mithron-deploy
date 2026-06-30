@@ -381,6 +381,21 @@ function deriveInventoryStockStatus(input: ProductInventoryWorkflowInput): Stock
   return stockStatusFromSeverity(Math.max(stockSeverity(input.stockStatus), stockSeverity(quantityStatus)));
 }
 
+export function reconcileAdminInventoryQuantities(input: {
+  quantity: number;
+  previousReserved?: number;
+  previousCommitted?: number;
+}) {
+  const reservedQuantity = Math.min(Math.max(0, input.previousReserved ?? 0), input.quantity);
+  const sellableQuantity = Math.max(0, input.quantity - reservedQuantity);
+  const committedQuantity = Math.min(
+    Math.max(0, input.previousCommitted ?? reservedQuantity),
+    sellableQuantity
+  );
+
+  return { reservedQuantity, sellableQuantity, committedQuantity };
+}
+
 export function buildInventoryLinkageRecords(
   input: ProductInventoryWorkflowInput,
   options: { actorId: string | null; at: string }

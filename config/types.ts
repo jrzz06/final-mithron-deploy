@@ -184,14 +184,19 @@ export type NavigationNode = {
   children?: NavigationNode[];
 };
 
-export type CartItem = {
+export type PersistedCartItem = {
   productSlug: string;
-  productName: string;
   bundleId: string;
+  quantity: number;
+  variantId?: string;
+};
+
+export type CartItem = PersistedCartItem & {
+  productName: string;
   bundleName: string;
   unitPrice: number;
+  compareAt?: number | null;
   image: string;
-  quantity: number;
   chargeTax?: boolean;
   taxGroup?: string;
   taxRate?: number;

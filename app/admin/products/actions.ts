@@ -51,6 +51,7 @@ import {
   type StoredOptimizedImageVariant
 } from "@/services/media-optimization";
 import { markProductPublished } from "@/services/product-publish";
+import { appendBundlePricingSync } from "@/lib/catalog-pricing";
 import { revalidateCatalogSurfaces } from "@/lib/catalog-cache";
 import { autoCutoutIfNeeded } from "@/lib/catalog/auto-cutout";
 
@@ -571,12 +572,18 @@ export async function saveProductQuickEditFormAction(formData: FormData) {
     const quickInput = buildProductQuickEditFromFormData(formData);
     const expectedUpdatedAt = String(formData.get("expected_updated_at") ?? "").trim() || null;
     const { actorId, actorRole } = await currentActorContext();
+    const snapshot = await getProductManagerSnapshot();
+    const existingProduct = snapshot.data.products.find((product) => String(product.slug ?? "") === quickInput.identity.slug);
+    const fields = appendBundlePricingSync(
+      { ...quickInput.fields } as Record<string, unknown>,
+      existingProduct as Record<string, unknown> | undefined
+    );
     const record = await updateAdminRecord(
       "mithron_products",
       "slug",
       quickInput.identity.slug,
       {
-        ...quickInput.fields,
+        ...fields,
         updated_at: new Date().toISOString()
       },
       actorId,

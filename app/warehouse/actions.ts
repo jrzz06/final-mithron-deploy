@@ -27,7 +27,8 @@ import {
   buildOrderCreateWorkflowFromFormData,
   buildOrderLifecycleUpdateFromFormData,
   buildProductInventoryWorkflowFromFormData,
-  buildSimpleInventoryUpdateFromFormData
+  buildSimpleInventoryUpdateFromFormData,
+  reconcileAdminInventoryQuantities
 } from "@/services/enterprise-admin-forms";
 import {
   CSV_IMPORT_SOURCE_TAGS,
@@ -449,9 +450,12 @@ export async function saveSimpleInventoryFormAction(formData: FormData) {
 
   const previousInventory = await fetchInventoryBySku(input.productSlug, input.sku);
   const previousStock = await fetchWarehouseStockBySku(input.productSlug, input.sku, input.warehouseCode);
-  const reservedQuantity = Math.min(Number(previousInventory?.reserved_quantity ?? 0), input.quantity);
   const reorderThreshold = Number(previousInventory?.reorder_threshold ?? 0);
-  const committedQuantity = Math.min(Number(previousStock?.committed_quantity ?? reservedQuantity), input.quantity);
+  const { reservedQuantity, sellableQuantity, committedQuantity } = reconcileAdminInventoryQuantities({
+    quantity: input.quantity,
+    previousReserved: Number(previousInventory?.reserved_quantity ?? 0),
+    previousCommitted: Number(previousStock?.committed_quantity ?? 0)
+  });
   const previousVariantId = String(previousStock?.variant_id ?? previousInventory?.variant_id ?? "").trim();
   const variantId = input.variantId ?? (previousVariantId || null);
 
@@ -465,7 +469,7 @@ export async function saveSimpleInventoryFormAction(formData: FormData) {
       reservedQuantity,
       reorderThreshold,
       warehouseCode: input.warehouseCode,
-      availableQuantity: Math.max(0, input.quantity - reservedQuantity),
+      availableQuantity: sellableQuantity,
       committedQuantity,
       changeSummary: input.note ?? input.changeSummary
     },
@@ -523,9 +527,12 @@ export async function saveInventoryQuickEditFormAction(formData: FormData) {
   if (quantity < 0) {
     throw new Error("Stock cannot go below zero.");
   }
-  const reservedQuantity = Math.min(Number(previousInventory?.reserved_quantity ?? 0), quantity);
   const reorderThreshold = Number(previousInventory?.reorder_threshold ?? 0);
-  const committedQuantity = Math.min(Number(previousStock?.committed_quantity ?? reservedQuantity), quantity);
+  const { reservedQuantity, sellableQuantity, committedQuantity } = reconcileAdminInventoryQuantities({
+    quantity,
+    previousReserved: Number(previousInventory?.reserved_quantity ?? 0),
+    previousCommitted: Number(previousStock?.committed_quantity ?? 0)
+  });
   const shouldArchiveProduct = stockStatus === "archived";
   if (shouldArchiveProduct) await assertAdminMutationPermission("mithron_products", actorId);
   const persistedStatus = stockStatus === "archived" ? "out_of_stock" : stockStatus;
@@ -551,7 +558,6 @@ export async function saveInventoryQuickEditFormAction(formData: FormData) {
     );
   }
 
-  const sellableQuantity = Math.max(0, quantity - reservedQuantity);
   await saveProductInventory(
     {
       productSlug,
@@ -715,9 +721,12 @@ export async function saveInventoryBulkUpdateFormAction(formData: FormData) {
     const previousInventory = await fetchInventoryBySku(productSlug, sku);
     const previousStock = await fetchWarehouseStockBySku(productSlug, sku, warehouseCode);
     const onHandQuantity = Number(previousInventory?.quantity ?? previousStock?.available_quantity ?? 0);
-    const reservedQuantity = Number(previousInventory?.reserved_quantity ?? 0);
     const reorderThreshold = Number(previousInventory?.reorder_threshold ?? 0);
-    const committedQuantity = Number(previousStock?.committed_quantity ?? 0);
+    const { reservedQuantity, sellableQuantity, committedQuantity } = reconcileAdminInventoryQuantities({
+      quantity: onHandQuantity,
+      previousReserved: Number(previousInventory?.reserved_quantity ?? 0),
+      previousCommitted: Number(previousStock?.committed_quantity ?? 0)
+    });
     const variantId = String(previousInventory?.variant_id ?? previousStock?.variant_id ?? "").trim() || null;
     const persistedStatus = nextStatus === "archived" ? "out_of_stock" : nextStatus;
 
@@ -731,7 +740,7 @@ export async function saveInventoryBulkUpdateFormAction(formData: FormData) {
         reservedQuantity,
         reorderThreshold,
         warehouseCode,
-        availableQuantity: Math.max(0, onHandQuantity - reservedQuantity),
+        availableQuantity: sellableQuantity,
         committedQuantity,
         changeSummary: "Bulk inventory update"
       },

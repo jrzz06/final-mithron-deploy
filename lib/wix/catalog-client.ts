@@ -14,6 +14,9 @@ export type WixProductSnapshot = {
   name: string;
   price: number;
   compare_at: number | null;
+  currency: string | null;
+  sku: string | null;
+  cost_of_goods: number | null;
   description_plain: string;
   source_url: string;
   source_catalog_id: string;
@@ -94,6 +97,29 @@ function readMediaUrls(product: Record<string, unknown>) {
   return [...new Set(urls)];
 }
 
+function readCurrency(product: Record<string, unknown>) {
+  const direct = String(product.currency ?? "").trim();
+  if (direct) return direct.toUpperCase();
+  const priceData = product.price as { currency?: string } | undefined;
+  const nested = String(priceData?.currency ?? "").trim();
+  return nested ? nested.toUpperCase() : null;
+}
+
+function readCostOfGoods(product: Record<string, unknown>) {
+  const variants = (product.variantsInfo as { variants?: Array<Record<string, unknown>> } | undefined)?.variants ?? [];
+  for (const variant of variants) {
+    const costData = variant.costAndProfitData as { itemCost?: unknown } | undefined;
+    const cost = parseMoney(costData?.itemCost ?? variant.itemCost);
+    if (cost !== null && cost >= 0) return cost;
+  }
+  return null;
+}
+
+function readSku(product: Record<string, unknown>, richSku: string) {
+  const physical = product.physicalProperties as { sku?: string } | undefined;
+  const sku = String(physical?.sku ?? product.sku ?? richSku ?? "").trim();
+  return sku || null;
+}
 function readCategory(product: Record<string, unknown>, name: string) {
   const breadcrumbs = product.breadcrumbsInfo as { breadcrumbs?: Array<{ name?: string }> } | undefined;
   const names = (breadcrumbs?.breadcrumbs ?? []).map((item) => decodeHtml(item.name ?? "")).filter(Boolean);
@@ -122,6 +148,9 @@ export function normalizeWixProduct(product: Record<string, unknown>, extractedA
     name,
     price: pricing.price,
     compare_at: pricing.compare_at,
+    currency: readCurrency(product),
+    sku: readSku(product, rich.sku),
+    cost_of_goods: readCostOfGoods(product),
     description_plain: descriptionPlain || stripRichDescription(product.description),
     source_url: pageUrl,
     source_catalog_id: sourceCatalogIdFromWixSlug(wixSlug),

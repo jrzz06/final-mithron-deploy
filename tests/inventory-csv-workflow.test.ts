@@ -213,6 +213,7 @@ describe("inventory CSV workflow", () => {
     const productArchiveWrite = quickEdit.indexOf("const productRecord = shouldArchiveProduct");
 
     expect(permissionGuard).toBeGreaterThan(-1);
+    expect(actions).toContain("reconcileAdminInventoryQuantities");
     expect(archiveGuard).toBeGreaterThan(permissionGuard);
     expect(archivePreflight).toBeGreaterThan(archiveGuard);
     expect(archivePreflight).toBeLessThan(movementWrite);

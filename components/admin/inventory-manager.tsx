@@ -377,7 +377,7 @@ export function InventoryManager({
   page = 1,
   totalProductCount,
   inventoryMetrics,
-  catalogFilter = "active",
+  catalogFilter = "all",
   hasNextPage = false,
   previousPageHref,
   nextPageHref,

@@ -3,7 +3,10 @@ import {
   CATALOG_CATEGORY_SLUGS,
   filterProductsForCategorySlug,
   getCatalogCategoryDefinition,
+  getHomepageShelfCatalogHref,
+  getProductsCatalogHref,
   interestSlugToCategorySlug,
+  parseProductsCategoryParam,
   resolveCategoryHrefForInterest
 } from "@/lib/catalog-categories";
 import type { Product } from "@/config/types";
@@ -60,6 +63,17 @@ describe("catalog categories", () => {
     expect(resolveCategoryHrefForInterest("industrial-inspection")).toBe("/category/global-products");
     expect(resolveCategoryHrefForInterest("unknown-interest")).toBe("/interest/unknown-interest");
     expect(interestSlugToCategorySlug.components).toBe("accessories");
+  });
+
+  it("builds homepage shelf catalog routes through the products catalog query", () => {
+    expect(getHomepageShelfCatalogHref("drone-world")).toBe("/products");
+    expect(getHomepageShelfCatalogHref("drone-care")).toBe("/products?category=accessories");
+    expect(getHomepageShelfCatalogHref("global-products")).toBe("/products?category=global-products");
+    expect(getProductsCatalogHref("accessories")).toBe("/products?category=accessories");
+    expect(parseProductsCategoryParam("accessories")).toBe("accessories");
+    expect(parseProductsCategoryParam("global-product")).toBe("global-products");
+    expect(parseProductsCategoryParam("global-products")).toBe("global-products");
+    expect(parseProductsCategoryParam("unknown")).toBeNull();
   });
 
   it("lists every accessory by category without family dedupe", () => {

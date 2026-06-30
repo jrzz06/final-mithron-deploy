@@ -11,6 +11,10 @@ export type OrderCatalogProduct = {
   taxGroup?: string | null;
   taxRate?: number | null;
   taxIncluded?: boolean;
+  compareAt?: number | null;
+  onSale?: boolean;
+  discountType?: string | null;
+  discountValue?: number | null;
 };
 
 export type CheckoutOrderItemInput = {
@@ -111,7 +115,13 @@ export function buildValidatedOrderDraft(input: CheckoutOrderInput, catalogProdu
         tax_rate: taxBreakdown.taxRate,
         tax_included: taxBreakdown.taxIncluded,
         taxable_base: taxBreakdown.taxableBase,
-        tax_amount: taxBreakdown.taxAmount
+        tax_amount: taxBreakdown.taxAmount,
+        list_price: product.compareAt ?? unitPrice,
+        compare_at: product.compareAt ?? null,
+        on_sale: Boolean(product.onSale),
+        discount_type: product.discountType ?? null,
+        discount_value: product.discountValue ?? null,
+        pricing_snapshot_version: 1
       }
     };
   });

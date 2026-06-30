@@ -2,19 +2,27 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useResolvedCart } from "@/hooks/use-resolved-cart";
 import { formatINR } from "@/lib/utils";
 import { useCartStore } from "@/store/cart";
 
 export default function CartPage() {
-  const items = useCartStore((state) => state.items);
-  const subtotal = useCartStore((state) => state.subtotal());
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
+  const { items, subtotal, isResolving, error, refreshPricing } = useResolvedCart();
 
   return (
     <main className="surface-page inner-page min-h-screen">
       <section className="mx-auto max-w-[960px]">
         <h1 className="type-page">Cart</h1>
+        {error ? (
+          <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            {error}{" "}
+            <button type="button" className="underline" onClick={() => void refreshPricing()}>
+              Retry
+            </button>
+          </p>
+        ) : null}
         <div className="mt-8 grid gap-4">
           {items.length ? items.map((item) => (
             <article key={`${item.productSlug}-${item.bundleId}`} className="rounded-[var(--ds-r-xl)] border border-[var(--surface-border)] bg-[var(--surface-card)] p-5">
@@ -31,7 +39,9 @@ export default function CartPage() {
                     onChange={(event) => setQuantity(item.productSlug, item.bundleId, Number(event.target.value))}
                     className="min-h-11 w-16 rounded-lg border border-white/10 bg-black/20 px-2 py-2 text-white"
                   />
-                  <p className="font-semibold text-white">{formatINR(item.unitPrice * item.quantity)}</p>
+                  <p className="font-semibold text-white">
+                    {isResolving ? "…" : formatINR(item.unitPrice * item.quantity)}
+                  </p>
                   <button type="button" onClick={() => removeItem(item.productSlug, item.bundleId)} className="min-h-11 px-3 py-2 text-sm text-red-400">Remove</button>
                 </div>
               </div>
@@ -41,8 +51,8 @@ export default function CartPage() {
           )}
         </div>
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
-          <p className="text-xl font-semibold text-white">Subtotal: {formatINR(subtotal)}</p>
-          <Button asChild disabled={!items.length}>
+          <p className="text-xl font-semibold text-white">Subtotal: {isResolving ? "…" : formatINR(subtotal)}</p>
+          <Button asChild disabled={!items.length || isResolving}>
             <Link href="/checkout">Proceed to checkout</Link>
           </Button>
         </div>

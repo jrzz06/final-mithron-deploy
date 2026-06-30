@@ -16,6 +16,7 @@ import { isStorefrontGuestOnly } from "@/lib/storefront/guest-demo";
 import { Button } from "@/components/ui/button";
 import { CheckoutOrderSummary } from "@/components/checkout/checkout-order-summary";
 import { cn, formatINR } from "@/lib/utils";
+import { useResolvedCart } from "@/hooks/use-resolved-cart";
 import { useCartStore } from "@/store/cart";
 import styles from "./checkout.module.css";
 
@@ -205,15 +206,22 @@ function CheckoutInvoice({
 export function CheckoutPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const items = useCartStore((state) => state.items);
+  const persistedItems = useCartStore((state) => state.items);
   const checkout = useCartStore((state) => state.checkout);
   const setCheckoutEmail = useCartStore((state) => state.setCheckoutEmail);
   const setCheckoutRegion = useCartStore((state) => state.setCheckoutRegion);
   const setShippingAddressId = useCartStore((state) => state.setShippingAddressId);
   const setBillingAddressId = useCartStore((state) => state.setBillingAddressId);
   const setCheckoutOrderMeta = useCartStore((state) => state.setCheckoutOrderMeta);
-  const grandTotal = useCartStore((state) => state.grandTotal());
   const clearCart = useCartStore((state) => state.clearCart);
+  const {
+    items,
+    grandTotal,
+    pricingChanged,
+    refreshPricing,
+    clearPricingChanged,
+    isResolving
+  } = useResolvedCart();
 
   const [addresses, setAddresses] = useState<AddressRow[]>([]);
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -406,7 +414,7 @@ export function CheckoutPageClient() {
       phone: phone.trim(),
       fullName: fullName.trim(),
       region: checkout.region,
-      items: items.map((item) => ({ productSlug: item.productSlug, quantity: item.quantity }))
+      items: persistedItems.map((item) => ({ productSlug: item.productSlug, quantity: item.quantity }))
     };
 
     const companyName = company.trim();
@@ -463,7 +471,7 @@ export function CheckoutPageClient() {
     phone,
     fullName,
     company,
-    items,
+    persistedItems,
     usingSavedAddress,
     usingSavedBillingAddress,
     guestAddress,
@@ -476,7 +484,8 @@ export function CheckoutPageClient() {
   const markComplete = useCallback((
     mode: CompletionMode,
     orderId: string,
-    orderNumber: string
+    orderNumber: string,
+    total = grandTotal
   ) => {
     clearCart();
     setCheckoutOrderMeta({ orderId });
@@ -487,7 +496,7 @@ export function CheckoutPageClient() {
       email: checkout.email.trim(),
       phone: phone.trim(),
       fullName: fullName.trim(),
-      total: grandTotal,
+      total,
       isSignedIn
     });
     setError("");
@@ -675,7 +684,7 @@ export function CheckoutPageClient() {
   }, [buildPaymentSuccessUrl, completed, loading, router]);
 
   function validateBase(requireAddress: boolean) {
-    if (!items.length) {
+    if (!persistedItems.length) {
       setError("Your cart is empty.");
       return false;
     }
@@ -889,6 +898,17 @@ export function CheckoutPageClient() {
 
     setLoading("payment");
     setError("");
+    await refreshPricing();
+    if (isResolving) {
+      setLoading(null);
+      return;
+    }
+    if (pricingChanged) {
+      setError("Some prices were updated to match the latest catalog. Review your order total, then continue.");
+      clearPricingChanged();
+      setLoading(null);
+      return;
+    }
 
     const guestHeaders = isSignedIn ? null : await buildGuestRequestHeaders();
     if (!isSignedIn && !guestHeaders?.token) {
@@ -967,7 +987,7 @@ export function CheckoutPageClient() {
       return;
     }
 
-    markComplete("payment", payload.orderId, orderNumber);
+    markComplete("payment", payload.orderId, orderNumber, Number(payload.amount ?? grandTotal));
     setLoading(null);
   }
 

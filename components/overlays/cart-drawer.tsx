@@ -2,29 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useShallow } from "zustand/react/shallow";
 import { Minus, Plus, ShieldCheck, ShoppingBag, Truck, Wrench, X } from "lucide-react";
 import { MithronThumbImage } from "@/components/media/mithron-thumb-image";
 import { Button } from "@/components/ui/button";
 import type { CatalogSearchResult } from "@/services/catalog";
 import { glassButtonClassName } from "@/lib/glass-ui";
 import { formatINR } from "@/lib/utils";
+import { useResolvedCart } from "@/hooks/use-resolved-cart";
 import { useCartStore } from "@/store/cart";
 
 export function CartDrawer() {
   const router = useRouter();
   const [suggestions, setSuggestions] = useState<CatalogSearchResult[]>([]);
-  const { items, isCartOpen, setCartOpen, setQuantity, subtotal, taxTotal, grandTotal } = useCartStore(
-    useShallow((state) => ({
-      items: state.items,
-      isCartOpen: state.isCartOpen,
-      setCartOpen: state.setCartOpen,
-      setQuantity: state.setQuantity,
-      subtotal: state.subtotal(),
-      taxTotal: state.taxTotal(),
-      grandTotal: state.grandTotal()
-    }))
-  );
+  const setCartOpen = useCartStore((state) => state.setCartOpen);
+  const setQuantity = useCartStore((state) => state.setQuantity);
+  const isCartOpen = useCartStore((state) => state.isCartOpen);
+  const { items, subtotal, taxTotal, grandTotal, isResolving } = useResolvedCart();
   const drawerSuggestions = suggestions;
 
   useEffect(() => {
@@ -110,7 +103,9 @@ export function CartDrawer() {
                           <Plus className="size-4" />
                         </button>
                       </div>
-                      <span className="type-price font-medium">{formatINR(item.unitPrice * item.quantity)}</span>
+                      <span className="type-price font-medium">
+                        {isResolving ? "…" : formatINR(item.unitPrice * item.quantity)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -142,17 +137,17 @@ export function CartDrawer() {
                 <span className="type-price mb-4 grid gap-2 text-sm font-medium">
                   <span className="flex items-center justify-between">
                     <span>Subtotal</span>
-                    <span className="tabular-nums">{formatINR(subtotal)}</span>
+                    <span className="tabular-nums">{isResolving ? "…" : formatINR(subtotal)}</span>
                   </span>
                   {taxTotal > 0 ? (
                     <span className="flex items-center justify-between text-white/80">
                       <span>GST</span>
-                      <span className="tabular-nums font-semibold">{formatINR(taxTotal)}</span>
+                      <span className="tabular-nums font-semibold">{isResolving ? "…" : formatINR(taxTotal)}</span>
                     </span>
                   ) : null}
                   <span className="flex items-center justify-between text-lg">
                     <span>Total</span>
-                    <span className="tabular-nums">{formatINR(grandTotal)}</span>
+                    <span className="tabular-nums">{isResolving ? "…" : formatINR(grandTotal)}</span>
                   </span>
                 </span>
                 <span className={glassButtonClassName({ className: "type-button block h-14 w-full rounded-full text-center text-base leading-[3.5rem]" })}>

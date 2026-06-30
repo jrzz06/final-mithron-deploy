@@ -114,7 +114,7 @@ export async function getCsvInventoryRows(input: EnvSource | CsvInventoryOptions
   const offset = options.all ? 0 : (page - 1) * pageSize;
   const productLimit = options.all ? CSV_INVENTORY_EXPORT_LIMIT : pageSize + 1;
   const publishedOnly = options.publishedOnly === true;
-  const catalogFilter: CatalogFilter = options.catalogFilter ?? (publishedOnly ? "active" : "active");
+  const catalogFilter: CatalogFilter = options.catalogFilter ?? (publishedOnly ? "active" : "all");
   const config = getSupabaseAdminConfig(env);
   const emptyMetrics: InventoryStockMetrics = {
     totalInventoryItems: 0,

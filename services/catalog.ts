@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { resolveCatalogPricing } from "@/lib/catalog-pricing";
 import type { Bundle, MediaAsset, Product, ProductVariant, StorySection } from "@/config/types";
 import { getProductMarketingTagline } from "@/lib/product-marketing-copy";
 import { clipProductPreviewText } from "@/lib/product-preview-text";
@@ -216,7 +217,9 @@ const CATALOG_MAX_ROWS = 10_000;
 const SHELL_PREVIEW_LIMIT = 120;
 const ENTERPRISE_MENU_PER_CATEGORY_LIMIT = 16;
 const PRODUCT_MEDIA_LIMIT = 2000;
-const CHECKOUT_PRICING_SELECT = "slug,name,price,category,charge_tax,tax_group,tax_rate,tax_included";
+const CHECKOUT_PRICING_SELECT = "slug,name,price,compare_at,on_sale,discount_type,discount_value,category,charge_tax,tax_group,tax_rate,tax_included";
+const CART_PRICING_SELECT =
+  "slug,name,price,compare_at,on_sale,discount_type,discount_value,category,charge_tax,tax_group,tax_rate,tax_included,bundles,image,specs";
 const catalogSearchIndexSelect = "slug,name,tagline,price,badge,badge_enabled,badge_text,badge_style,category,interests,image,hero,source_catalog_id,source_description,sort_order";
 const LEGACY_WIX_INVENTORY_CATEGORY = "Imported Wix Inventory";
 const publishedCatalogFilter = `workflow_status=eq.published&is_visible=eq.true&category=neq.${encodeURIComponent(LEGACY_WIX_INVENTORY_CATEGORY)}&slug=not.like.audit-trace-*`;
@@ -536,20 +539,24 @@ function normalizeBundleDescription(value: string, fallback: string) {
 }
 
 function normalizeBundles(row: MithronProductRow, description: string): Bundle[] {
+  const pricing = resolveCatalogPricing(row);
+  const salePrice = pricing.salePrice;
+  const compareAt = pricing.compareAt ?? undefined;
+
   if (row.bundles?.length) {
     return row.bundles.map((bundle) => ({
       ...bundle,
       description: normalizeBundleDescription(bundle.description, description),
-      price: toNumber(bundle.price),
-      compareAt: bundle.compareAt ? toNumber(bundle.compareAt) : undefined
+      price: salePrice,
+      compareAt
     }));
   }
 
   return [{
     id: "standard",
     name: "Standard configuration",
-    price: toNumber(row.price),
-    compareAt: row.compare_at ? toNumber(row.compare_at) : undefined,
+    price: salePrice,
+    compareAt,
     description: isSpecLikeBlob(description) ? "" : clipProductPreviewText(description, 140),
     includes: []
   }];
@@ -699,6 +706,7 @@ function mapProductRow(row: MithronProductRow, linkedPrimaryImage?: MediaAsset):
     ...sourceImages.map((item) => mediaFromSourceImage(item, name)).filter((item): item is MediaAsset => Boolean(item))
   ];
   const dedupedGallery = dedupeMediaAssets(gallery);
+  const pricing = resolveCatalogPricing(row);
 
   return {
     slug: row.slug,
@@ -714,14 +722,14 @@ function mapProductRow(row: MithronProductRow, linkedPrimaryImage?: MediaAsset):
     ogTitle: row.og_title ?? undefined,
     ogDescription: row.og_description ?? undefined,
     ogImage: mediaFromJson(row.og_image, name) ?? undefined,
-    price: toNumber(row.price),
-    compareAt: row.compare_at ? toNumber(row.compare_at) : undefined,
+    price: pricing.salePrice,
+    compareAt: pricing.compareAt ?? undefined,
     ...mapStorefrontBadgeFields(row),
     description: row.description ? cleanText(row.description) : undefined,
     sourceDescription: row.source_description ? cleanText(row.source_description) : undefined,
-    onSale: row.on_sale ?? undefined,
-    discountType: row.discount_type ?? undefined,
-    discountValue: row.discount_value ? toNumber(row.discount_value) : undefined,
+    onSale: pricing.onSale,
+    discountType: pricing.discountType ?? undefined,
+    discountValue: pricing.discountValue ?? undefined,
     costOfGoods: row.cost_of_goods ? toNumber(row.cost_of_goods) : undefined,
     showPricePerUnit: row.show_price_per_unit ?? undefined,
     chargeTax: row.charge_tax ?? undefined,
@@ -777,7 +785,7 @@ function mapEnterpriseMenuProduct(
     isVisible: true,
     name,
     tagline: marketingTagline,
-    price: toNumber(row.price),
+    price: resolveCatalogPricing(row).salePrice,
     ...mapStorefrontBadgeFields(row),
     category: row.category,
     interests: row.interests ?? [],
@@ -809,7 +817,7 @@ function mapProductShellRow(row: MithronProductShellRow, linkedPrimaryImage?: Me
     slug: row.slug,
     name,
     tagline,
-    price: toNumber(row.price),
+    price: resolveCatalogPricing(row).salePrice,
     badge: resolveStorefrontBadgeText(row),
     category: row.category,
     interests: interestsValue,
@@ -842,7 +850,7 @@ function mapProductShellRowOrNull(row: MithronProductShellRow, linkedPrimaryImag
     slug: row.slug,
     name,
     tagline,
-    price: toNumber(row.price),
+    price: resolveCatalogPricing(row).salePrice,
     badge: resolveStorefrontBadgeText(row),
     category: row.category,
     interests: interestsValue,
@@ -943,20 +951,110 @@ export async function getCheckoutPricingBySlugs(slugs: string[]): Promise<OrderC
   if (!normalized.length) return [];
 
   const inFilter = `slug=in.(${normalized.map((slug) => encodeURIComponent(slug)).join(",")})`;
-  const rows = await fetchCatalogRows<Pick<MithronProductRow, "slug" | "name" | "price" | "category" | "charge_tax" | "tax_group" | "tax_rate" | "tax_included">>(
+  const rows = await fetchCatalogRows<
+    Pick<
+      MithronProductRow,
+      | "slug"
+      | "name"
+      | "price"
+      | "compare_at"
+      | "on_sale"
+      | "discount_type"
+      | "discount_value"
+      | "category"
+      | "charge_tax"
+      | "tax_group"
+      | "tax_rate"
+      | "tax_included"
+    >
+  >(
     `select=${CHECKOUT_PRICING_SELECT}&${inFilter}&${publishedCatalogFilter}&limit=${normalized.length}`
   );
 
-  return rows.map((row) => ({
-    slug: row.slug,
-    name: row.name,
-    price: toNumber(row.price),
-    category: row.category,
-    chargeTax: row.charge_tax ?? undefined,
-    taxGroup: row.tax_group,
-    taxRate: row.tax_rate !== null && row.tax_rate !== undefined ? toNumber(row.tax_rate) : null,
-    taxIncluded: row.tax_included ?? undefined
-  }));
+  return rows.map((row) => {
+    const pricing = resolveCatalogPricing(row);
+    return {
+      slug: row.slug,
+      name: row.name,
+      price: pricing.salePrice,
+      category: row.category,
+      chargeTax: row.charge_tax ?? undefined,
+      taxGroup: row.tax_group,
+      taxRate: row.tax_rate !== null && row.tax_rate !== undefined ? toNumber(row.tax_rate) : null,
+      taxIncluded: row.tax_included ?? undefined,
+      compareAt: pricing.compareAt,
+      onSale: pricing.onSale,
+      discountType: pricing.discountType,
+      discountValue: pricing.discountValue
+    };
+  });
+}
+
+export async function getCartPricingByItems(
+  items: Array<{ productSlug: string; bundleId: string; quantity: number; variantId?: string }>
+) {
+  const slugs = [...new Set(items.map((item) => item.productSlug.trim()).filter(Boolean))];
+  if (!slugs.length) return [];
+
+  const inFilter = `slug=in.(${slugs.map((slug) => encodeURIComponent(slug)).join(",")})`;
+  const rows = await fetchCatalogRows<
+    Pick<
+      MithronProductRow,
+      | "slug"
+      | "name"
+      | "price"
+      | "compare_at"
+      | "on_sale"
+      | "discount_type"
+      | "discount_value"
+      | "category"
+      | "charge_tax"
+      | "tax_group"
+      | "tax_rate"
+      | "tax_included"
+      | "bundles"
+      | "image"
+      | "specs"
+    >
+  >(
+    `select=${CART_PRICING_SELECT}&${inFilter}&${publishedCatalogFilter}&limit=${slugs.length}`
+  );
+
+  return rows.map((row) => {
+    const pricing = resolveCatalogPricing(row);
+    const bundles = row.bundles?.length
+      ? row.bundles.map((bundle) => ({
+          ...bundle,
+          price: pricing.salePrice,
+          compareAt: pricing.compareAt ?? undefined
+        }))
+      : [{
+          id: "standard",
+          name: "Standard configuration",
+          price: pricing.salePrice,
+          compareAt: pricing.compareAt ?? undefined,
+          description: "",
+          includes: [] as string[]
+        }];
+
+    return {
+      slug: row.slug,
+      name: cleanText(row.name),
+      price: row.price,
+      compare_at: row.compare_at,
+      on_sale: row.on_sale,
+      discount_type: row.discount_type,
+      discount_value: row.discount_value,
+      category: row.category,
+      charge_tax: row.charge_tax,
+      tax_group: row.tax_group,
+      tax_rate: row.tax_rate,
+      tax_included: row.tax_included,
+      bundles,
+      image: mediaFromJson(row.image, cleanText(row.name)),
+      specs: row.specs ?? null
+    };
+  });
 }
 
 export async function getRelatedProductShellItems(slug: string, limit = 4): Promise<ProductShellItem[]> {
@@ -1197,7 +1295,7 @@ async function mapSearchRowsToCatalogResults(rows: CatalogSearchRow[]): Promise<
       slug: row.slug,
       name,
       tagline: cleanText(row.tagline),
-      price: toNumber(row.price),
+      price: resolveCatalogPricing(row).salePrice,
       badge: resolveStorefrontBadgeText(row),
       category: row.category,
       image: enrichImageWithLinkedResponsive(resolved, linkedPrimaryImage)

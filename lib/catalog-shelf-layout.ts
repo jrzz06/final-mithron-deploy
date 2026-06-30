@@ -1,4 +1,5 @@
 import type { Product } from "@/config/types";
+import { productHasCatalogCutout } from "@/lib/media/catalog-cutout";
 
 const LEAD_PRODUCT_COUNT = 8;
 const FEATURED_PRODUCT_INDEX = 1;
@@ -20,6 +21,15 @@ export function dedupeProductsBySlug(products: Product[]): Product[] {
   return deduped;
 }
 
+function pickFeaturedProduct(uniqueProducts: Product[]): Product | null {
+  const preferred = uniqueProducts[FEATURED_PRODUCT_INDEX];
+  if (preferred && productHasCatalogCutout(preferred)) {
+    return preferred;
+  }
+
+  return uniqueProducts.find(productHasCatalogCutout) ?? null;
+}
+
 export type CatalogShelfLayout = {
   featuredProduct: Product | null;
   leadProducts: Product[];
@@ -28,7 +38,7 @@ export type CatalogShelfLayout = {
 
 export function buildCatalogShelfLayout(products: Product[]): CatalogShelfLayout {
   const uniqueProducts = dedupeProductsBySlug(products);
-  const featuredProduct = uniqueProducts[FEATURED_PRODUCT_INDEX] ?? uniqueProducts[0] ?? null;
+  const featuredProduct = pickFeaturedProduct(uniqueProducts);
   const gridProducts = featuredProduct
     ? uniqueProducts.filter((product) => product.slug !== featuredProduct.slug)
     : uniqueProducts;

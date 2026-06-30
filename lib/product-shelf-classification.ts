@@ -18,7 +18,7 @@ const DRONE_MISSION_CATEGORIES = DRONE_WORLD_CATEGORIES;
 
 const ACCESSORY_CATEGORY = "Accessories";
 
-const ACCESSORY_SLUG_OVERRIDES = new Set([
+export const accessorySlugOverrides = new Set([
   "source-mini-x-nano-4k-1-set-of-battery",
   "source-namoag",
   "source-ag-fc-namoag-gps-with-aerogcs-green-software-combo",
@@ -38,7 +38,7 @@ const ACCESSORY_SLUG_OVERRIDES = new Set([
   "source-jiyi-terrain-following-radar-for-agriculture-drones"
 ]);
 
-const DRONE_AIRCRAFT_SLUG_OVERRIDES = new Set([
+export const droneAircraftSlugOverrides = new Set([
   "source-nuno-no-tc-required",
   "source-monal-4k",
   "source-monal-4k-thermal"
@@ -136,11 +136,11 @@ export function isDroneAircraft(product: ProductShelfInput) {
 }
 
 export function classifyProductShelf(product: ProductShelfInput): ProductShelfSection {
-  if (ACCESSORY_SLUG_OVERRIDES.has(product.slug)) {
+  if (accessorySlugOverrides.has(product.slug)) {
     return "drone-care";
   }
 
-  if (DRONE_AIRCRAFT_SLUG_OVERRIDES.has(product.slug)) {
+  if (droneAircraftSlugOverrides.has(product.slug)) {
     return "drone-world";
   }
 

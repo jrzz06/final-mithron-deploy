@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildInventoryLinkageRecords,
   buildProductInventoryWorkflowFromFormData,
-  buildSimpleInventoryUpdateFromFormData
+  buildSimpleInventoryUpdateFromFormData,
+  reconcileAdminInventoryQuantities
 } from "@/services/enterprise-admin-forms";
 import { parseProductCreateInventoryFromFormData } from "@/services/product-inventory-workflow";
 
@@ -130,6 +131,51 @@ describe("product inventory enterprise workflow", () => {
       actorId: "00000000-0000-0000-0000-000000000001",
       at: "2026-05-24T10:00:00.000Z"
     })).toThrow("Reserved quantity cannot exceed inventory quantity.");
+  });
+
+  it("reconciles admin stock quantities when committed exceeds sellable", () => {
+    const reconciled = reconcileAdminInventoryQuantities({
+      quantity: 10,
+      previousReserved: 3,
+      previousCommitted: 8
+    });
+
+    expect(reconciled).toEqual({
+      reservedQuantity: 3,
+      sellableQuantity: 7,
+      committedQuantity: 7
+    });
+  });
+
+  it("builds linkage records from reconciled admin stock quantities", () => {
+    const { reservedQuantity, sellableQuantity, committedQuantity } = reconcileAdminInventoryQuantities({
+      quantity: 10,
+      previousReserved: 3,
+      previousCommitted: 8
+    });
+
+    const records = buildInventoryLinkageRecords(
+      {
+        productSlug: "source-agri-kisan-drone-small-8-liter",
+        sku: "SOURCE-AGRI-KISAN-DRONE-SMALL-8-LITER",
+        variantId: null,
+        stockStatus: "available",
+        quantity: 10,
+        reservedQuantity,
+        reorderThreshold: 0,
+        warehouseCode: "IN-WEST-01",
+        availableQuantity: sellableQuantity,
+        committedQuantity,
+        changeSummary: "Admin stock override"
+      },
+      {
+        actorId: "00000000-0000-0000-0000-000000000001",
+        at: "2026-06-29T10:00:00.000Z"
+      }
+    );
+
+    expect(records.warehouseStockRecord.available_quantity).toBe(7);
+    expect(records.warehouseStockRecord.committed_quantity).toBe(7);
   });
 
   it("maps Wix-style stock edits into the existing inventory and warehouse contract", () => {

@@ -92,4 +92,14 @@ describe("product inventory integrity migration", () => {
 
     expect(migration).toContain("on conflict (product_slug)");
   });
+
+  it("allows admin inventory corrections to reduce committed warehouse stock", () => {
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260710000100_admin_inventory_committed_reconcile.sql"),
+      "utf8"
+    );
+
+    expect(migration).toContain("committed_quantity = excluded.committed_quantity");
+    expect(migration).not.toContain("greatest(warehouse_stock.committed_quantity, excluded.committed_quantity)");
+  });
 });

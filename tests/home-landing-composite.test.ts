@@ -289,8 +289,9 @@ describe("home landing composite contract", () => {
     expect(component).toContain('heroEyebrow: "Featured Collection"');
     expect(component).toContain('heroEyebrow: "Essential Care"');
     expect(component).toContain('heroEyebrow: "Global Selection"');
-    expect(component).toContain('heroCtaHref: "/products"');
-    expect(component).toContain('heroCtaHref: "/accessories"');
+    expect(component).toContain('getHomepageShelfCatalogHref("drone-world")');
+    expect(component).toContain('getHomepageShelfCatalogHref("drone-care")');
+    expect(component).toContain('getHomepageShelfCatalogHref("global-products")');
     expect(component).toContain('tone: "world"');
     expect(component).toContain('tone: "care"');
     expect(component).toContain('tone: "global"');

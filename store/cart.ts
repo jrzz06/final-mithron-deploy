@@ -1,12 +1,24 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { CartItem, CheckoutDraft, CheckoutStep } from "@/config/types";
-import { summarizeCartTax } from "@/lib/product-tax";
+import type { CartItem, CheckoutDraft, CheckoutStep, PersistedCartItem } from "@/config/types";
+import { stripPersistedCartItems } from "@/lib/cart-pricing";
 
-export type NewCartItem = Omit<CartItem, "quantity">;
+export type NewCartItem = Omit<PersistedCartItem, "quantity"> & {
+  quantity?: number;
+  productName?: string;
+  bundleName?: string;
+  image?: string;
+  chargeTax?: boolean;
+  taxGroup?: string;
+  taxRate?: number;
+  taxIncluded?: boolean;
+  category?: string;
+  sku?: string;
+  availabilityLabel?: string;
+};
 
 export type CartSlice = {
-  items: CartItem[];
+  items: PersistedCartItem[];
   checkout: CheckoutDraft;
   isCartOpen: boolean;
   hasOpenedCart: boolean;
@@ -22,9 +34,6 @@ export type CartSlice = {
   setShippingAddressId: (addressId: string) => void;
   setBillingAddressId: (addressId: string) => void;
   setCheckoutOrderMeta: (meta: Partial<Pick<CheckoutDraft, "paymentIntentId" | "orderId">>) => void;
-  subtotal: () => number;
-  taxTotal: () => number;
-  grandTotal: () => number;
   itemCount: () => number;
 };
 
@@ -35,6 +44,15 @@ const initialCheckout: CheckoutDraft = {
   region: "India"
 };
 
+function toPersistedItem(item: NewCartItem): PersistedCartItem {
+  return {
+    productSlug: item.productSlug,
+    bundleId: item.bundleId,
+    quantity: item.quantity ?? 1,
+    ...(item.variantId ? { variantId: item.variantId } : {})
+  };
+}
+
 export function createCartSlice(): CartSlice {
   const slice: CartSlice = {
     items: [],
@@ -42,11 +60,14 @@ export function createCartSlice(): CartSlice {
     isCartOpen: false,
     hasOpenedCart: false,
     addItem(item) {
-      const existing = slice.items.find((entry) => entry.productSlug === item.productSlug && entry.bundleId === item.bundleId);
+      const persisted = toPersistedItem({ ...item, quantity: item.quantity ?? 1 });
+      const existing = slice.items.find(
+        (entry) => entry.productSlug === persisted.productSlug && entry.bundleId === persisted.bundleId
+      );
       if (existing) {
         existing.quantity += 1;
       } else {
-        slice.items.push({ ...item, quantity: 1 });
+        slice.items.push(persisted);
       }
     },
     removeItem(productSlug, bundleId) {
@@ -90,15 +111,6 @@ export function createCartSlice(): CartSlice {
     setCheckoutOrderMeta(meta) {
       slice.checkout = { ...slice.checkout, ...meta };
     },
-    subtotal() {
-      return summarizeCartTax(slice.items).subtotal;
-    },
-    taxTotal() {
-      return summarizeCartTax(slice.items).taxTotal;
-    },
-    grandTotal() {
-      return summarizeCartTax(slice.items).total;
-    },
     itemCount() {
       return slice.items.reduce((sum, item) => sum + item.quantity, 0);
     }
@@ -107,28 +119,9 @@ export function createCartSlice(): CartSlice {
   return slice;
 }
 
-type CartStore = {
-  items: CartItem[];
-  checkout: CheckoutDraft;
-  isCartOpen: boolean;
-  hasOpenedCart: boolean;
-  addItem: (item: NewCartItem) => void;
-  removeItem: (productSlug: string, bundleId: string) => void;
-  setQuantity: (productSlug: string, bundleId: string, quantity: number) => void;
-  clearCart: () => void;
-  setCartOpen: (open: boolean) => void;
-  setCheckoutStep: (step: CheckoutStep) => void;
-  setPromoCode: (promoCode: string) => void;
-  setCheckoutEmail: (email: string) => void;
-  setCheckoutRegion: (region: string) => void;
-  setShippingAddressId: (addressId: string) => void;
-  setBillingAddressId: (addressId: string) => void;
-  setCheckoutOrderMeta: (meta: Partial<Pick<CheckoutDraft, "paymentIntentId" | "orderId">>) => void;
-  subtotal: () => number;
-  taxTotal: () => number;
-  grandTotal: () => number;
-  itemCount: () => number;
-};
+type CartStore = CartSlice;
+
+const CART_STORAGE_VERSION = 2;
 
 export const useCartStore = create<CartStore>()(
   persist(
@@ -138,12 +131,15 @@ export const useCartStore = create<CartStore>()(
       isCartOpen: false,
       hasOpenedCart: false,
       addItem(item) {
+        const persisted = toPersistedItem({ ...item, quantity: 1 });
         set((state) => {
-          const existing = state.items.find((entry) => entry.productSlug === item.productSlug && entry.bundleId === item.bundleId);
+          const existing = state.items.find(
+            (entry) => entry.productSlug === persisted.productSlug && entry.bundleId === persisted.bundleId
+          );
           if (existing) {
             return {
               items: state.items.map((entry) =>
-                entry.productSlug === item.productSlug && entry.bundleId === item.bundleId
+                entry.productSlug === persisted.productSlug && entry.bundleId === persisted.bundleId
                   ? { ...entry, quantity: entry.quantity + 1 }
                   : entry
               ),
@@ -151,7 +147,7 @@ export const useCartStore = create<CartStore>()(
               hasOpenedCart: true
             };
           }
-          return { items: [...state.items, { ...item, quantity: 1 }], isCartOpen: true, hasOpenedCart: true };
+          return { items: [...state.items, persisted], isCartOpen: true, hasOpenedCart: true };
         });
       },
       removeItem(productSlug, bundleId) {
@@ -197,25 +193,34 @@ export const useCartStore = create<CartStore>()(
       setCheckoutOrderMeta(meta) {
         set((state) => ({ checkout: { ...state.checkout, ...meta } }));
       },
-      subtotal() {
-        return summarizeCartTax(get().items).subtotal;
-      },
-      taxTotal() {
-        return summarizeCartTax(get().items).taxTotal;
-      },
-      grandTotal() {
-        return summarizeCartTax(get().items).total;
-      },
       itemCount() {
         return get().items.reduce((sum, item) => sum + item.quantity, 0);
       }
     }),
     {
       name: "mithron-aero-cart",
+      version: CART_STORAGE_VERSION,
+      migrate: (persistedState, version) => {
+        const state = (persistedState ?? {}) as { items?: Array<PersistedCartItem & Record<string, unknown>>; checkout?: CheckoutDraft };
+        if (version < CART_STORAGE_VERSION) {
+          return {
+            ...state,
+            items: stripPersistedCartItems(state.items ?? [])
+          };
+        }
+        return persistedState as CartStore;
+      },
       partialize: (state) => ({
-        items: state.items,
+        items: state.items.map((item) => ({
+          productSlug: item.productSlug,
+          bundleId: item.bundleId,
+          quantity: item.quantity,
+          ...(item.variantId ? { variantId: item.variantId } : {})
+        })),
         checkout: state.checkout
       })
     }
   )
 );
+
+export type { CartItem };

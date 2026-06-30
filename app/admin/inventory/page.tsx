@@ -69,8 +69,8 @@ async function bulkAdminInventoryWithFeedback(formData: FormData) {
 }
 
 function readCatalogFilter(value: string): CatalogFilter {
-  if (value === "archived" || value === "all") return value;
-  return "active";
+  if (value === "archived" || value === "all" || value === "active") return value;
+  return "all";
 }
 
 export default async function AdminInventoryPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {

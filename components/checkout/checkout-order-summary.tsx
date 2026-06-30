@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useMemo, useState, type ReactNode } from "react";
+import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, FileText, MapPin, Receipt } from "lucide-react";
-import { useShallow } from "zustand/react/shallow";
 import type { CartItem } from "@/config/types";
 import { QuantityStepper } from "@/components/checkout/quantity-stepper";
 import { MithronThumbImage } from "@/components/media/mithron-thumb-image";
 import { summarizeCartTax } from "@/lib/product-tax";
 import { deriveProductSku } from "@/lib/product-sku";
 import { cn, formatINR } from "@/lib/utils";
+import { useResolvedCart } from "@/hooks/use-resolved-cart";
 import { useCartStore } from "@/store/cart";
 import styles from "@/app/(storefront)/checkout/checkout.module.css";
 
@@ -315,15 +315,26 @@ export function CheckoutOrderSummary({
   className
 }: CheckoutOrderSummaryProps) {
   const [mobileExpanded, setMobileExpanded] = useState(false);
-  const { items, setQuantity } = useCartStore(
-    useShallow((state) => ({
-      items: state.items,
-      setQuantity: state.setQuantity
-    }))
+  const setQuantity = useCartStore((state) => state.setQuantity);
+  const {
+    items,
+    subtotal,
+    taxTotal,
+    grandTotal: total,
+    itemCount,
+    isResolving,
+    pricingChanged,
+    clearPricingChanged
+  } = useResolvedCart();
+
+  const pricing = useMemo(
+    () => ({ subtotal, taxTotal, total, breakdowns: [] as ReturnType<typeof summarizeCartTax>["breakdowns"] }),
+    [subtotal, taxTotal, total]
   );
 
-  const pricing = useMemo(() => summarizeCartTax(items), [items]);
-  const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
+  useEffect(() => {
+    if (pricingChanged) clearPricingChanged();
+  }, [pricingChanged, clearPricingChanged]);
 
   if (!items.length) {
     return (
@@ -352,7 +363,7 @@ export function CheckoutOrderSummary({
     promoCode,
     shippingDestination,
     onQuantityChange: setQuantity,
-    quantityBusy: checkoutBusy
+    quantityBusy: checkoutBusy || isResolving
   };
 
   return (

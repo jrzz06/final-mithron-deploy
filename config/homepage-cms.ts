@@ -1,4 +1,5 @@
 import { storefrontMediaPaths } from "@/config/storefront-media-paths";
+import { getHomepageShelfCatalogHref } from "@/lib/catalog-categories";
 
 export type HomepageShelfCms = {
   eyebrow: string;
@@ -71,48 +72,48 @@ export const defaultHomepageCmsContent: HomepageCmsContent = {
     droneWorld: {
       eyebrow: "Featured Collection",
       title: "Drone World",
-      href: "/products",
+      href: getHomepageShelfCatalogHref("drone-world"),
       viewAllLabel: "View All",
       guideLabel: "Buying Guides",
       guideTitle: "Which Drone Fits Your Mission?",
-      guideHref: "/products",
+      guideHref: getHomepageShelfCatalogHref("drone-world"),
       heroEyebrow: "Featured Collection",
       heroSubtitle: "",
       heroBody: "Aircraft and mission-ready systems from the published catalog.",
       featureCta: "View catalog",
-      heroCtaHref: "/products",
+      heroCtaHref: getHomepageShelfCatalogHref("drone-world"),
       heroImageSrc: storefrontMediaPaths.showcase.droneWorld,
       heroImageAlt: "Mithron drone fleet operating across a rugged mountain valley at golden hour"
     },
     droneCare: {
       eyebrow: "Essential Care",
       title: "Drone Care",
-      href: "/accessories",
+      href: getHomepageShelfCatalogHref("drone-care"),
       viewAllLabel: "View All",
       guideLabel: "Care Guides",
       guideTitle: "Build a Reliable Spares Kit",
-      guideHref: "/accessories",
+      guideHref: getHomepageShelfCatalogHref("drone-care"),
       heroEyebrow: "Essential Care",
       heroSubtitle: "",
       heroBody: "Batteries, propellers, controllers, and spares for your fleet.",
       featureCta: "Shop care",
-      heroCtaHref: "/accessories",
+      heroCtaHref: getHomepageShelfCatalogHref("drone-care"),
       heroImageSrc: storefrontMediaPaths.showcase.droneCare,
       heroImageAlt: "Mithron Drone Care complete kit with aircraft, controller, batteries, propellers, and service case"
     },
     globalProducts: {
       eyebrow: "Global Selection",
       title: "Global Product",
-      href: "/products",
+      href: getHomepageShelfCatalogHref("global-products"),
       viewAllLabel: "View All",
       guideLabel: "Catalog Guides",
       guideTitle: "Compare Mission Systems",
-      guideHref: "/products",
+      guideHref: getHomepageShelfCatalogHref("global-products"),
       heroEyebrow: "Global Selection",
       heroSubtitle: "",
       heroBody: "Specialist platforms for teams sourcing across regions.",
       featureCta: "Browse global",
-      heroCtaHref: "/products",
+      heroCtaHref: getHomepageShelfCatalogHref("global-products"),
       heroImageSrc: storefrontMediaPaths.showcase.globalProducts,
       heroImageAlt: "Global Drone Connect industrial drone carrying a shipping container over a digital logistics hub at night"
     }

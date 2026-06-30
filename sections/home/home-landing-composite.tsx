@@ -20,6 +20,7 @@ import {
   isGlobalProductsCategory
 } from "@/lib/product-shelf-classification";
 import { pickHomeMiniCarouselItems } from "@/lib/home/mini-carousel";
+import { getHomepageShelfCatalogHref } from "@/lib/catalog-categories";
 import { formatINR } from "@/lib/utils";
 import type { ProductReviewContent } from "@/config/storefront-content";
 import { HomeCompositeSection } from "@/sections/home/home-composite-section";
@@ -120,7 +121,7 @@ const chapters: HomeChapter[] = [
     eyebrow: "Featured Collection",
     title: "Drone World",
     body: "Aircraft and mission-ready drones from the published catalog.",
-    href: "/products",
+    href: getHomepageShelfCatalogHref("drone-world"),
     cta: "View All",
     layoutKind: "ecosystem",
     media: localMedia.droneWorld,
@@ -133,7 +134,7 @@ const chapters: HomeChapter[] = [
     eyebrow: "Essential Care",
     title: "Drone Care",
     body: "Batteries, propellers, controllers, filters, gimbals, and care-adjacent catalog items.",
-    href: "/accessories",
+    href: getHomepageShelfCatalogHref("drone-care"),
     cta: "View All",
     layoutKind: "care",
     media: localMedia.droneCare,
@@ -146,7 +147,7 @@ const chapters: HomeChapter[] = [
     eyebrow: "Global Selection",
     title: "Global Product",
     body: "A broader shelf of systems and specialist products for mission comparison.",
-    href: "/products",
+    href: getHomepageShelfCatalogHref("global-products"),
     cta: "View All",
     layoutKind: "catalog",
     media: localMedia.globalProducts,
@@ -187,7 +188,7 @@ const productShelfConfigs: Record<"drone-world" | "drone-care" | "global-product
     id: "drone-world",
     eyebrow: "Featured Collection",
     title: "Drone World",
-    href: "/products",
+    href: getHomepageShelfCatalogHref("drone-world"),
     viewAllLabel: "View All",
     productFilter: chapters[0].productFilter,
     featurePriority: ["drone", "uav", "kisan", "sprayer", "seed spreader"],
@@ -195,19 +196,19 @@ const productShelfConfigs: Record<"drone-world" | "drone-care" | "global-product
     testId: "drone-world-shelf",
     guideLabel: "Buying Guides",
     guideTitle: "Which Drone Fits Your Mission?",
-    guideHref: "/products",
+    guideHref: getHomepageShelfCatalogHref("drone-world"),
     heroEyebrow: "Featured Collection",
     heroSubtitle: "",
     heroBody: "Aircraft and mission-ready systems from the published catalog.",
     featureCta: "View catalog",
-    heroCtaHref: "/products",
+    heroCtaHref: getHomepageShelfCatalogHref("drone-world"),
     tone: "world"
   },
   "drone-care": {
     id: "drone-care",
     eyebrow: "Essential Care",
     title: "Drone Care",
-    href: "/accessories",
+    href: getHomepageShelfCatalogHref("drone-care"),
     viewAllLabel: "View All",
     productFilter: chapters[1].productFilter,
     featurePriority: ["battery", "propeller", "controller", "gimbal", "filter", "care", "spare"],
@@ -215,19 +216,19 @@ const productShelfConfigs: Record<"drone-world" | "drone-care" | "global-product
     testId: "drone-care-shelf",
     guideLabel: "Care Guides",
     guideTitle: "Build a Reliable Spares Kit",
-    guideHref: "/accessories",
+    guideHref: getHomepageShelfCatalogHref("drone-care"),
     heroEyebrow: "Essential Care",
     heroSubtitle: "",
     heroBody: "Batteries, propellers, controllers, and spares for your fleet.",
     featureCta: "Shop care",
-    heroCtaHref: "/accessories",
+    heroCtaHref: getHomepageShelfCatalogHref("drone-care"),
     tone: "care"
   },
   "global-products": {
     id: "global-products",
     eyebrow: "Global Selection",
     title: "Global Product",
-    href: "/products",
+    href: getHomepageShelfCatalogHref("global-products"),
     viewAllLabel: "View All",
     productFilter: chapters[2].productFilter,
     featurePriority: ["drone", "survey", "surveillance", "mapping", "industrial", "system"],
@@ -235,12 +236,12 @@ const productShelfConfigs: Record<"drone-world" | "drone-care" | "global-product
     testId: "global-products-shelf",
     guideLabel: "Catalog Guides",
     guideTitle: "Compare Mission Systems",
-    guideHref: "/products",
+    guideHref: getHomepageShelfCatalogHref("global-products"),
     heroEyebrow: "Global Selection",
     heroSubtitle: "",
     heroBody: "Specialist platforms for teams sourcing across regions.",
     featureCta: "Browse global",
-    heroCtaHref: "/products",
+    heroCtaHref: getHomepageShelfCatalogHref("global-products"),
     tone: "global"
   }
 };
@@ -916,46 +917,46 @@ export function HomeLandingComposite({
       ...productShelfConfigs["drone-world"],
       eyebrow: cms.shelves.droneWorld.eyebrow,
       title: cms.shelves.droneWorld.title,
-      href: cms.shelves.droneWorld.href,
+      href: getHomepageShelfCatalogHref("drone-world"),
       viewAllLabel: cms.shelves.droneWorld.viewAllLabel,
       guideLabel: cms.shelves.droneWorld.guideLabel,
       guideTitle: cms.shelves.droneWorld.guideTitle,
-      guideHref: cms.shelves.droneWorld.guideHref,
+      guideHref: getHomepageShelfCatalogHref("drone-world"),
       heroEyebrow: cms.shelves.droneWorld.heroEyebrow,
       heroSubtitle: cms.shelves.droneWorld.heroSubtitle,
       heroBody: cms.shelves.droneWorld.heroBody,
       featureCta: cms.shelves.droneWorld.featureCta,
-      heroCtaHref: cms.shelves.droneWorld.heroCtaHref
+      heroCtaHref: getHomepageShelfCatalogHref("drone-world")
     },
     "drone-care": {
       ...productShelfConfigs["drone-care"],
       eyebrow: cms.shelves.droneCare.eyebrow,
       title: cms.shelves.droneCare.title,
-      href: cms.shelves.droneCare.href,
+      href: getHomepageShelfCatalogHref("drone-care"),
       viewAllLabel: cms.shelves.droneCare.viewAllLabel,
       guideLabel: cms.shelves.droneCare.guideLabel,
       guideTitle: cms.shelves.droneCare.guideTitle,
-      guideHref: cms.shelves.droneCare.guideHref,
+      guideHref: getHomepageShelfCatalogHref("drone-care"),
       heroEyebrow: cms.shelves.droneCare.heroEyebrow,
       heroSubtitle: cms.shelves.droneCare.heroSubtitle,
       heroBody: cms.shelves.droneCare.heroBody,
       featureCta: cms.shelves.droneCare.featureCta,
-      heroCtaHref: cms.shelves.droneCare.heroCtaHref
+      heroCtaHref: getHomepageShelfCatalogHref("drone-care")
     },
     "global-products": {
       ...productShelfConfigs["global-products"],
       eyebrow: cms.shelves.globalProducts.eyebrow,
       title: cms.shelves.globalProducts.title,
-      href: cms.shelves.globalProducts.href,
+      href: getHomepageShelfCatalogHref("global-products"),
       viewAllLabel: cms.shelves.globalProducts.viewAllLabel,
       guideLabel: cms.shelves.globalProducts.guideLabel,
       guideTitle: cms.shelves.globalProducts.guideTitle,
-      guideHref: cms.shelves.globalProducts.guideHref,
+      guideHref: getHomepageShelfCatalogHref("global-products"),
       heroEyebrow: cms.shelves.globalProducts.heroEyebrow,
       heroSubtitle: cms.shelves.globalProducts.heroSubtitle,
       heroBody: cms.shelves.globalProducts.heroBody,
       featureCta: cms.shelves.globalProducts.featureCta,
-      heroCtaHref: cms.shelves.globalProducts.heroCtaHref
+      heroCtaHref: getHomepageShelfCatalogHref("global-products")
     }
   };
   const mergeTiles = (
@@ -998,7 +999,7 @@ export function HomeLandingComposite({
     if (chapter.id === "drone-world") {
       return {
         ...chapter,
-        href: cms.shelves.droneWorld.href,
+        href: getHomepageShelfCatalogHref("drone-world"),
         media: {
           ...chapter.media,
           src: cms.shelves.droneWorld.heroImageSrc,
@@ -1009,7 +1010,7 @@ export function HomeLandingComposite({
     if (chapter.id === "drone-care") {
       return {
         ...chapter,
-        href: cms.shelves.droneCare.href,
+        href: getHomepageShelfCatalogHref("drone-care"),
         media: {
           ...chapter.media,
           src: cms.shelves.droneCare.heroImageSrc,
@@ -1020,7 +1021,7 @@ export function HomeLandingComposite({
     if (chapter.id === "global-products") {
       return {
         ...chapter,
-        href: cms.shelves.globalProducts.href,
+        href: getHomepageShelfCatalogHref("global-products"),
         media: {
           ...chapter.media,
           src: cms.shelves.globalProducts.heroImageSrc,
