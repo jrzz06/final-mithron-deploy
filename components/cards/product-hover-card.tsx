@@ -87,7 +87,7 @@ export const ProductHoverCard = memo(function ProductHoverCard({
             </p>
             <div className={styles.footer}>
               <span className={styles.cta}>
-                View System
+                View product
                 <ArrowRight aria-hidden className={styles.ctaIcon} />
               </span>
               <p className={styles.price}>From {formatINR(product.price)}</p>
@@ -171,7 +171,7 @@ export const ProductHoverCard = memo(function ProductHoverCard({
               <span
                 className="premium-product-card__cta premium-product-card__cta-text type-button inline-flex items-center justify-center gap-2 rounded-full"
               >
-                View system
+                View product
                 <ArrowRight aria-hidden className="size-4" />
               </span>
             )}
@@ -184,23 +184,9 @@ export const ProductHoverCard = memo(function ProductHoverCard({
 });
 
 function getShowroomPreview(product: Product) {
-  const source = `${product.name} ${product.category} ${product.tagline}`.toLowerCase();
-
-  if (/battery|power|mah|charger|charging/.test(source)) return "High-efficiency mission power.";
-  if (/propeller|propellers|landing gear|toolkit|tool kit|case|cable|connector|pump|nozzle|festo|motor|frame/.test(source)) return "Mission-ready component hardware.";
-  if (/thermal|inspection|surveillance|security|zoom|camera|seeker/.test(source)) return "Professional inspection platform.";
-  if (/mapping|survey|rtk|gnss|pix4d|mapper|multispectral/.test(source)) return "High-precision mapping workflow.";
-  if (/delivery|flybox|payload/.test(source)) return "Autonomous payload deployment.";
-  if (/agri|agriculture|spray|spraying|seed|spreader|farming|farm|liter|litre|l\b/.test(source)) return "Precision agriculture field system.";
-  if (/video|cinema|creative|4k|aerial/.test(source)) return "Cinematic aerial storytelling.";
-
-  const clean = sanitizeProductPreviewText(product.tagline);
-
-  if (!clean) return "Curated hardware for professional field operations.";
-  if (clean.length <= 72) return clean;
-
-  const clipped = clean.slice(0, 72).replace(/\s+\S*$/, "").replace(/[.,;:]+$/, "");
-  return `${clipped}.`;
+  const clean = sanitizeProductPreviewText(product.tagline).trim();
+  if (clean) return clipProductPreviewText(clean, 120);
+  return clipProductPreviewText(product.category, 48);
 }
 
 function getCatalogPreview(value: string) {

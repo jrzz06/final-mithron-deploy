@@ -10,11 +10,11 @@ const emptyShellCms = {
   footer: footerContent
 };
 
-function StorefrontShellFallback({ children }: { children: React.ReactNode }) {
+function StorefrontShellFallback() {
   return (
     <div className="min-h-screen bg-[#eef0f3]">
       <div className="h-[104px] animate-pulse bg-[#dfe3e8]" aria-hidden="true" />
-      <main className="store-main-offset">{children}</main>
+      <main className="store-main-offset min-h-[60vh] animate-pulse bg-[#eef0f3]" aria-hidden="true" />
     </div>
   );
 }
@@ -58,7 +58,7 @@ async function StorefrontShellContent({ children }: { children: React.ReactNode 
 
 export default function StorefrontLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <Suspense fallback={<StorefrontShellFallback>{children}</StorefrontShellFallback>}>
+    <Suspense fallback={<StorefrontShellFallback />}>
       <StorefrontShellContent>{children}</StorefrontShellContent>
     </Suspense>
   );

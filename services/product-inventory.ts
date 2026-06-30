@@ -1,5 +1,6 @@
 import { assertSupabaseAdminConfig } from "@/lib/env";
 import { deriveProductSku } from "@/lib/product-sku";
+import { upsertInventoryRecord, upsertWarehouseStockRecord, updateAdminRecord } from "@/services/admin-actions";
 import type { ProductInventoryWorkflowInput } from "@/services/enterprise-admin-forms";
 
 export { deriveProductSku };
@@ -11,6 +12,76 @@ function headers(serviceRoleKey: string) {
     apikey: serviceRoleKey,
     Authorization: `Bearer ${serviceRoleKey}`,
     "Content-Type": "application/json"
+  };
+}
+
+function availabilityLabel(stockStatus: string) {
+  if (stockStatus === "out_of_stock") return "Out of stock";
+  if (stockStatus === "low_stock") return "Low stock";
+  return "In stock";
+}
+
+async function upsertProductInventoryViaAdminRecords(
+  input: ProductInventoryWorkflowInput,
+  actorId: string | null,
+  env: EnvSource
+) {
+  const sku = deriveProductSku(input.productSlug);
+  const sellableQuantity = Math.max(0, input.quantity - input.reservedQuantity);
+  const now = new Date().toISOString();
+
+  await upsertInventoryRecord(
+    {
+      product_slug: input.productSlug,
+      sku,
+      variant_id: input.variantId,
+      stock_status: input.stockStatus,
+      quantity: input.quantity,
+      reserved_quantity: input.reservedQuantity,
+      reorder_threshold: input.reorderThreshold,
+      updated_by: actorId,
+      updated_at: now
+    },
+    actorId,
+    env
+  );
+
+  await upsertWarehouseStockRecord(
+    {
+      warehouse_code: input.warehouseCode,
+      product_slug: input.productSlug,
+      sku,
+      variant_id: input.variantId,
+      available_quantity: sellableQuantity,
+      committed_quantity: input.committedQuantity,
+      updated_by: actorId,
+      updated_at: now,
+      last_counted_at: now
+    },
+    actorId,
+    env
+  );
+
+  await updateAdminRecord(
+    "mithron_products",
+    "slug",
+    input.productSlug,
+    {
+      source_availability: availabilityLabel(input.stockStatus),
+      updated_at: now
+    },
+    actorId,
+    env
+  );
+
+  return {
+    productSlug: input.productSlug,
+    sku,
+    stockStatus: input.stockStatus,
+    quantity: input.quantity,
+    availableQuantity: sellableQuantity,
+    committedQuantity: input.committedQuantity,
+    warehouseCode: input.warehouseCode
   };
 }
 
@@ -43,6 +114,9 @@ export async function upsertProductInventoryRecord(
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
+    if (body.includes("42P10")) {
+      return upsertProductInventoryViaAdminRecords(input, actorId, env);
+    }
     throw new Error(`Inventory update failed (${response.status})${body ? `: ${body.slice(0, 240)}` : ""}`);
   }
 

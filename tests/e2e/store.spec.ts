@@ -412,7 +412,7 @@ test.describe("Mithron cinematic storefront", () => {
       const heights = rowCards.map((card) => Math.round(card.getBoundingClientRect().height));
       const imageHeights = rowCards.map((card) => Math.round(card.querySelector<HTMLImageElement>("img")!.getBoundingClientRect().height)).filter((height) => height > 0);
       const ctaTops = rowCards.map((card) => {
-        const cta = Array.from(card.querySelectorAll<HTMLElement>("span")).find((node) => node.textContent?.includes("View System") || node.textContent?.includes("View system"));
+        const cta = Array.from(card.querySelectorAll<HTMLElement>("span")).find((node) => node.textContent?.includes("View product") || node.textContent?.includes("View system"));
         return Math.round(cta?.getBoundingClientRect().top ?? 0);
       });
       const gridStyle = getComputedStyle(grid);

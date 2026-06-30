@@ -83,4 +83,13 @@ describe("product inventory integrity migration", () => {
     expect(migration).toContain("drop trigger if exists trg_sync_inventory_on_update");
     expect(migration).toContain("drop trigger if exists trg_sync_inventory_on_insert");
   });
+
+  it("aligns inventory upsert conflict with one-row-per-product constraint", () => {
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260709000100_fix_upsert_product_inventory_conflict.sql"),
+      "utf8"
+    );
+
+    expect(migration).toContain("on conflict (product_slug)");
+  });
 });

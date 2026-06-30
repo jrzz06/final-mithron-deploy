@@ -157,14 +157,13 @@ export function CatalogPage({
       >
         <div className={isShowroom ? styles.intro : "catalog-intro"} data-testid="catalog-intro">
           <div>
-            <p className={isShowroom ? styles.eyebrow : "catalog-intro__eyebrow type-meta"}>Mithron catalog</p>
+            <p className={isShowroom ? styles.eyebrow : "catalog-intro__eyebrow type-meta"}>Catalog</p>
             <h1 className={isShowroom ? styles.title : "catalog-intro__title type-section"}>{catalogTitle}</h1>
           </div>
           <div className={isShowroom ? styles.introCopy : "catalog-intro__copy"}>
             <p className={isShowroom ? styles.subtitle : "catalog-intro__subtitle type-subtitle"}>{catalogSubtitle}</p>
             <div className={isShowroom ? styles.meta : "catalog-intro__meta type-technical"}>
               <span>{catalogProductCount} products</span>
-              {heroProduct ? <span>{heroProduct.category}</span> : null}
             </div>
           </div>
         </div>
@@ -190,13 +189,13 @@ export function CatalogPage({
             data-testid="catalog-editorial-band"
           >
             <div className={isShowroom ? styles.editorialCopy : "catalog-editorial-band__copy"}>
-              <p className={isShowroom ? styles.editorialEyebrow : "catalog-editorial-band__eyebrow type-meta"}>Featured system</p>
+              <p className={isShowroom ? styles.editorialEyebrow : "catalog-editorial-band__eyebrow type-meta"}>Featured</p>
               <h2 className={isShowroom ? styles.editorialTitle : "catalog-editorial-band__title type-card-title"}>{featuredProduct.name}</h2>
               <p className={isShowroom ? styles.editorialDescription : "catalog-editorial-band__description type-body"}>
                 {getCatalogPreview(featuredProduct.tagline, isShowroom ? 124 : 190)}
               </p>
               <span className={isShowroom ? styles.editorialCta : "catalog-editorial-band__cta type-button"}>
-                View system
+                View product
                 <ArrowRight aria-hidden className="size-4" />
               </span>
             </div>
@@ -216,7 +215,7 @@ export function CatalogPage({
         {safeRemainingProducts.length > 0 ? (
           <>
             <div className={isShowroom ? styles.separator : "catalog-section-separator"}>
-              <p className={isShowroom ? styles.separatorLabel : "type-meta"}>Complete ecosystem</p>
+              <p className={isShowroom ? styles.separatorLabel : "type-meta"}>More products</p>
               <span className={isShowroom ? styles.separatorRule : "catalog-section-separator__rule"} aria-hidden />
             </div>
             <CatalogVirtualizedGrid

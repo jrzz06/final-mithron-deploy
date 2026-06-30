@@ -1465,19 +1465,7 @@ export const getProductAffinityRowBySlug = cache(async (slug: string): Promise<P
 });
 
 export const getCatalogShowroomProducts = cache(async (): Promise<Product[]> => {
-  const rows = await fetchAllCatalogRows<MithronProductRow>(catalogListSelect);
-  const primaryMedia = await getPrimaryProductMediaLookup();
-  let catalogCutouts = new Map<string, MediaAsset>();
-
-  try {
-    catalogCutouts = await getCatalogCutoutMediaLookup();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`[catalog] catalog cutout media lookup failed; falling back to primary product images: ${message}`);
-  }
-
-  const products = rows.map((row) => mapProductRow(row, catalogCutouts.get(row.slug) ?? primaryMedia.get(row.slug)));
-  return filterDroneWorldProducts(products);
+  return getProducts();
 });
 
 export const getProductRowBySlug = cache(async (slug: string) => {
