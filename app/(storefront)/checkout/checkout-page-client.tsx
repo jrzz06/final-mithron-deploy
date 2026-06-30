@@ -15,6 +15,7 @@ import { CUSTOMER_CONTACT_REQUIRED_MESSAGE } from "@/lib/api/customer-contact";
 import { isStorefrontGuestOnly } from "@/lib/storefront/guest-demo";
 import { Button } from "@/components/ui/button";
 import { CheckoutOrderSummary } from "@/components/checkout/checkout-order-summary";
+import { inrToPaise } from "@/services/payments/amount";
 import { cn, formatINR } from "@/lib/utils";
 import { useResolvedCart } from "@/hooks/use-resolved-cart";
 import { useCartStore } from "@/store/cart";
@@ -955,7 +956,7 @@ export function CheckoutPageClient() {
         orderId: payload.orderId,
         orderNumber,
         razorpayOrderId: payload.clientSecret,
-        amountPaise: Number(payload.amountPaise ?? Math.round(Number(payload.amount ?? 0) * 100)),
+        amountPaise: Number(payload.amountPaise ?? inrToPaise(Number(payload.amount ?? 0))),
         email: checkout.email,
         signedIn: isSignedIn
       });

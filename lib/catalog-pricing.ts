@@ -1,4 +1,5 @@
 import type { ProductDiscountType } from "@/lib/product-pricing";
+import { roundInr } from "@/lib/currency";
 
 export type CatalogPricingInput = {
   price: number | string | null | undefined;
@@ -18,10 +19,6 @@ export type ResolvedCatalogPricing = {
   savings: number;
 };
 
-function roundCurrency(value: number) {
-  return Math.round(value * 100) / 100;
-}
-
 function toNumber(value: number | string | null | undefined) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -29,17 +26,17 @@ function toNumber(value: number | string | null | undefined) {
 
 /** Authoritative storefront pricing derived from the Supabase product record (admin editor source). */
 export function resolveCatalogPricing(input: CatalogPricingInput): ResolvedCatalogPricing {
-  const salePrice = roundCurrency(Math.max(0, toNumber(input.price)));
-  const storedCompareAt = input.compare_at ? roundCurrency(toNumber(input.compare_at)) : null;
+  const salePrice = roundInr(Math.max(0, toNumber(input.price)));
+  const storedCompareAt = input.compare_at ? roundInr(toNumber(input.compare_at)) : null;
   const onSale = Boolean(input.on_sale) || (storedCompareAt !== null && storedCompareAt > salePrice);
   const listPrice = onSale && storedCompareAt ? storedCompareAt : salePrice;
   const compareAt = onSale && storedCompareAt && storedCompareAt > salePrice ? storedCompareAt : null;
   const discountType: ProductDiscountType | null =
     input.discount_type === "percent" ? "percent" : input.discount_type === "amount" ? "amount" : onSale ? "amount" : null;
-  const storedDiscount = input.discount_value ? roundCurrency(toNumber(input.discount_value)) : 0;
-  const derivedDiscount = compareAt ? roundCurrency(compareAt - salePrice) : 0;
+  const storedDiscount = input.discount_value ? roundInr(toNumber(input.discount_value)) : 0;
+  const derivedDiscount = compareAt ? roundInr(compareAt - salePrice) : 0;
   const discountValue = onSale ? (storedDiscount > 0 ? storedDiscount : derivedDiscount) : null;
-  const savings = compareAt ? roundCurrency(Math.max(0, compareAt - salePrice)) : 0;
+  const savings = compareAt ? roundInr(Math.max(0, compareAt - salePrice)) : 0;
 
   return {
     salePrice,

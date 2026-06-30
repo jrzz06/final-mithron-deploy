@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AdminFormSection } from "@/components/admin/module-panel";
 import { OperationalSubmitButton } from "@/components/admin/operational-submit-button";
 import { calculateProductTaxBreakdown } from "@/lib/product-tax";
+import { computeOrderTotal, sumInr } from "@/lib/currency";
 import { formatINR } from "@/lib/utils";
 
 const DRAFT_STORAGE_KEY = "mithron:admin-manual-order-draft";
@@ -296,8 +297,15 @@ export function ManualOrderCreatePanel({
     }
     const shipping = Math.max(0, Number(draft.shippingAmount) || 0);
     const discount = Math.max(0, Number(draft.discountAmount) || 0);
-    const total = Math.max(0, subtotal + taxTotal + shipping - discount);
-    return { subtotal, taxTotal, shipping, discount, total };
+    const normalizedSubtotal = sumInr([subtotal]);
+    const normalizedTax = sumInr([taxTotal]);
+    const total = computeOrderTotal({
+      subtotal: normalizedSubtotal,
+      taxTotal: normalizedTax,
+      shipping,
+      discount
+    });
+    return { subtotal: normalizedSubtotal, taxTotal: normalizedTax, shipping, discount, total };
   }, [draft.discountAmount, draft.lines, draft.shippingAmount]);
 
   const confirmMessage = useMemo(() => {

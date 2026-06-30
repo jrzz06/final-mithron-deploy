@@ -1,4 +1,5 @@
 import { formatINR } from "@/lib/utils";
+import { fromPaise, roundInr, sumInr, toPaise } from "@/lib/currency";
 import { getProductTaxGroup, resolveProductTaxRate } from "@/lib/product-tax-groups";
 
 export type ProductTaxInput = {
@@ -22,10 +23,6 @@ export type ProductTaxBreakdown = {
   lineTotal: number;
 };
 
-function roundCurrency(value: number) {
-  return Math.round(value * 100) / 100;
-}
-
 export function calculateProductTaxBreakdown(input: ProductTaxInput): ProductTaxBreakdown {
   const quantity = Math.max(1, input.quantity ?? 1);
   const unitPrice = Math.max(0, input.unitPrice);
@@ -33,9 +30,10 @@ export function calculateProductTaxBreakdown(input: ProductTaxInput): ProductTax
   const taxIncluded = Boolean(input.taxIncluded);
   const taxRate = chargeTax ? resolveProductTaxRate(input) : 0;
   const taxGroupLabel = getProductTaxGroup(input.taxGroup).label;
-  const gross = roundCurrency(unitPrice * quantity);
+  const grossPaise = toPaise(unitPrice) * quantity;
 
   if (!chargeTax || taxRate <= 0) {
+    const gross = fromPaise(grossPaise);
     return {
       quantity,
       unitPrice,
@@ -50,8 +48,8 @@ export function calculateProductTaxBreakdown(input: ProductTaxInput): ProductTax
   }
 
   if (taxIncluded) {
-    const taxAmount = roundCurrency(gross - gross / (1 + taxRate / 100));
-    const taxableBase = roundCurrency(gross - taxAmount);
+    const taxAmountPaise = Math.round(grossPaise - grossPaise / (1 + taxRate / 100));
+    const taxableBasePaise = grossPaise - taxAmountPaise;
     return {
       quantity,
       unitPrice,
@@ -59,14 +57,14 @@ export function calculateProductTaxBreakdown(input: ProductTaxInput): ProductTax
       taxRate,
       taxIncluded: true,
       taxGroupLabel,
-      taxableBase,
-      taxAmount,
-      lineTotal: gross
+      taxableBase: fromPaise(taxableBasePaise),
+      taxAmount: fromPaise(taxAmountPaise),
+      lineTotal: fromPaise(grossPaise)
     };
   }
 
-  const taxableBase = gross;
-  const taxAmount = roundCurrency(taxableBase * (taxRate / 100));
+  const taxableBasePaise = grossPaise;
+  const taxAmountPaise = Math.round(taxableBasePaise * (taxRate / 100));
   return {
     quantity,
     unitPrice,
@@ -74,17 +72,17 @@ export function calculateProductTaxBreakdown(input: ProductTaxInput): ProductTax
     taxRate,
     taxIncluded: false,
     taxGroupLabel,
-    taxableBase,
-    taxAmount,
-    lineTotal: roundCurrency(taxableBase + taxAmount)
+    taxableBase: fromPaise(taxableBasePaise),
+    taxAmount: fromPaise(taxAmountPaise),
+    lineTotal: fromPaise(taxableBasePaise + taxAmountPaise)
   };
 }
 
 export function summarizeCartTax(lines: ProductTaxInput[]) {
   const breakdowns = lines.map((line) => calculateProductTaxBreakdown(line));
-  const subtotal = roundCurrency(breakdowns.reduce((sum, line) => sum + line.taxableBase, 0));
-  const taxTotal = roundCurrency(breakdowns.reduce((sum, line) => sum + line.taxAmount, 0));
-  const total = roundCurrency(breakdowns.reduce((sum, line) => sum + line.lineTotal, 0));
+  const subtotal = sumInr(breakdowns.map((line) => line.taxableBase));
+  const taxTotal = sumInr(breakdowns.map((line) => line.taxAmount));
+  const total = sumInr(breakdowns.map((line) => line.lineTotal));
 
   return {
     breakdowns,
@@ -106,6 +104,6 @@ export function formatProductTaxPriceLabel(input: ProductTaxInput) {
     return `${priceLabel} incl. GST`;
   }
 
-  const gstAmount = roundCurrency(breakdown.unitPrice * (breakdown.taxRate / 100));
+  const gstAmount = roundInr(breakdown.unitPrice * (breakdown.taxRate / 100));
   return `${priceLabel} + ${breakdown.taxRate}% GST (${formatINR(gstAmount)})`;
 }

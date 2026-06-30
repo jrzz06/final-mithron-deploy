@@ -1,5 +1,6 @@
 import "server-only";
 
+import { formatInrAmount, roundInr, subtractInr } from "@/lib/currency";
 import { toAbsoluteUrl } from "@/lib/site-url";
 
 export type MithronInvoiceInput = {
@@ -21,6 +22,7 @@ export type MithronInvoiceInput = {
     gstPct: number;
   }>;
   paymentMade: number | null;
+  grandTotal?: number;
 };
 
 const CO = {
@@ -117,7 +119,7 @@ function escapeHtml(value: string) {
 }
 
 export function inr(n: number) {
-  return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return formatInrAmount(n);
 }
 
 export function toWords(n: number) {
@@ -214,10 +216,10 @@ export function renderMithronInvoiceBody(data: MithronInvoiceInput): string {
     .join("");
 
   const rawTotal = subTotal + totalGst;
-  const rounded = Math.round(rawTotal * 100) / 100;
-  const rounding = parseFloat((rounded - rawTotal).toFixed(2));
-  const paid = data.paymentMade !== null && data.paymentMade !== undefined ? data.paymentMade : rounded;
-  const balance = parseFloat((rounded - paid).toFixed(2));
+  const rounded = data.grandTotal !== undefined ? roundInr(data.grandTotal) : roundInr(rawTotal);
+  const rounding = subtractInr(rounded, roundInr(rawTotal));
+  const paid = data.paymentMade !== null && data.paymentMade !== undefined ? roundInr(data.paymentMade) : rounded;
+  const balance = subtractInr(rounded, paid);
   const invNum = `INV-${String(data.serial).padStart(5, "0")}/${data.financialYr}`;
   const logo = CO.logoUrl
     ? `<img src="${escapeHtml(CO.logoUrl)}" alt="Logo"/>`

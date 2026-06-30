@@ -1,6 +1,7 @@
 type JsonRecord = Record<string, unknown>;
 
 import { calculateProductTaxBreakdown } from "@/lib/product-tax";
+import { roundInr, sumInr } from "@/lib/currency";
 
 export type OrderCatalogProduct = {
   slug: string;
@@ -125,9 +126,9 @@ export function buildValidatedOrderDraft(input: CheckoutOrderInput, catalogProdu
       }
     };
   });
-  const subtotal = orderItems.reduce((sum, item) => sum + Number(item.metadata.taxable_base ?? item.line_total), 0);
-  const taxTotal = orderItems.reduce((sum, item) => sum + Number(item.metadata.tax_amount ?? 0), 0);
-  const total = orderItems.reduce((sum, item) => sum + item.line_total, 0);
+  const subtotal = roundInr(sumInr(orderItems.map((item) => Number(item.metadata.taxable_base ?? item.line_total))));
+  const taxTotal = roundInr(sumInr(orderItems.map((item) => Number(item.metadata.tax_amount ?? 0))));
+  const total = roundInr(sumInr(orderItems.map((item) => item.line_total)));
 
   return {
     order: {

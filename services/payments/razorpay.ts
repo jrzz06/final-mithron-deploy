@@ -202,7 +202,7 @@ export class RazorpayGateway implements PaymentGateway {
         Authorization: `Basic ${auth}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(amount ? { amount: Math.round(amount * 100) } : {})
+      body: JSON.stringify(amount ? { amount: inrToPaise(amount) } : {})
     });
 
     if (!response.ok) {

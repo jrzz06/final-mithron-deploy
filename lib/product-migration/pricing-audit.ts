@@ -2,6 +2,7 @@ import type { WixProductSnapshot } from "../wix/catalog-client.ts";
 import { normalizeCatalogName } from "../wix/catalog-normalize.ts";
 import { deriveSaleFields } from "../product-reconcile/score-canonical.ts";
 import { calculateProfitAndMargin } from "../product-pricing.ts";
+import { roundInr } from "../currency.ts";
 
 export type PricingAuditDbRow = {
   slug: string;
@@ -72,7 +73,7 @@ export type PricingAuditEntry = {
 const INR = "INR";
 
 function roundMoney(value: number) {
-  return Math.round(value * 100) / 100;
+  return roundInr(value);
 }
 
 function toNumber(value: number | string | null | undefined) {

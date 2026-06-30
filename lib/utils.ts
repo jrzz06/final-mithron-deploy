@@ -5,12 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+import { formatInrDisplay } from "@/lib/currency";
+
 export function formatINR(value: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0
-  }).format(value);
+  return formatInrDisplay(value);
 }
 
 /** Storefront label for catalog/list prices (Indian Rupee, en-IN grouping). */

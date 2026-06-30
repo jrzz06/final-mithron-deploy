@@ -1,5 +1,6 @@
 import "server-only";
 
+import { computeOrderTotal, roundInr, sumInr } from "@/lib/currency";
 import { getProductTaxGroup } from "@/lib/product-tax-groups";
 import { resolveOrderAddresses } from "@/lib/addresses/resolve-server";
 import { toAbsoluteUrl } from "@/lib/site-url";
@@ -19,8 +20,8 @@ function buildGstSummary(lineItems: InvoiceLineItem[]): InvoiceGstSummaryRow[] {
   for (const item of lineItems) {
     if (item.taxRate <= 0) continue;
     const existing = map.get(item.taxRate) ?? { taxRate: item.taxRate, taxableBase: 0, taxAmount: 0 };
-    existing.taxableBase = Math.round((existing.taxableBase + item.taxableBase) * 100) / 100;
-    existing.taxAmount = Math.round((existing.taxAmount + item.taxAmount) * 100) / 100;
+    existing.taxableBase = roundInr(sumInr([existing.taxableBase, item.taxableBase]));
+    existing.taxAmount = roundInr(sumInr([existing.taxAmount, item.taxAmount]));
     map.set(item.taxRate, existing);
   }
   return [...map.values()].sort((a, b) => a.taxRate - b.taxRate);
@@ -64,11 +65,13 @@ export async function buildInvoiceData(orderId: string, serialNumber: number): P
   const { billingAddressLines, shippingAddressLines } = await resolveOrderAddresses(metadata, userId, process.env, order);
 
   const lineItems = mapLineItems(items);
-  const subtotal = lineItems.reduce((sum, item) => sum + item.taxableBase, 0);
-  const taxTotal = lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
-  const shippingCharge = Number(metadata.shipping_charge ?? 0);
-  const discountTotal = Number(metadata.discount_total ?? 0);
-  const grandTotal = Number(order.total ?? subtotal + taxTotal + shippingCharge - discountTotal);
+  const subtotal = sumInr(lineItems.map((item) => item.taxableBase));
+  const taxTotal = sumInr(lineItems.map((item) => item.taxAmount));
+  const shippingCharge = roundInr(Number(metadata.shipping_charge ?? 0));
+  const discountTotal = roundInr(Number(metadata.discount_total ?? 0));
+  const grandTotal = roundInr(
+    Number(order.total) || computeOrderTotal({ subtotal, taxTotal, shipping: shippingCharge, discount: discountTotal })
+  );
 
   const paidAt = payment?.verified_at ? new Date(String(payment.verified_at)) : new Date(String(order.created_at ?? Date.now()));
   const financialYear = financialYearFromDate(paidAt);
@@ -97,8 +100,8 @@ export async function buildInvoiceData(orderId: string, serialNumber: number): P
     shippingAddress: { lines: shippingAddressLines },
     lineItems,
     gstSummary: buildGstSummary(lineItems),
-    subtotal: Math.round(subtotal * 100) / 100,
-    taxTotal: Math.round(taxTotal * 100) / 100,
+    subtotal: roundInr(subtotal),
+    taxTotal: roundInr(taxTotal),
     shippingCharge,
     discountTotal,
     grandTotal,

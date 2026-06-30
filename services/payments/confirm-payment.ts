@@ -47,7 +47,7 @@ export function buildCheckoutPaymentResponse(input: {
     currency: input.currency,
     razorpayKeyId: input.provider === "razorpay" ? env.RAZORPAY_KEY_ID?.trim() ?? null : null,
     cashfreeMode: input.provider === "cashfree" ? cashfreeCheckoutMode(env) : null,
-    amountPaise: input.intent.amountPaise ?? Math.round(input.amount * 100)
+    amountPaise: input.intent.amountPaise ?? inrToPaise(input.amount)
   };
 }
 

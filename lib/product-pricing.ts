@@ -20,9 +20,7 @@ export type ProductPricingResult = {
   salePrice: number;
 };
 
-function roundCurrency(value: number) {
-  return Math.round(value * 100) / 100;
-}
+import { roundInr } from "@/lib/currency";
 
 export function calculateSalePrice(input: Pick<ProductPricingInput, "listPrice" | "discountType" | "discountValue">) {
   const listPrice = Math.max(0, input.listPrice);
@@ -32,15 +30,15 @@ export function calculateSalePrice(input: Pick<ProductPricingInput, "listPrice" 
 
   if (input.discountType === "percent") {
     const boundedPercent = Math.min(discountValue, 100);
-    return roundCurrency(listPrice - (listPrice * boundedPercent) / 100);
+    return roundInr(listPrice - (listPrice * boundedPercent) / 100);
   }
 
-  return roundCurrency(Math.max(0, listPrice - discountValue));
+  return roundInr(Math.max(0, listPrice - discountValue));
 }
 
 export function calculateProfitAndMargin(salePrice: number, costOfGoods: number) {
-  const profit = roundCurrency(salePrice - Math.max(0, costOfGoods));
-  const marginPercent = salePrice > 0 ? roundCurrency((profit / salePrice) * 100) : 0;
+  const profit = roundInr(salePrice - Math.max(0, costOfGoods));
+  const marginPercent = salePrice > 0 ? roundInr((profit / salePrice) * 100) : 0;
   return { profit, marginPercent };
 }
 

@@ -12,6 +12,8 @@ describe("currency policy", () => {
     expect(formatINR(1250000)).toMatch(/₹\s?12,50,000/);
     expect(formatINR(12000000)).toMatch(/₹\s?1,20,00,000/);
     expect(formatINR(125000)).not.toContain("$");
+    expect(formatINR(1250.5)).toMatch(/₹\s?1,250\.50/);
+    expect(formatINR(1250)).not.toContain(".00");
   });
 
   it("formats catalog list prices with From + INR", () => {

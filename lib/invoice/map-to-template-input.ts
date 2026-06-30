@@ -1,12 +1,13 @@
 import "server-only";
 
+import { roundInr } from "@/lib/currency";
 import { formatInvoiceSerial } from "./financial-year";
 import type { MithronInvoiceInput } from "./mithron-invoice-template";
 import type { InvoiceData } from "./types";
 
 function exGstRate(item: InvoiceData["lineItems"][number]) {
   if (item.quantity > 0 && item.taxableBase > 0) {
-    return Math.round((item.taxableBase / item.quantity) * 100) / 100;
+    return roundInr(item.taxableBase / item.quantity);
   }
   return item.unitPrice;
 }
@@ -65,6 +66,7 @@ export function mapInvoiceDataToTemplate(invoiceData: InvoiceData, serialNumber:
       shipTo: invoiceData.shippingAddress.lines
     },
     items,
-    paymentMade
+    paymentMade,
+    grandTotal: invoiceData.grandTotal
   };
 }
