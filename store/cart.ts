@@ -71,6 +71,18 @@ export function createCartSlice(): CartSlice {
         slice.items.push(persisted);
       }
     },
+    addItemWithQuantity(item) {
+      const quantity = Math.max(1, Math.min(99, Math.trunc(item.quantity ?? 1)));
+      const persisted = toPersistedItem({ ...item, quantity });
+      const existing = slice.items.find(
+        (entry) => entry.productSlug === persisted.productSlug && entry.bundleId === persisted.bundleId
+      );
+      if (existing) {
+        existing.quantity = persisted.quantity;
+      } else {
+        slice.items.push(persisted);
+      }
+    },
     removeItem(productSlug, bundleId) {
       slice.items = slice.items.filter((entry) => entry.productSlug !== productSlug || entry.bundleId !== bundleId);
     },
