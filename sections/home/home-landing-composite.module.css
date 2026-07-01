@@ -292,7 +292,8 @@
   padding: var(--ds-s5) 0;
 }
 
-.productShelfSection .container {
+.productShelfSection .container,
+.agriSection .agriContainer {
   width: min(100%, 1740px);
   padding: 0 clamp(11px, 2.9vw, 40px);
 }
@@ -2147,7 +2148,7 @@
   --mission-section-muted: rgba(245, 245, 247, 0.62);
   --mission-aurora-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --mission-bento-gap: clamp(14px, 1.6vw, 22px);
-  --mission-card-radius: 2px;
+  --mission-card-radius: 10px;
   --mission-card-inset: 0;
   --mission-row-primary: minmax(0, 1.55fr);
   --mission-row-secondary: minmax(0, 1fr);
@@ -2250,9 +2251,7 @@
   position: relative;
   z-index: 1;
   flex: 1 1 auto;
-  width: min(100%, 1600px);
   margin: 0 auto;
-  padding: 0 clamp(16px, 3.2vw, 56px);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -3320,10 +3319,6 @@
     height: auto;
     --mission-bento-gap: clamp(16px, 4vw, 22px);
     --mission-card-inset: 0;
-  }
-
-  .agriContainer {
-    padding: 0 clamp(11px, 2.9vw, 40px);
   }
 
   .agriHeadline {

@@ -771,7 +771,7 @@ function MobileMenu({
                 href={item.href}
                 tabIndex={open ? 0 : -1}
                 onClick={onClose}
-                className="adaptive-mobile-menu__link nav-interactive inline-flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-[13px] font-medium tracking-[0.01em]"
+                className="adaptive-mobile-menu__link nav-interactive inline-flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-[14px] font-medium tracking-[0.01em]"
               >
                 {item.label}
               </Link>

@@ -555,7 +555,7 @@ dd {
 
 .type-nav {
   font-family: var(--type-ui);
-  font-size: clamp(0.72rem, 0.9cqi, 0.835rem);
+  font-size: clamp(0.8125rem, 0.98cqi, 0.875rem);
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0.01em;
