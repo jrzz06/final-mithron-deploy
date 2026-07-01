@@ -48,8 +48,9 @@ describe("admin real workflow UX", () => {
     expect(productsPage).not.toContain("Advanced structured fields");
     expect(productsPage).toContain("ProductCreateDetailFields");
     expect(productsPage).toContain("ProductCategoryField");
-    expect(productsPage).toContain("Image URL");
-    expect(productsPage).toContain("Upload image");
+    const multiImageField = source("components/products/product-multi-image-field.tsx");
+    expect(multiImageField).toContain("Primary image URL");
+    expect(multiImageField).toContain("Upload images");
     expect(productsPage).toContain("data-product-supabase-storage-note");
     expect(productForms).toContain("image_src");
     expect(productForms).toContain("gallery_urls");
@@ -90,8 +91,8 @@ describe("admin real workflow UX", () => {
     expect(cmsForms).toContain("video_src");
     expect(publicCms).toContain("mediaFromColumns");
     expect(publicCms).not.toContain("slide.productSlug && slide.title");
-    expect(productsActions).toContain("assertAllowedMediaMimeType");
-    expect(productsActions).toContain("upsertMediaAssetRecord");
+    expect(productsActions).toContain("uploadProductImagesForDraft");
+    expect(productsActions).toContain("linkUploadedImagesToProduct");
   });
 
   it("switches the control plane to a minimal dark enterprise theme", () => {

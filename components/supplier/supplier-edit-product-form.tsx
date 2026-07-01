@@ -43,6 +43,7 @@ export function SupplierEditProductForm({
   return (
     <>
       <form
+        encType="multipart/form-data"
         action={formAction}
         data-supplier-product-edit-form
         className="relative grid gap-3 rounded-[8px] border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] p-5"

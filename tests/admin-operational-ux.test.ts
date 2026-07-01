@@ -134,8 +134,10 @@ describe("admin operational UX", () => {
     expect(page).toContain("snapshot.data.categories");
     expect(page).toContain("saveProductCategoryFormAction");
     expect(page).toContain("deleteProductCategoryFormAction");
-    expect(page).toContain("data-product-local-image-upload");
-    expect(page).toContain("name=\"image_file\"");
+    expect(page).toContain("ProductMultiImageField");
+    const multiImageField = readFileSync(join(process.cwd(), "components/products/product-multi-image-field.tsx"), "utf8");
+    expect(multiImageField).toContain('name="image_files"');
+    expect(multiImageField).toContain("multiple");
     expect(page).toContain("data-product-supabase-storage-note");
     expect(page).toContain("mithron-products Storage bucket");
     expect(page).toContain("platformToolClass");
@@ -234,7 +236,7 @@ describe("admin operational UX", () => {
     const cmsPage = source("app/admin/cms/page.tsx");
     const cmsWorkspace = source("features/admin/cms/cms-visual-workspace.tsx");
 
-    expect(productsPage).toContain("data-product-local-image-upload");
+    expect(productsPage).toContain("ProductMultiImageField");
     expect(productsPage).toContain("id=\"product-media\"");
     expect(productsPage).toContain("OperationalFeedback");
     expect(cmsPage).not.toContain("Editable website systems.");

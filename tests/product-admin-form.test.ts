@@ -221,8 +221,12 @@ describe("product admin draft form", () => {
     expect(pageSource).not.toContain("category_mode=new#create-product");
     expect(pageSource).not.toContain("startAddingCategory=");
     expect(pageSource).toContain("deleteProductCategoryFormAction");
-    expect(pageSource).toContain("data-product-local-image-upload");
-    expect(pageSource).toContain("name=\"image_file\"");
+    expect(pageSource).toContain("ProductMultiImageField");
+    expect(pageSource).toContain("data-product-create-media-fields");
+    const multiImageFieldSource = readFileSync(join(process.cwd(), "components/products/product-multi-image-field.tsx"), "utf8");
+    expect(multiImageFieldSource).toContain('name="image_files"');
+    expect(multiImageFieldSource).toContain("multiple");
+    expect(multiImageFieldSource).toContain('name="gallery_urls"');
     expect(pageSource).toContain("data-product-supabase-storage-note");
     expect(actionSource).toContain("buildProductCategoryMetadataFromFormData");
     expect(actionSource).toContain("saveProductCategoryFormAction");
@@ -234,10 +238,9 @@ describe("product admin draft form", () => {
     expect(actionSource).toContain("deleteProductCategoryFormAction");
     expect(actionSource).toContain("deleteAdminRecord(\"category_metadata\", \"route_key\"");
     expect(actionSource).toContain("Move or edit those products before deleting the category.");
-    expect(actionSource).toContain("uploadProductImageForDraft");
+    expect(actionSource).toContain("uploadProductImagesForDraft");
+    expect(actionSource).toContain("linkUploadedImagesToProduct");
     expect(actionSource).toContain("Add an image by uploading a local file or pasting an image URL.");
-    expect(actionSource).toContain("mithron-products");
-    expect(actionSource).toContain("upsertMediaAssetRecord");
     expect(actionSource).toContain("upsertProductMediaAssetRecord");
     expect(actionSource).not.toContain("getProducts()");
 

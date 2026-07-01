@@ -147,14 +147,18 @@ describe("enterprise media manager workflow", () => {
   it("wires product media upload with server action markers and validation", () => {
     const page = readFileSync(join(process.cwd(), "app/admin/products/page.tsx"), "utf8");
     const actions = readFileSync(join(process.cwd(), "app/admin/products/actions.ts"), "utf8");
+    const multiImageField = readFileSync(join(process.cwd(), "components/products/product-multi-image-field.tsx"), "utf8");
+    const uploadService = readFileSync(join(process.cwd(), "services/product-image-upload.ts"), "utf8");
 
     expect(page).toContain("data-product-create-media-fields");
-    expect(page).toContain("data-product-local-image-upload");
-    expect(page).toContain('type="file"');
-    expect(page).toContain("name=\"image_file\"");
-    expect(actions).toContain("assertAllowedMediaMimeType");
-    expect(actions).toContain("upsertMediaAssetRecord");
-    expect(actions).toContain("createOptimizedImageVariants");
+    expect(page).toContain("ProductMultiImageField");
+    expect(multiImageField).toContain('type="file"');
+    expect(multiImageField).toContain('name="image_files"');
+    expect(multiImageField).toContain("multiple");
+    expect(actions).toContain("uploadProductImagesForDraft");
+    expect(uploadService).toContain("assertAllowedMediaMimeType");
+    expect(uploadService).toContain("upsertMediaAssetRecord");
+    expect(uploadService).toContain("createOptimizedImageVariants");
   });
 
   it("keeps remote verification focused on canonical media persistence and Storage probes", () => {

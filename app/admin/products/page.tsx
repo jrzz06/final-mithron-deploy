@@ -10,6 +10,7 @@ import { ProductCatalogGrid, type ProductCatalogGridRow } from "./product-catalo
 import { ProductCategoryField, type ProductCategoryOption } from "./product-category-field";
 import { connectivityMessage, emptyMessage } from "@/lib/platform/copy";
 import { ProductCreateDetailFields } from "./product-create-detail-fields";
+import { ProductMultiImageField } from "@/components/products/product-multi-image-field";
 import { WarehouseCodeSelect } from "@/components/warehouse/warehouse-code-select";
 import { deriveProductSku } from "@/lib/product-sku";
 import { getCheckoutWarehouseCode } from "@/services/warehouse-config";
@@ -289,7 +290,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             </nav>
           </div>
           {activeTool === "create" ? (
-            <form id="create-product" action={saveProductDraftFormAction} data-product-create-panel data-product-table="mithron_products" className={`${platformPanelClass} grid gap-4 pt-2`}>
+            <form id="create-product" encType="multipart/form-data" action={saveProductDraftFormAction} data-product-create-panel data-product-table="mithron_products" className={`${platformPanelClass} grid gap-4 pt-2`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs text-[var(--platform-text-muted)]">Create product</p>
@@ -307,20 +308,13 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
                     />
                   </div>
                 </div>
-                <div data-product-create-media-fields className="grid gap-3">
-                  <label data-product-local-image-upload className="grid gap-1.5 text-sm">
-                    <span className={platformLabelClass}>Upload image</span>
-                    <input
-                      name="image_file"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/svg+xml"
-                      className={`${platformFieldClass} py-2 text-xs file:mr-3 file:rounded-md file:border-0 file:bg-[var(--platform-accent-soft)] file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-[var(--platform-text-secondary)]`}
-                    />
-                  </label>
-                  <label data-product-media-picker className="grid gap-1.5 text-sm">
-                    <span className={platformLabelClass}>Image URL</span>
-                    <input name="image_src" placeholder="Optional if uploading" className={platformFieldClass} />
-                  </label>
+                <div data-product-create-media-fields>
+                  <ProductMultiImageField
+                    variant="admin"
+                    labelClassName={platformLabelClass}
+                    fieldClassName={platformFieldClass}
+                    fileInputClassName={`${platformFieldClass} py-2 text-xs file:mr-3 file:rounded-md file:border-0 file:bg-[var(--platform-accent-soft)] file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-[var(--platform-text-secondary)]`}
+                  />
                 </div>
               </div>
               <div data-product-create-submit-bar className="flex flex-wrap items-center justify-between gap-3 pt-2">

@@ -1,9 +1,7 @@
 "use server";
 
-import sharp from "sharp";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { assertSupabaseAdminConfig } from "@/lib/env";
 import { getProductManagerSnapshot } from "@/services/admin";
 import {
   buildProductCategoryMetadataFromFormData,
@@ -22,7 +20,6 @@ import {
   deleteProductRecordSafely,
   recordEntityRevisionSnapshot,
   upsertAdminRecord,
-  upsertMediaAssetRecord,
   AdminRecordConflictError,
   updateAdminRecord,
   updateProductPublicationRecord,
@@ -36,25 +33,16 @@ import {
   saveProductInventory
 } from "@/services/product-inventory-workflow";
 import { buildProductInventoryWorkflowFromFormData } from "@/services/enterprise-admin-forms";
-import {
-  assertAllowedMediaMimeType,
-  buildMediaAssetId,
-  buildMediaAssetRecordFromFormData,
-  buildStorageObjectPath
-} from "@/services/media-manager";
-import {
-  buildOptimizedVariantStoragePath,
-  buildResponsiveVariantsMetadata,
-  buildSupabasePublicObjectUrl,
-  createOptimizedImageVariants,
-  findStoredOptimizedVariant,
-  findLargestStoredAvifVariant,
-  type StoredOptimizedImageVariant
-} from "@/services/media-optimization";
 import { markProductPublished } from "@/services/product-publish";
 import { appendBundlePricingSync } from "@/lib/catalog-pricing";
 import { revalidateCatalogSurfaces } from "@/lib/catalog-cache";
-import { autoCutoutIfNeeded } from "@/lib/catalog/auto-cutout";
+import {
+  buildProductGalleryMedia,
+  hasAnyProductImageInput,
+  linkUploadedImagesToProduct,
+  parseGalleryUrls
+} from "@/lib/product-gallery";
+import { uploadProductImagesForDraft } from "@/services/product-image-upload";
 
 async function currentActorContext() {
   const context = await getCurrentAuthContext();
@@ -114,14 +102,6 @@ function productActionErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
-function encodeObjectPath(path: string) {
-  return path.split("/").map((segment) => encodeURIComponent(segment)).join("/");
-}
-
-function isUploadFile(value: FormDataEntryValue | null): value is File {
-  return typeof File !== "undefined" && value instanceof File && value.size > 0;
-}
-
 function readOptionalFormText(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" && value.trim() ? value.trim() : "";
@@ -129,193 +109,6 @@ function readOptionalFormText(formData: FormData, key: string) {
 
 function normalizeCategoryName(value: string) {
   return value.trim().toLowerCase();
-}
-
-function slugifyProductName(value: string) {
-  const slug = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  if (!slug) {
-    throw new Error("Product name must contain letters or numbers before a local image can be uploaded.");
-  }
-
-  return slug;
-}
-
-async function readImageDimensions(buffer: Buffer, mimeType: string) {
-  if (!mimeType.startsWith("image/")) return { width: null as number | null, height: null as number | null };
-
-  try {
-    const metadata = await sharp(buffer, { failOn: "none" }).metadata();
-    return {
-      width: typeof metadata.width === "number" ? metadata.width : null,
-      height: typeof metadata.height === "number" ? metadata.height : null
-    };
-  } catch {
-    return { width: null as number | null, height: null as number | null };
-  }
-}
-
-async function uploadProductStorageObject(bucket: string, storagePath: string, contentType: string, buffer: Buffer) {
-  const config = assertSupabaseAdminConfig();
-  const uploadBody = new Uint8Array(buffer.byteLength);
-  uploadBody.set(buffer);
-
-  const response = await fetch(`${config.url}/storage/v1/object/${bucket}/${encodeObjectPath(storagePath)}`, {
-    method: "POST",
-    headers: {
-      apikey: config.serviceRoleKey,
-      Authorization: `Bearer ${config.serviceRoleKey}`,
-      "Content-Type": contentType,
-      "Cache-Control": "public, max-age=31536000, immutable",
-      "x-upsert": "false"
-    },
-    body: uploadBody
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Supabase Storage upload failed for ${bucket}/${storagePath}: ${response.status} ${response.statusText} ${text}`);
-  }
-
-  return buildSupabasePublicObjectUrl(config.url, bucket, storagePath);
-}
-
-async function uploadProductOptimizedVariants(bucket: string, storagePath: string, buffer: Buffer, mimeType: string) {
-  const config = assertSupabaseAdminConfig();
-  const variants = await createOptimizedImageVariants(buffer, mimeType);
-  const storedVariants: StoredOptimizedImageVariant[] = [];
-
-  for (const variant of variants) {
-    const variantStoragePath = buildOptimizedVariantStoragePath(storagePath, variant);
-    await uploadProductStorageObject(bucket, variantStoragePath, variant.mimeType, variant.buffer);
-    storedVariants.push({
-      ...variant,
-      storagePath: variantStoragePath,
-      publicUrl: buildSupabasePublicObjectUrl(config.url, bucket, variantStoragePath)
-    });
-  }
-
-  return storedVariants;
-}
-
-async function uploadProductImageForDraft(formData: FormData, actorId: string | null) {
-  const file = formData.get("image_file");
-  if (!isUploadFile(file)) return null;
-
-  const bucket = "mithron-products";
-  const mimeType = assertAllowedMediaMimeType(file.type || "application/octet-stream", bucket);
-  if (!mimeType.startsWith("image/")) {
-    throw new Error("Product image upload must be an image file.");
-  }
-  const maxImageBytes = 12 * 1024 * 1024;
-  if (file.size > maxImageBytes) {
-    throw new Error("Product image upload must be 12 MB or smaller.");
-  }
-
-  const productName = readOptionalFormText(formData, "name");
-  const productSlug = readOptionalFormText(formData, "slug") || slugifyProductName(productName);
-  const uploadedAt = new Date().toISOString();
-  const rawBuffer = Buffer.from(await file.arrayBuffer());
-  const cutoutResult = await autoCutoutIfNeeded(rawBuffer, mimeType);
-  const buffer = cutoutResult.buffer;
-  const processedMimeType = cutoutResult.mimeType;
-  const uploadFileName = cutoutResult.wasProcessed
-    ? file.name.replace(/\.[^.]+$/, "") + ".cutout.webp"
-    : file.name;
-  const storagePath = buildStorageObjectPath({
-    bucket,
-    folder: `products/${productSlug}`,
-    fileName: uploadFileName,
-    at: uploadedAt
-  });
-  const sourceDimensions = await readImageDimensions(buffer, processedMimeType);
-  const publicUrl = await uploadProductStorageObject(bucket, storagePath, processedMimeType, buffer);
-  const optimizedVariants = await uploadProductOptimizedVariants(bucket, storagePath, buffer, processedMimeType);
-  const storedPath = storagePath;
-  const storedMimeType = processedMimeType;
-  const storedSizeBytes = buffer.byteLength;
-  const storedWidth = sourceDimensions.width;
-  const storedHeight = sourceDimensions.height;
-  const thumbnailVariant = findStoredOptimizedVariant(optimizedVariants, "thumbnail", "webp");
-  const webpVariant = findStoredOptimizedVariant(optimizedVariants, "large", "webp");
-  const avifVariant = findLargestStoredAvifVariant(optimizedVariants);
-  const optimizedUploadedBytes = optimizedVariants.reduce((total, variant) => total + variant.sizeBytes, 0);
-  const mediaAssetId = buildMediaAssetId(bucket, storedPath);
-  const recordForm = new FormData();
-  recordForm.set("id", mediaAssetId);
-  recordForm.set("bucket", bucket);
-  recordForm.set("folder", `products/${productSlug}`);
-  recordForm.set("storage_path", storedPath);
-  recordForm.set("public_url", publicUrl);
-  recordForm.set("mime_type", storedMimeType);
-  recordForm.set("file_size_bytes", String(storedSizeBytes));
-  recordForm.set("visibility", "public");
-  recordForm.set("usage_scope", "product-catalog");
-  recordForm.set("tags", `product, ${productSlug}`);
-  recordForm.set("alt_text", productName || productSlug);
-  recordForm.set("caption", productName || productSlug);
-  if (thumbnailVariant) recordForm.set("thumbnail_path", thumbnailVariant.storagePath);
-  if (webpVariant) recordForm.set("webp_path", webpVariant.storagePath);
-  if (avifVariant) recordForm.set("avif_path", avifVariant.storagePath);
-  recordForm.set("responsive_variants", JSON.stringify(buildResponsiveVariantsMetadata(optimizedVariants, {
-    width: sourceDimensions.width,
-    height: sourceDimensions.height,
-    sizeBytes: file.size,
-    mimeType,
-    storagePath,
-    publicUrl,
-    uploadedBytes: optimizedUploadedBytes
-  })));
-  recordForm.set("upload_metadata", JSON.stringify({
-    original_file_name: file.name,
-    original_mime_type: mimeType,
-    original_size_bytes: file.size,
-    original_storage_path: storagePath,
-    original_public_url: publicUrl,
-    optimized_uploaded_bytes: optimizedUploadedBytes,
-    product_slug: productSlug,
-    source: "admin-product-create",
-    catalog_delivery: "original-primary-plus-responsive-variants",
-    cutout: cutoutResult.wasProcessed
-      ? {
-        autoProcessed: true,
-        metrics: cutoutResult.metrics ?? null
-      }
-      : cutoutResult.skipped
-        ? {
-          autoProcessed: false,
-          skipped: true,
-          skipReason: cutoutResult.skipReason ?? null,
-          metrics: cutoutResult.metrics ?? null
-        }
-        : {
-          autoProcessed: false,
-          alreadyCutout: true,
-          metrics: cutoutResult.metrics ?? null
-        }
-  }));
-  if (storedWidth) recordForm.set("width", String(storedWidth));
-  if (storedHeight) recordForm.set("height", String(storedHeight));
-
-  await upsertMediaAssetRecord(
-    buildMediaAssetRecordFromFormData(recordForm, { actorId, at: uploadedAt }),
-    actorId
-  );
-
-  formData.set("image_src", publicUrl);
-  formData.set("hero_src", publicUrl);
-
-  return {
-    bucket,
-    storagePath,
-    optimizedStoragePath: webpVariant?.storagePath ?? null,
-    publicUrl,
-    mediaAssetId
-  };
 }
 
 async function runProductAction(
@@ -346,11 +139,25 @@ async function runProductAction(
 export async function saveProductDraftFormAction(formData: FormData) {
   await runProductAction("Product draft saved.", async () => {
     const { actorId, actorRole } = await currentActorContext();
-    const uploadedProductImage = await uploadProductImageForDraft(formData, actorId);
-    if (!uploadedProductImage && !readOptionalFormText(formData, "image_src") && !readOptionalFormText(formData, "image")) {
+    const uploadedImages = await uploadProductImagesForDraft(formData, actorId, "admin-product-create", {
+      applyAutoCutout: true
+    });
+    if (!hasAnyProductImageInput(formData, uploadedImages.length)) {
       throw new Error("Add an image by uploading a local file or pasting an image URL.");
     }
     const draftInput = buildProductDraftFromFormData(formData);
+    const productName = String(draftInput.fields.name ?? "");
+    const mergedGallery = buildProductGalleryMedia({
+      primarySrc: readOptionalFormText(formData, "image_src"),
+      primaryAlt: productName,
+      uploadedUrls: uploadedImages.map((upload) => upload.publicUrl),
+      extraUrls: parseGalleryUrls(formData)
+    });
+    if (mergedGallery) {
+      draftInput.fields.image = mergedGallery.image;
+      draftInput.fields.hero = mergedGallery.hero;
+      draftInput.fields.gallery = mergedGallery.gallery;
+    }
     draftInput.fields = await applyProductDescriptionSaveNormalization(draftInput.fields);
     const record = await upsertProductRecord(
       {
@@ -370,28 +177,12 @@ export async function saveProductDraftFormAction(formData: FormData) {
         auditAction: "products.inventory_init"
       });
     }
-    if (uploadedProductImage) {
-      await upsertProductMediaAssetRecord(
-        {
-          product_slug: draftInput.identity.slug,
-          media_asset_id: uploadedProductImage.mediaAssetId,
-          usage: "primary",
-          sort_order: 0,
-          is_primary: true,
-          alt_text: String(draftInput.fields.name),
-          caption: String(draftInput.fields.name),
-          metadata: {
-            bucket: uploadedProductImage.bucket,
-            storage_path: uploadedProductImage.storagePath,
-            optimized_storage_path: uploadedProductImage.optimizedStoragePath,
-            original_storage_path: uploadedProductImage.storagePath,
-            public_url: uploadedProductImage.publicUrl,
-            source: "admin-product-create"
-          },
-          updated_at: new Date().toISOString()
-        },
+    if (uploadedImages.length) {
+      await linkUploadedImagesToProduct(draftInput.identity.slug, uploadedImages, {
+        name: productName,
+        source: "admin-product-create",
         actorId
-      );
+      });
     }
     await recordProductAuditTrail(
       {
@@ -405,7 +196,7 @@ export async function saveProductDraftFormAction(formData: FormData) {
         metadata: {
           product_slug: draftInput.identity.slug,
           workflow_status: "draft",
-          uploaded_media_asset_id: uploadedProductImage?.mediaAssetId ?? null
+          uploaded_media_asset_ids: uploadedImages.map((upload) => upload.mediaAssetId)
         }
       }
     );

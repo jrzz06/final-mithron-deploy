@@ -9,7 +9,8 @@ import { readExpectedUpdatedAt } from "@/lib/admin/conflict-handling";
 import { parseSupplierProductForm, parseSupplierInventoryInit } from "@/lib/supplier/product-form";
 import { logSupplierProductFormDebug } from "@/lib/supplier/product-form-debug";
 import type { SupplierProductFormState } from "@/components/supplier/supplier-new-product-form";
-import { createNotificationRecord, fetchAdminRecordsByColumn, upsertProductMediaAssetRecord } from "@/services/admin-actions";
+import { createNotificationRecord, fetchAdminRecordsByColumn } from "@/services/admin-actions";
+import { linkUploadedImagesToProduct } from "@/lib/product-gallery";
 import { resolveSupplierProductImageFields, readProductImageSrc } from "@/lib/supplier/product-image";
 import { requirePermission } from "@/services/auth";
 import {
@@ -120,7 +121,7 @@ async function saveSupplierProductDraft(formData: FormData) {
     ...(inventoryInit ? { inventory_init: inventoryInit } : {})
   };
 
-  const { image, hero, gallery, uploadedImage } = await resolveSupplierProductImageFields(formData, {
+  const { image, hero, gallery, uploadedImages } = await resolveSupplierProductImageFields(formData, {
     slug,
     name,
     actorId: context.userId,
@@ -143,30 +144,13 @@ async function saveSupplierProductDraft(formData: FormData) {
     context.userId
   );
 
-  if (uploadedImage) {
-    await upsertProductMediaAssetRecord(
-      {
-        product_slug: slug,
-        media_asset_id: uploadedImage.mediaAssetId,
-        usage: "primary",
-        sort_order: 0,
-        is_primary: true,
-        alt_text: name,
-        caption: name,
-        metadata: {
-          bucket: uploadedImage.bucket,
-          storage_path: uploadedImage.storagePath,
-          optimized_storage_path: uploadedImage.optimizedStoragePath,
-          original_storage_path: uploadedImage.storagePath,
-          public_url: uploadedImage.publicUrl,
-          source: "supplier-product-create"
-        },
-        updated_at: new Date().toISOString()
-      },
-      context.userId,
-      undefined,
-      supplierProductMutationOptions
-    );
+  if (uploadedImages.length) {
+    await linkUploadedImagesToProduct(slug, uploadedImages, {
+      name,
+      source: "supplier-product-create",
+      actorId: context.userId,
+      mutationOptions: supplierProductMutationOptions
+    });
   }
 
   logSupplierProductFormDebug("insert success", { slug, workflow_status: "draft" });
@@ -248,11 +232,13 @@ export async function updateSupplierProductFormStateAction(
     const existingRows = await fetchAdminRecordsByColumn("mithron_products", "slug", slug);
     const existingImageSrc = readProductImageSrc(existingRows[0]?.image) || readProductImageSrc(existingRows[0]?.hero);
 
-    const { image, hero, gallery, uploadedImage } = await resolveSupplierProductImageFields(formData, {
+    const existingRow = existingRows[0];
+    const { image, hero, gallery, uploadedImages } = await resolveSupplierProductImageFields(formData, {
       slug,
       name,
       actorId: context.userId,
       existingImageSrc,
+      existingProductRow: existingRow,
       requireImage: false
     });
 
@@ -276,30 +262,13 @@ export async function updateSupplierProductFormStateAction(
       { expectedUpdatedAt: readExpectedUpdatedAt(formData, String(existingRows[0]?.updated_at ?? "")) }
     );
 
-    if (uploadedImage) {
-      await upsertProductMediaAssetRecord(
-        {
-          product_slug: slug,
-          media_asset_id: uploadedImage.mediaAssetId,
-          usage: "primary",
-          sort_order: 0,
-          is_primary: true,
-          alt_text: name,
-          caption: name,
-          metadata: {
-            bucket: uploadedImage.bucket,
-            storage_path: uploadedImage.storagePath,
-            optimized_storage_path: uploadedImage.optimizedStoragePath,
-            original_storage_path: uploadedImage.storagePath,
-            public_url: uploadedImage.publicUrl,
-            source: "supplier-product-update"
-          },
-          updated_at: new Date().toISOString()
-        },
-        context.userId,
-        undefined,
-        supplierProductMutationOptions
-      );
+    if (uploadedImages.length) {
+      await linkUploadedImagesToProduct(slug, uploadedImages, {
+        name,
+        source: "supplier-product-update",
+        actorId: context.userId,
+        mutationOptions: supplierProductMutationOptions
+      });
     }
     revalidatePath(`/supplier/products/${slug}/edit`);
     revalidatePath("/supplier/products");

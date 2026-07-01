@@ -86,6 +86,7 @@ export function SupplierNewProductForm({
       {debugEnabled ? <SupplierFormDebugPanel entries={debugEntries} /> : null}
 
       <form
+        encType="multipart/form-data"
         action={formAction}
         onInvalid={handleInvalid}
         onSubmit={handleSubmit}

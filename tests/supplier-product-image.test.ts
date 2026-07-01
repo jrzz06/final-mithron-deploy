@@ -24,9 +24,11 @@ describe("supplier product image helpers", () => {
 
     expect(createForm).toContain("SupplierProductImageField");
     expect(createForm).toContain('encType="multipart/form-data"');
-    expect(readFileSync(join(process.cwd(), "components/supplier/supplier-product-image-field.tsx"), "utf8")).toContain('name="image_src"');
+    expect(readFileSync(join(process.cwd(), "components/products/product-multi-image-field.tsx"), "utf8")).toContain('name="image_src"');
+    expect(readFileSync(join(process.cwd(), "components/products/product-multi-image-field.tsx"), "utf8")).toContain('name="image_files"');
+    expect(readFileSync(join(process.cwd(), "components/products/product-multi-image-field.tsx"), "utf8")).toContain("multiple");
     expect(editForm).toContain("SupplierProductImageField");
     expect(actions).toContain("resolveSupplierProductImageFields");
-    expect(actions).toContain("upsertProductMediaAssetRecord");
+    expect(actions).toContain("linkUploadedImagesToProduct");
   });
 });
