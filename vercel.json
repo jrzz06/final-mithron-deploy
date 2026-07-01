@@ -5,6 +5,12 @@
       "has": [{ "type": "host", "value": "mithron-flight-systems-kbkbkh.vercel.app" }],
       "destination": "https://final-mithron-deploy.vercel.app/:path*",
       "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "mithron-flight-systems-jrzz06-kbkbkh.vercel.app" }],
+      "destination": "https://final-mithron-deploy.vercel.app/:path*",
+      "permanent": true
     }
   ],
   "crons": [
