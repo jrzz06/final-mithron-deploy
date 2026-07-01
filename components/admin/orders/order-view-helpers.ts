@@ -58,6 +58,54 @@ export function publicOrderLabel(order: AdminRow) {
   return text(order.order_number) || text(order.id).slice(0, 8) || "Order";
 }
 
+/** Canonical URL/search key — full id when order_number is absent. */
+export function orderSelectionKey(order: AdminRow) {
+  return text(order.order_number) || text(order.id);
+}
+
+export function orderMatchesSelectionKey(order: AdminRow, key: string, orders?: AdminRow[]) {
+  const normalizedKey = key.trim();
+  if (!normalizedKey) return false;
+
+  const orderNumber = text(order.order_number);
+  const orderId = text(order.id);
+  if (orderNumber && orderNumber === normalizedKey) return true;
+  if (orderId && orderId === normalizedKey) return true;
+  if (publicOrderLabel(order) === normalizedKey) {
+    if (!orders?.length) return true;
+    const labelMatches = orders.filter((row) => publicOrderLabel(row) === normalizedKey);
+    return labelMatches.length === 1 && text(labelMatches[0]?.id) === orderId;
+  }
+
+  if (orderId && normalizedKey.length >= 8 && orderId.startsWith(normalizedKey)) {
+    if (!orders?.length) return true;
+    const matches = orders.filter((row) => text(row.id).startsWith(normalizedKey));
+    return matches.length === 1 && text(matches[0]?.id) === orderId;
+  }
+
+  return false;
+}
+
+export function resolveOrderBySelectionKey(orders: AdminRow[], key: string) {
+  const normalizedKey = key.trim();
+  if (!normalizedKey) return null;
+
+  const exact = orders.find(
+    (order) => text(order.order_number) === normalizedKey || text(order.id) === normalizedKey
+  );
+  if (exact) return exact;
+
+  const labelMatches = orders.filter((order) => publicOrderLabel(order) === normalizedKey);
+  if (labelMatches.length === 1) return labelMatches[0];
+
+  if (normalizedKey.length >= 8) {
+    const prefixMatches = orders.filter((order) => text(order.id).startsWith(normalizedKey));
+    if (prefixMatches.length === 1) return prefixMatches[0];
+  }
+
+  return null;
+}
+
 export function orderMetadata(order: AdminRow) {
   const metadata = order.metadata;
   return metadata && typeof metadata === "object" && !Array.isArray(metadata)
@@ -325,7 +373,8 @@ export function nextStepForOrder(order: AdminRow) {
   if (status === "pending_payment") {
     return {
       title: "Awaiting customer payment",
-      description: "This order is not paid yet. No admin action is required until payment succeeds.",
+      description:
+        "Payment is still pending. Primary verification is blocked until payment succeeds. Use Danger Zone below to cancel, archive, or move to trash if needed.",
       action: "none" as const,
       button: ""
     };

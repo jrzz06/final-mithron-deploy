@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AdminOrderActionForm } from "@/components/admin/admin-orders-optimistic";
 import { OperationalSubmitButton } from "@/components/admin/operational-submit-button";
 import { ActionGroup } from "@/components/admin/orders/order-detail-primitives";
+import { orderLongText } from "@/components/admin/orders/order-layout-utils";
 import {
   assignedWarehouseCode,
   canArchiveOrder,
@@ -80,11 +81,11 @@ export function AdminOrderActionsRail({
   return (
     <aside
       data-admin-order-actions-rail
-      className="grid gap-6 rounded-xl border border-[var(--platform-border)] bg-[var(--platform-surface)] p-5 shadow-sm max-xl:max-h-[42vh] max-xl:overflow-y-auto max-xl:rounded-none max-xl:border-x-0 max-xl:border-b-0 max-xl:shadow-none xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto"
+      className="grid w-full min-w-0 gap-6 rounded-xl border border-[var(--platform-border)] bg-[var(--platform-surface)] p-5 shadow-sm xl:sticky xl:top-4 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto"
     >
-      <div>
+      <div className="min-w-0">
         <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--platform-text-muted)]">Actions</h3>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--platform-text-secondary)]">{nextStep.description}</p>
+        <p className={`mt-2 text-sm leading-relaxed text-[var(--platform-text-secondary)] ${orderLongText}`}>{nextStep.description}</p>
       </div>
 
       <ActionGroup title="Fulfillment">

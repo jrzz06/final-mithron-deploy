@@ -13,7 +13,6 @@ import { ProductCreateDetailFields } from "./product-create-detail-fields";
 import { WarehouseCodeSelect } from "@/components/warehouse/warehouse-code-select";
 import { deriveProductSku } from "@/lib/product-sku";
 import { getCheckoutWarehouseCode } from "@/services/warehouse-config";
-import { pickWarehouseStockRow } from "@/services/simple-inventory-view";
 import { listActiveWarehouses } from "@/services/warehouses";
 
 const platformLabelClass = "text-xs text-[var(--platform-text-muted)]";
@@ -155,10 +154,9 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const productRows: ProductCatalogGridRow[] = filteredProducts.map((product) => {
     const slug = String(product.slug ?? "");
     const inventory = inventoryBySlug.get(slug);
-    const stock = pickWarehouseStockRow(snapshot.data.stock, slug, checkoutWarehouseCode);
     const status = String(product.workflow_status ?? "published");
     const stockStatus = String(inventory?.stock_status ?? "unlinked");
-    const checkoutAvailable = Number(stock?.available_quantity ?? inventory?.quantity ?? 0);
+    const checkoutAvailable = Number(inventory?.quantity ?? 0);
     return {
       id: slug || String(product.name ?? "product"),
       title: String(product.name ?? product.slug ?? "Product"),

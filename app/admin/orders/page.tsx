@@ -18,6 +18,10 @@ import { createShipmentFormAction, updateWarehouseOrderLifecycleFormAction } fro
 import { getWarehouseSnapshot } from "@/services/admin";
 import { getAdminSettingsPolicy } from "@/services/admin-settings-policy";
 import { listActiveWarehouses } from "@/services/warehouses";
+import {
+  orderSelectionKey,
+  resolveOrderBySelectionKey
+} from "@/components/admin/orders/order-view-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -245,13 +249,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
   const query = searchValue(params, "q").toLowerCase();
 
   const queueOrders = snapshot.data.orders.filter((order) => matchesAdminOrderQueue(order, queue));
-  const selectedOrder = queueOrders.find(
-    (order) => text(order.order_number) === selectedKey || text(order.id) === selectedKey
-  ) ?? snapshot.data.orders.find(
-    (order) => text(order.order_number) === selectedKey || text(order.id) === selectedKey
-  ) ?? null;
+  const selectedOrder =
+    resolveOrderBySelectionKey(queueOrders, selectedKey)
+    ?? resolveOrderBySelectionKey(snapshot.data.orders, selectedKey);
   const selectedOrderId = selectedOrder ? text(selectedOrder.id) : "";
-  const selectedOrderKey = selectedOrder ? text(selectedOrder.order_number) || selectedOrderId : selectedKey;
+  const selectedOrderKey = selectedOrder ? orderSelectionKey(selectedOrder) : selectedKey;
 
   const needsActionCount = countNeedsAction(snapshot.data.orders);
 
@@ -270,7 +272,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams?:
       <AdminOrdersWorkspace
         orders={snapshot.data.orders}
         orderItems={snapshot.data.orderItems}
-        stock={snapshot.data.stock}
+        inventory={snapshot.data.inventory}
         shipments={snapshot.data.shipments}
         products={snapshot.data.products}
         warehouses={warehouses}

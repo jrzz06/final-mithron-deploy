@@ -6,6 +6,7 @@ import {
   OrderDetailSection,
   OrderField,
   OrderFieldGrid,
+  OrderIdText,
   orderHoverClass
 } from "@/components/admin/orders/order-detail-primitives";
 import { OrderStatusBadge } from "@/components/admin/orders/order-status-badge";
@@ -79,8 +80,26 @@ export function AdminOrderPaymentSection({ order, orderId }: AdminOrderPaymentSe
       ) : primaryPayment ? (
         <div className={`mt-4 rounded-lg border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] p-4 ${orderHoverClass()}`}>
           <OrderFieldGrid columns={2}>
-            <OrderField label="Transaction ID" value={text(primaryPayment.provider_payment_id, "—")} />
-            <OrderField label="Intent ID" value={text(primaryPayment.provider_intent_id, "—")} />
+            <OrderField
+              label="Transaction ID"
+              value={
+                text(primaryPayment.provider_payment_id) ? (
+                  <OrderIdText value={text(primaryPayment.provider_payment_id)} showCopy className="font-mono text-xs" />
+                ) : (
+                  "—"
+                )
+              }
+            />
+            <OrderField
+              label="Intent ID"
+              value={
+                text(primaryPayment.provider_intent_id) ? (
+                  <OrderIdText value={text(primaryPayment.provider_intent_id)} showCopy className="font-mono text-xs" />
+                ) : (
+                  "—"
+                )
+              }
+            />
             <OrderField label="Gateway status" value={text(primaryPayment.status, "—")} />
             {primaryPayment.verified_at ? (
               <OrderField

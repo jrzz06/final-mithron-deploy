@@ -158,8 +158,7 @@ site_url = "https://final-mithron-deploy.vercel.app"
 additional_redirect_urls = [
   "http://127.0.0.1:3000/**",
   "http://localhost:3000/**",
-  "https://final-mithron-deploy.vercel.app/**",
-  "https://mithron-flight-systems-*-kbkbkh.vercel.app/**"
+  "https://final-mithron-deploy.vercel.app/**"
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

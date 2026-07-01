@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { publicOrderLabel, text, type AdminRow } from "@/components/admin/orders/order-view-helpers";
+import {
+  orderMatchesSelectionKey,
+  orderSelectionKey,
+  text,
+  type AdminRow
+} from "@/components/admin/orders/order-view-helpers";
 
 type UseAdminOrdersKeyboardInput = {
   orders: AdminRow[];
@@ -65,17 +70,16 @@ export function useAdminOrdersKeyboard({
 
       if (!orders.length) return;
 
-      const currentIndex = orders.findIndex((order) => {
-        const label = publicOrderLabel(order);
-        return selectedKey === label || selectedOrderId === text(order.id);
-      });
+      const currentIndex = orders.findIndex((order) =>
+        orderMatchesSelectionKey(order, selectedKey, orders) || selectedOrderId === text(order.id)
+      );
       const baseIndex = currentIndex >= 0 ? currentIndex : focusedIndex;
 
       if (event.key === "ArrowDown") {
         event.preventDefault();
         const next = Math.min(orders.length - 1, baseIndex < 0 ? 0 : baseIndex + 1);
         onFocusIndex(next);
-        selectOrder(publicOrderLabel(orders[next]));
+        selectOrder(orderSelectionKey(orders[next]));
         return;
       }
 
@@ -83,7 +87,7 @@ export function useAdminOrdersKeyboard({
         event.preventDefault();
         const next = Math.max(0, baseIndex < 0 ? 0 : baseIndex - 1);
         onFocusIndex(next);
-        selectOrder(publicOrderLabel(orders[next]));
+        selectOrder(orderSelectionKey(orders[next]));
       }
     }
 

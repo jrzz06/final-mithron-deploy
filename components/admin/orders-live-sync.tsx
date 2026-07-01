@@ -18,6 +18,7 @@ export function OrdersLiveSync({ enabled = true }: { enabled?: boolean }) {
         if (
           event.table === "orders"
           || event.table === "order_items"
+          || event.table === "inventory"
           || event.table === "contact_requests"
           || event.table === "notifications"
         ) {

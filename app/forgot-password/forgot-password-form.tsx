@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { recordClientAuthEvent } from "@/lib/auth/audit-client";
+import { resolveClientAuthOrigin } from "@/lib/site-url";
 import styles from "../auth/auth-page.module.css";
 
 type ForgotPasswordFormProps = {
@@ -22,7 +23,7 @@ export function ForgotPasswordForm({ auditToken }: ForgotPasswordFormProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email,
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: `${resolveClientAuthOrigin()}/reset-password`
       })
     });
     if (!response.ok) {

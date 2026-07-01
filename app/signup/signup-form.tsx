@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { recordClientAuthEvent } from "@/lib/auth/audit-client";
+import { resolveClientAuthOrigin } from "@/lib/site-url";
 import styles from "../auth/auth-page.module.css";
 
 export function SignupForm({ inviteToken }: { inviteToken?: string }) {
@@ -14,7 +15,7 @@ export function SignupForm({ inviteToken }: { inviteToken?: string }) {
     event.preventDefault();
     setStatus("submitting");
     setMessage(null);
-    const redirectTo = `${window.location.origin}/auth/callback?next=/onboarding`;
+    const redirectTo = `${resolveClientAuthOrigin()}/auth/callback?next=/onboarding`;
     const response = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

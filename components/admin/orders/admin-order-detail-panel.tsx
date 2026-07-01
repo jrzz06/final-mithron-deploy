@@ -30,7 +30,7 @@ export function AdminOrderDetailPanel({ orderId, children }: AdminOrderDetailPan
   return (
     <div
       data-admin-order-detail-panel
-      className={`min-h-[560px] ${orderPanelEnterClass(reducedMotion, reducedMotion || visible)}`}
+      className={`min-h-0 min-w-0 ${orderPanelEnterClass(reducedMotion, reducedMotion || visible)}`}
     >
       <div key={orderId} className={orderContentSwapClass(reducedMotion)}>
         {children}
@@ -43,7 +43,7 @@ export function AdminOrderDetailEmpty() {
   return (
     <div
       data-order-detail-panel
-      className="flex min-h-[560px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-[var(--platform-border)] bg-[var(--platform-surface-muted)]/30 px-8 py-12 text-center"
+      className="flex min-h-[min(320px,50vh)] min-w-0 flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-[var(--platform-border)] bg-[var(--platform-surface-muted)]/30 px-8 py-12 text-center"
     >
       <div className="grid h-14 w-14 place-items-center rounded-full bg-[var(--platform-surface-muted)] text-[var(--platform-text-muted)]">
         <ClipboardList className="h-7 w-7" aria-hidden />

@@ -86,17 +86,10 @@ export function readAdminNumber(value: unknown, fallback = 0) {
   return asNumber(value, fallback);
 }
 
-export function pickWarehouseStockRow(stock: AdminRow[], productSlug: string, preferredWarehouseCode: string) {
-  const rows = stock.filter((row) => asText(row.product_slug, "") === productSlug);
-  if (!rows.length) return undefined;
-  return rows.find((row) => asText(row.warehouse_code, "") === preferredWarehouseCode) ?? rows[0];
-}
-
-/** Builds exactly one warehouse inventory row per product in the loaded set. */
+/** Builds exactly one inventory row per product in the loaded set. */
 export function buildSimpleInventoryRows(
   products: AdminRow[],
   inventory: AdminRow[],
-  stock: AdminRow[],
   preferredWarehouseCode = ""
 ): SimpleInventoryRow[] {
   const inventoryBySlug = new Map<string, AdminRow>();
@@ -112,9 +105,8 @@ export function buildSimpleInventoryRows(
   const rows = products.map((product) => {
     const productSlug = asText(product.slug, "");
     const inv = inventoryBySlug.get(productSlug);
-    const stockRow = pickWarehouseStockRow(stock, productSlug, preferredWarehouseCode);
     const sku = asText(inv?.sku, deriveProductSku(productSlug));
-    const warehouseCode = asText(stockRow?.warehouse_code, preferredWarehouseCode);
+    const warehouseCode = preferredWarehouseCode;
     const quantity = asNumber(inv?.quantity);
     const price = asNumber(product.price);
 
@@ -124,15 +116,15 @@ export function buildSimpleInventoryRows(
       productName: asText(product.name, productSlug),
       productImage: productImage(product),
       sku,
-      variantId: asText(inv?.variant_id ?? stockRow?.variant_id, "") || null,
+      variantId: asText(inv?.variant_id, "") || null,
       warehouseCode,
       stockStatus: asStockStatus(inv?.stock_status, quantity, product),
       quantity,
       category: asText(product.category, "Uncategorized"),
       price,
       inventoryValue: price * quantity,
-      lastUpdated: asText(inv?.updated_at ?? stockRow?.updated_at ?? stockRow?.last_counted_at, "") || null,
-      warehouseUpdatedAt: asText(stockRow?.updated_at ?? stockRow?.last_counted_at, "") || null,
+      lastUpdated: asText(inv?.updated_at, "") || null,
+      warehouseUpdatedAt: null,
       inventoryUpdatedAt: asText(inv?.updated_at, "") || null,
       supplierName: asText(product.supplier_name, ""),
       isArchived: isProductArchived(product)

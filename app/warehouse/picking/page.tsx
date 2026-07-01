@@ -7,7 +7,7 @@ import { WarehouseOpsLiveSync } from "@/components/warehouse/warehouse-ops-live-
 import { getWarehouseSnapshot } from "@/services/admin";
 import { getAdminSettingsPolicy } from "@/services/admin-settings-policy";
 import { getCurrentAuthContext } from "@/services/auth";
-import { filterOrdersForWarehouseScope, filterStockForWarehouseScope, resolveWarehouseScope } from "@/services/warehouse-scope";
+import { filterOrdersForWarehouseScope, resolveWarehouseScope } from "@/services/warehouse-scope";
 import { updateWarehouseOrderLifecycleFormAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -59,9 +59,6 @@ export default async function PickingQueuePage({ searchParams }: { searchParams?
   const params = searchParams ? await searchParams : {};
   const operationStatus = value(params, "operation_status");
   const operationMessage = value(params, "operation_message");
-  const stockBySku = new Map(
-    filterStockForWarehouseScope(snapshot.data.stock, scope).map((row) => [`${text(row.product_slug, "")}:${text(row.sku, "")}`, row])
-  );
   const itemsByOrder = new Map<string, Array<Record<string, unknown>>>();
   for (const item of snapshot.data.orderItems) {
     const orderId = text(item.order_id, "");
@@ -84,7 +81,6 @@ export default async function PickingQueuePage({ searchParams }: { searchParams?
     return orderItems.map((item, index) => {
       const sku = text(item.sku, "sku");
       const productSlug = text(item.product_slug, "product");
-      const stock = stockBySku.get(`${productSlug}:${sku}`);
       return {
         orderId,
         orderNumber: text(order.order_number, orderId),
@@ -95,7 +91,7 @@ export default async function PickingQueuePage({ searchParams }: { searchParams?
         productName: text(item.product_name, productSlug),
         productSlug,
         quantity: Number(item.quantity ?? 0),
-        warehouseCode: text(stock?.warehouse_code, assignedWarehouse),
+        warehouseCode: assignedWarehouse,
         lineIndex: index,
         lineCount: orderItems.length
       };

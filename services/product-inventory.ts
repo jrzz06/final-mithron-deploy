@@ -1,7 +1,7 @@
 import { assertSupabaseAdminConfig } from "@/lib/env";
 import { deriveProductSku } from "@/lib/product-sku";
-import { upsertInventoryRecord, upsertWarehouseStockRecord, updateAdminRecord } from "@/services/admin-actions";
-import { availabilityLabelFromQuantity, stockStatusFromQuantity } from "@/services/inventory";
+import { upsertInventoryRecord, updateAdminRecord } from "@/services/admin-actions";
+import { availabilityLabelFromQuantity, stockStatusFromQuantity } from "@/lib/inventory-availability";
 import type { ProductInventoryWorkflowInput } from "@/services/enterprise-admin-forms";
 
 export { deriveProductSku };
@@ -36,22 +36,6 @@ async function upsertProductInventoryViaAdminRecords(
       reorder_threshold: 0,
       updated_by: actorId,
       updated_at: now
-    },
-    actorId,
-    env
-  );
-
-  await upsertWarehouseStockRecord(
-    {
-      warehouse_code: input.warehouseCode,
-      product_slug: input.productSlug,
-      sku,
-      variant_id: input.variantId,
-      available_quantity: input.quantity,
-      committed_quantity: 0,
-      updated_by: actorId,
-      updated_at: now,
-      last_counted_at: now
     },
     actorId,
     env

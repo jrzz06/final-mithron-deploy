@@ -1,8 +1,9 @@
 "use client";
 
 import { OrderProductThumbnail } from "@/components/admin/orders/order-product-thumbnail";
+import { OrderIdText, orderHoverClass } from "@/components/admin/orders/order-detail-primitives";
 import { OrderStatusBadge } from "@/components/admin/orders/order-status-badge";
-import { orderHoverClass } from "@/components/admin/orders/order-detail-primitives";
+import { orderClamp2, orderLongText, orderWrapRow } from "@/components/admin/orders/order-layout-utils";
 import { humanStatus } from "@/lib/platform/copy";
 import { resolveNextImageSrc } from "@/lib/media/next-image-src";
 import {
@@ -88,12 +89,10 @@ export function AdminOrderListItem({
       } ${isPending ? "opacity-60" : ""}`}
     >
       <div className="grid gap-3">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-          <p className="truncate text-base font-bold leading-snug text-[var(--platform-text-primary)]" title={orderNumber}>
-            {orderNumber}
-          </p>
-          <div className="flex max-w-[46%] flex-col items-end gap-1.5">
-            <p className="whitespace-nowrap text-sm font-semibold text-[var(--platform-text-primary)]">
+        <div className={`${orderWrapRow} justify-between gap-x-3 gap-y-2`}>
+          <OrderIdText value={orderNumber} className="min-w-0 flex-1" showCopy={false} />
+          <div className="flex min-w-0 flex-wrap items-start justify-end gap-2">
+            <p className={`shrink-0 text-sm font-semibold text-[var(--platform-text-primary)] ${orderLongText}`}>
               {moneyText(order.total)}
             </p>
             <OrderStatusBadge status={text(order.status, "pending")} className="max-w-full" />
@@ -101,8 +100,12 @@ export function AdminOrderListItem({
         </div>
 
         <div className="space-y-1">
-          <p className="truncate text-sm font-semibold text-[var(--platform-text-primary)]">{customerName(order)}</p>
-          <p className="truncate text-xs text-[var(--platform-text-muted)]">{text(order.customer_email, "No email")}</p>
+          <p className={`${orderClamp2} ${orderLongText} text-sm font-semibold text-[var(--platform-text-primary)]`}>
+            {customerName(order)}
+          </p>
+          <p className={`truncate text-xs text-[var(--platform-text-muted)]`} title={text(order.customer_email, "No email")}>
+            {text(order.customer_email, "No email")}
+          </p>
         </div>
 
         <div className="flex items-start gap-3">
@@ -125,9 +128,9 @@ export function AdminOrderListItem({
             <span>{time}</span>
           </p>
           <div className="flex flex-wrap items-center gap-2 text-[11px] leading-5 text-[var(--platform-text-muted)]">
-            <span className="truncate">{paymentLabel}</span>
+            <span className={orderLongText}>{paymentLabel}</span>
             {priority ? (
-              <span className={`inline-flex h-5 shrink-0 items-center rounded-md border px-2 text-[10px] font-medium ${priority.className}`}>
+              <span className={`inline-flex h-auto min-h-5 shrink-0 items-center rounded-md border px-2 py-0.5 text-[10px] font-medium ${priority.className} ${orderLongText}`}>
                 {priority.label}
               </span>
             ) : null}

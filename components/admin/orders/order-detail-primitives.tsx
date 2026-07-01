@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { Copy } from "lucide-react";
 import { OrderStatusBadge } from "@/components/admin/orders/order-status-badge";
+import { orderLongText, orderTruncateEllipsis } from "@/components/admin/orders/order-layout-utils";
 import {
   assignedWarehouseCode,
   orderPriorityBadge,
@@ -33,14 +35,13 @@ export function OrderDetailShell({ children, scrollRef }: OrderDetailShellProps)
   return (
     <div
       data-order-detail-panel
-      className="flex min-h-[560px] flex-col overflow-hidden rounded-xl border border-[var(--platform-border)] bg-[var(--platform-surface)] shadow-sm"
+      className="flex min-h-0 min-w-0 flex-col rounded-xl border border-[var(--platform-border)] bg-[var(--platform-surface)] shadow-sm"
     >
       <div
         ref={scrollRef}
         className="min-h-0 flex-1 overflow-y-auto px-4 py-5 xl:px-6"
-        style={{ maxHeight: "calc(100vh - 10rem)" }}
       >
-        <div className="grid gap-5">{children}</div>
+        <div className="grid min-w-0 gap-5">{children}</div>
       </div>
     </div>
   );
@@ -64,7 +65,7 @@ export function OrderDetailCard({
   return (
     <section
       {...(dataAttribute ? { [dataAttribute]: true } : {})}
-      className={`rounded-xl border border-[var(--platform-border)] bg-[var(--platform-surface)] shadow-sm ${
+      className={`min-w-0 rounded-xl border border-[var(--platform-border)] bg-[var(--platform-surface)] shadow-sm ${
         hero ? "p-6 xl:p-8" : "p-6"
       } ${className}`}
     >
@@ -106,7 +107,7 @@ export function OrderDetailSection({
   return (
     <section
       {...(dataAttribute ? { [dataAttribute]: true } : {})}
-      className={`rounded-xl border border-[var(--platform-border)] bg-[var(--platform-surface)] p-6 shadow-sm ${className}`}
+      className={`min-w-0 rounded-xl border border-[var(--platform-border)] bg-[var(--platform-surface)] p-6 shadow-sm ${className}`}
     >
       <button
         type="button"
@@ -138,10 +139,58 @@ export function OrderFieldGrid({ children, columns = 1 }: { children: ReactNode;
 
 export function OrderField({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="grid grid-cols-[minmax(96px,36%)_1fr] items-baseline gap-x-3 gap-y-1">
+    <div className="grid min-w-0 gap-1 sm:grid-cols-[minmax(5.5rem,30%)_minmax(0,1fr)] sm:items-start sm:gap-x-3 sm:gap-y-1">
       <dt className="text-xs text-[var(--platform-text-muted)]">{label}</dt>
-      <dd className="text-sm font-medium text-[var(--platform-text-primary)]">{value}</dd>
+      <dd className={`text-sm font-medium text-[var(--platform-text-primary)] ${orderLongText}`}>{value}</dd>
     </div>
+  );
+}
+
+type OrderIdTextProps = {
+  value: string;
+  className?: string;
+  heading?: boolean;
+  showCopy?: boolean;
+};
+
+export function OrderIdText({ value, className = "", heading = false, showCopy = true }: OrderIdTextProps) {
+  const [copied, setCopied] = useState(false);
+  const Tag = heading ? "h2" : "span";
+
+  async function copyId() {
+    if (!value || !navigator.clipboard?.writeText) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore clipboard failures
+    }
+  }
+
+  return (
+    <span className={`inline-flex min-w-0 max-w-full items-start gap-2 ${className}`}>
+      <Tag
+        className={`${orderTruncateEllipsis} ${heading ? "text-2xl font-bold text-[var(--platform-text-primary)]" : "text-base font-bold leading-snug text-[var(--platform-text-primary)]"}`}
+        title={value}
+      >
+        {value}
+      </Tag>
+      {showCopy && value ? (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            void copyId();
+          }}
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[var(--platform-border)] text-[var(--platform-text-muted)] hover:bg-[var(--platform-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
+          aria-label={copied ? "Copied order ID" : "Copy order ID"}
+          title={copied ? "Copied" : "Copy order ID"}
+        >
+          <Copy className="h-3.5 w-3.5" aria-hidden />
+        </button>
+      ) : null}
+    </span>
   );
 }
 
@@ -164,18 +213,18 @@ export function OrderStatusStrip({ order, defaultWarehouseCode }: OrderStatusStr
   const priority = priorityLabel(orderPriorityBadge(order));
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-start gap-2">
       <OrderStatusBadge status={text(order.status, "pending")} />
       <OrderStatusBadge status={text(order.payment_status, "not_required")} />
       <OrderStatusBadge status={text(order.fulfillment_status, "pending")} />
-      <span className="inline-flex h-6 items-center rounded-md border border-[var(--platform-border)] px-2.5 text-xs text-[var(--platform-text-secondary)]">
+      <span className={`inline-flex h-auto min-h-6 max-w-full items-center rounded-md border border-[var(--platform-border)] px-2.5 py-0.5 text-xs text-[var(--platform-text-secondary)] ${orderLongText}`}>
         Invoice: {invoiceStatus.replaceAll("_", " ")}
       </span>
-      <span className="inline-flex h-6 items-center rounded-md border border-[var(--platform-border)] px-2.5 text-xs text-[var(--platform-text-secondary)]">
+      <span className={`inline-flex h-auto min-h-6 max-w-full items-center rounded-md border border-[var(--platform-border)] px-2.5 py-0.5 text-xs text-[var(--platform-text-secondary)] ${orderLongText}`}>
         WH {warehouse}
       </span>
       {priority ? (
-        <span className={`inline-flex h-6 items-center rounded-md border px-2.5 text-xs font-medium ${priority.className}`}>
+        <span className={`inline-flex h-auto min-h-6 max-w-full items-center rounded-md border px-2.5 py-0.5 text-xs font-medium ${priority.className} ${orderLongText}`}>
           {priority.label}
         </span>
       ) : null}
@@ -192,20 +241,20 @@ export function OrderStockBadge({
 }) {
   if (available <= 0) {
     return (
-      <span className={`inline-flex h-6 items-center rounded-md border border-rose-500/30 bg-rose-500/10 px-2.5 text-xs font-medium text-rose-200 ${className}`}>
+      <span className={`inline-flex h-auto min-h-6 max-w-full items-center rounded-md border border-rose-500/30 bg-rose-500/10 px-2.5 py-0.5 text-xs font-medium text-rose-200 ${orderLongText} ${className}`}>
         Out of stock
       </span>
     );
   }
   if (available <= 5) {
     return (
-      <span className={`inline-flex h-6 items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 text-xs font-medium text-amber-200 ${className}`}>
+      <span className={`inline-flex h-auto min-h-6 max-w-full items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-200 ${orderLongText} ${className}`}>
         Low stock
       </span>
     );
   }
   return (
-    <span className={`inline-flex h-6 items-center rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 text-xs font-medium text-emerald-200 ${className}`}>
+    <span className={`inline-flex h-auto min-h-6 max-w-full items-center rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-200 ${orderLongText} ${className}`}>
       In stock
     </span>
   );

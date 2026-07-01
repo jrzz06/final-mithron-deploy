@@ -170,7 +170,6 @@ export async function getCsvInventoryRows(input: EnvSource | CsvInventoryOptions
 
     const relationLimit = options.all ? CSV_INVENTORY_EXPORT_LIMIT : pageSize + 10;
     const inventorySlugFilter = columnInFilter("product_slug", productSlugList);
-    const warehouseSlugFilter = columnInFilter("product_slug", productSlugList);
 
     const supplierIds = [...new Set(
       products
@@ -181,23 +180,13 @@ export async function getCsvInventoryRows(input: EnvSource | CsvInventoryOptions
       ? `select=id,display_name,email&id=in.(${supplierIds.map(encodeURIComponent).join(",")})`
       : null;
 
-    const [inventory, stock, checkoutWarehouseCode, suppliers] = await Promise.all([
+    const [inventory, checkoutWarehouseCode, suppliers] = await Promise.all([
       fetchRows<AdminRow>(
         config,
         "inventory",
         [
           "select=id,product_slug,sku,variant_id,stock_status,quantity,reserved_quantity,reorder_threshold,updated_at,created_at",
           inventorySlugFilter,
-          "order=updated_at.desc",
-          `limit=${relationLimit}`
-        ].join("&")
-      ),
-      fetchRows<AdminRow>(
-        config,
-        "warehouse_stock",
-        [
-          "select=id,warehouse_code,product_slug,sku,variant_id,available_quantity,committed_quantity,last_counted_at,updated_at,created_at",
-          warehouseSlugFilter,
           "order=updated_at.desc",
           `limit=${relationLimit}`
         ].join("&")
@@ -223,7 +212,7 @@ export async function getCsvInventoryRows(input: EnvSource | CsvInventoryOptions
       totalProductCount,
       catalogFilter,
       inventoryMetrics,
-      rows: buildSimpleInventoryRows(productsWithSupplier, inventory, stock, checkoutWarehouseCode)
+      rows: buildSimpleInventoryRows(productsWithSupplier, inventory, checkoutWarehouseCode)
     };
   } catch (error) {
     return {

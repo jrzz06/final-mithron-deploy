@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "mithron-flight-systems-kbkbkh.vercel.app" }],
+      "destination": "https://final-mithron-deploy.vercel.app/:path*",
+      "permanent": true
+    }
+  ],
   "crons": [
     {
       "path": "/api/admin/prune-logs",

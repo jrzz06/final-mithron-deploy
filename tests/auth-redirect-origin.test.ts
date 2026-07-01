@@ -10,6 +10,7 @@ import {
   getSiteOrigin,
   hasConfiguredSiteUrl,
   isObsoleteAppHost,
+  resolveClientAuthOrigin,
   sanitizeAppOrigin
 } from "@/lib/site-url";
 
@@ -19,9 +20,12 @@ const OBSOLETE_HOST = "mithron-flight-systems-kbkbkh.vercel.app";
 describe("auth redirect origin resolution", () => {
   it("rejects obsolete deployment hosts", () => {
     expect(isObsoleteAppHost(OBSOLETE_HOST)).toBe(true);
+    expect(isObsoleteAppHost("mithron-flight-systems-dgoh44xh9-kbkbkh.vercel.app")).toBe(true);
+    expect(isObsoleteAppHost("final-mithron-deploy.vercel.app")).toBe(false);
     expect(sanitizeAppOrigin(`https://${OBSOLETE_HOST}`)).toBeNull();
     expect(
       getSiteOrigin({
+        VERCEL_ENV: "production",
         NEXT_PUBLIC_SITE_URL: `https://${OBSOLETE_HOST}`,
         VERCEL_PROJECT_PRODUCTION_URL: "final-mithron-deploy.vercel.app"
       })
@@ -31,7 +35,17 @@ describe("auth redirect origin resolution", () => {
   it("prefers the active Vercel production URL over stale env values", () => {
     expect(
       getSiteOrigin({
+        VERCEL_ENV: "production",
         VERCEL_PROJECT_PRODUCTION_URL: "final-mithron-deploy.vercel.app",
+        NEXT_PUBLIC_SITE_URL: `https://${OBSOLETE_HOST}`
+      })
+    ).toBe(CANONICAL_ORIGIN);
+  });
+
+  it("falls back to the canonical production origin when production env values are stale", () => {
+    expect(
+      getSiteOrigin({
+        VERCEL_ENV: "production",
         NEXT_PUBLIC_SITE_URL: `https://${OBSOLETE_HOST}`
       })
     ).toBe(CANONICAL_ORIGIN);
@@ -84,5 +98,13 @@ describe("auth redirect origin resolution", () => {
         VERCEL_PROJECT_PRODUCTION_URL: "final-mithron-deploy.vercel.app"
       })
     ).toBe(true);
+  });
+
+  it("prefers NEXT_PUBLIC_SITE_URL for client auth redirects", () => {
+    expect(
+      resolveClientAuthOrigin({
+        NEXT_PUBLIC_SITE_URL: CANONICAL_ORIGIN
+      })
+    ).toBe(CANONICAL_ORIGIN);
   });
 });

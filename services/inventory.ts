@@ -1,12 +1,23 @@
 import { assertSupabaseAdminConfig } from "@/lib/env";
+import {
+  availabilityLabelFromQuantity,
+  resolveCatalogAvailability,
+  stockStatusFromQuantity,
+  type InventoryAvailability
+} from "@/lib/inventory-availability";
 import { deriveProductSku } from "@/lib/product-sku";
 import { getCheckoutWarehouseCode } from "@/services/warehouse-config";
 import type { ProductInventoryWorkflowInput } from "@/services/enterprise-admin-forms";
 import { upsertProductInventoryRecord } from "@/services/product-inventory";
 
-type EnvSource = Record<string, string | undefined>;
+export {
+  availabilityLabelFromQuantity,
+  resolveCatalogAvailability,
+  stockStatusFromQuantity,
+  type InventoryAvailability
+};
 
-export type InventoryAvailability = "available" | "out_of_stock";
+type EnvSource = Record<string, string | undefined>;
 
 export type OrderStockItem = {
   productSlug: string;
@@ -27,14 +38,6 @@ function headers(serviceRoleKey: string) {
     Authorization: `Bearer ${serviceRoleKey}`,
     "Content-Type": "application/json"
   };
-}
-
-export function stockStatusFromQuantity(quantity: number): InventoryAvailability {
-  return quantity > 0 ? "available" : "out_of_stock";
-}
-
-export function availabilityLabelFromQuantity(quantity: number): string {
-  return quantity > 0 ? "In stock" : "Out of stock";
 }
 
 export async function getInventoryQuantitiesBySlug(

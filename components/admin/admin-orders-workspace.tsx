@@ -18,6 +18,7 @@ import {
   filterOrders,
   filtersToSearchParams,
   orderItemsForOrder,
+  orderSelectionKey,
   parseOrderFiltersFromSearchParams,
   text,
   sortOrders,
@@ -28,7 +29,7 @@ import {
 type AdminOrdersWorkspaceProps = {
   orders: AdminRow[];
   orderItems: AdminRow[];
-  stock: AdminRow[];
+  inventory: AdminRow[];
   shipments: AdminRow[];
   products: AdminRow[];
   warehouses: Array<{ code: string; name: string }>;
@@ -82,7 +83,7 @@ export function AdminOrdersWorkspace(props: AdminOrdersWorkspaceProps) {
   const {
     orders,
     orderItems,
-    stock,
+    inventory,
     shipments,
     products,
     warehouses,
@@ -118,7 +119,21 @@ export function AdminOrdersWorkspace(props: AdminOrdersWorkspaceProps) {
     [searchParams]
   );
 
-  const selectedKey = selectedOrderKey || (selectedOrder ? text(selectedOrder.order_number) || selectedOrderId : "");
+  const selectedKey = selectedOrderKey || (selectedOrder ? orderSelectionKey(selectedOrder) : "");
+
+  useEffect(() => {
+    if (!selectedOrder) return;
+    const canonicalKey = orderSelectionKey(selectedOrder);
+    const urlKey = searchParams.get("order")?.trim() ?? "";
+    if (urlKey && urlKey !== canonicalKey) {
+      const params = filtersToSearchParams(new URLSearchParams(searchParams.toString()), filters, {
+        queue,
+        order: canonicalKey,
+        tool: createOpen ? "create" : undefined
+      });
+      router.replace(buildOrdersUrl(Object.fromEntries(params.entries())), { scroll: false });
+    }
+  }, [selectedOrder, searchParams, filters, queue, createOpen, router]);
 
   const catalogProducts = useMemo(
     () =>
@@ -281,7 +296,7 @@ export function AdminOrdersWorkspace(props: AdminOrdersWorkspaceProps) {
                     allOrders={orders}
                     orderItems={orderItems}
                     products={products}
-                    stock={stock}
+                    inventory={inventory}
                     shipments={shipments}
                     catalogProducts={catalogProducts}
                     defaultWarehouseCode={defaultWarehouseCode}

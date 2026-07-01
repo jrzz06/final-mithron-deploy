@@ -56,11 +56,7 @@ export default async function WarehouseDashboardPage() {
   ]);
   const scope = await resolveWarehouseScope({ userId: auth.userId, role: auth.role });
   const scopedOrders = filterOrdersForWarehouseScope(snapshot.data.orders, scope, policy.defaultWarehouseCode);
-  const scopedInventory = filterInventoryForWarehouseScope(
-    snapshot.data.inventory,
-    snapshot.data.stock,
-    scope
-  );
+  const scopedInventory = filterInventoryForWarehouseScope(snapshot.data.inventory, scope);
   const ordersWaiting = scopedOrders.filter((order) => text(order.fulfillment_status, "pending") === "pending");
   const currentlyPicking = scopedOrders.filter((order) => text(order.fulfillment_status, "pending") === "processing");
   const readyToPack = scopedOrders.filter((order) => text(order.fulfillment_status, "pending") === "picked");

@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { OrderDetailSection, OrderField, OrderFieldGrid } from "@/components/admin/orders/order-detail-primitives";
+import { orderClamp2, orderLongText } from "@/components/admin/orders/order-layout-utils";
 import {
   buildOrdersUrl,
   customerName,
   orderMetadata,
   orderPhone,
+  orderSelectionKey,
   priorOrdersForCustomer,
   publicOrderLabel,
   text,
@@ -45,11 +47,11 @@ export function AdminOrderCustomerSection({
           {initials(name)}
         </div>
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="text-base font-semibold text-[var(--platform-text-primary)]">{name}</p>
+          <p className={`${orderClamp2} ${orderLongText} text-base font-semibold text-[var(--platform-text-primary)]`}>{name}</p>
           {text(order.customer_email) ? (
             <Link
               href={`/admin/users?q=${encodeURIComponent(text(order.customer_email))}`}
-              className="text-sm text-violet-300 hover:underline"
+              className={`text-sm text-violet-300 hover:underline ${orderLongText}`}
             >
               {text(order.customer_email)}
             </Link>
@@ -67,7 +69,7 @@ export function AdminOrderCustomerSection({
         </OrderFieldGrid>
       </div>
       {text(metadata.customer_note) || text(metadata.enquiry_message) ? (
-        <div className="mt-4 rounded-lg border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] p-4 text-sm leading-relaxed text-[var(--platform-text-secondary)]">
+        <div className={`mt-4 rounded-lg border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] p-4 text-sm leading-relaxed text-[var(--platform-text-secondary)] ${orderLongText}`}>
           {text(metadata.customer_note) ? <p>Note: {text(metadata.customer_note)}</p> : null}
           {text(metadata.enquiry_message) ? <p className="mt-2">Enquiry: {text(metadata.enquiry_message)}</p> : null}
         </div>
@@ -80,9 +82,10 @@ export function AdminOrderCustomerSection({
           <ul className="mt-2 space-y-1.5">
             {prior.map((priorOrder) => {
               const label = publicOrderLabel(priorOrder);
+              const selectionKey = orderSelectionKey(priorOrder);
               const href = buildOrdersUrl({
                 queue,
-                order: label,
+                order: selectionKey,
                 q: filtersQuery || undefined
               });
               return (
@@ -90,7 +93,7 @@ export function AdminOrderCustomerSection({
                   {onSelectOrder ? (
                     <button
                       type="button"
-                      onClick={() => onSelectOrder(label)}
+                      onClick={() => onSelectOrder(selectionKey)}
                       className="text-sm text-violet-300 hover:underline"
                     >
                       {label} · {text(priorOrder.status)}

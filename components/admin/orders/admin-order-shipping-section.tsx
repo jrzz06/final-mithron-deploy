@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { formatAddressInline, pickAddressFromMetadata } from "@/lib/addresses/format";
 import { OrderDetailSection, OrderField, OrderFieldGrid } from "@/components/admin/orders/order-detail-primitives";
+import { orderLongText } from "@/components/admin/orders/order-layout-utils";
 import { OrderStatusBadge } from "@/components/admin/orders/order-status-badge";
 import {
   assignedWarehouseCode,
@@ -67,7 +68,7 @@ export function AdminOrderShippingSection({
           {shipments.map((shipment) => (
             <li
               key={text(shipment.id)}
-              className="rounded-lg border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] px-4 py-3 text-sm text-[var(--platform-text-secondary)]"
+              className={`rounded-lg border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] px-4 py-3 text-sm text-[var(--platform-text-secondary)] ${orderLongText}`}
             >
               {text(shipment.shipment_number, "Shipment")} · {text(shipment.shipment_status, "pending")}
               {text(shipment.carrier_name) ? ` · ${text(shipment.carrier_name)}` : ""}

@@ -53,7 +53,7 @@ export function AdminOrdersFilterBar({ filters, warehouses, onChange }: AdminOrd
   return (
     <div
       data-order-filter-form
-      className="grid gap-3 rounded-xl border border-[var(--platform-border)] bg-[var(--platform-surface-muted)]/60 p-4"
+      className="grid min-w-0 gap-3 rounded-xl border border-[var(--platform-border)] bg-[var(--platform-surface-muted)]/60 p-4"
     >
       <div className="grid gap-2 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)]">
         <Input

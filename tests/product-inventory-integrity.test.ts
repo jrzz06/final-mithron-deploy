@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { deriveProductSku } from "@/lib/product-sku";
-import { buildSimpleInventoryRows, pickWarehouseStockRow } from "@/services/simple-inventory-view";
+import { buildSimpleInventoryRows } from "@/services/simple-inventory-view";
 
 describe("product inventory integrity", () => {
   it("derives canonical SKUs from product slugs", () => {
@@ -11,7 +11,7 @@ describe("product inventory integrity", () => {
     expect(deriveProductSku("---")).toBe("SKU");
   });
 
-  it("builds exactly one warehouse row per product using inventory.quantity as source of truth", () => {
+  it("builds exactly one inventory row per product using inventory.quantity as source of truth", () => {
     const products = [
       { slug: "agri-drone-x1", name: "Agri Drone", workflow_status: "published" },
       { slug: "archived-kit", name: "Archived Kit", workflow_status: "archived", archived_at: "2026-01-01T00:00:00.000Z" }
@@ -19,33 +19,22 @@ describe("product inventory integrity", () => {
     const inventory = [
       { product_slug: "agri-drone-x1", sku: "AGRI-DRONE-X1", quantity: 4, stock_status: "available" }
     ];
-    const stock = [
-      { warehouse_code: "IN-WEST-01", product_slug: "agri-drone-x1", sku: "AGRI-DRONE-X1", available_quantity: 3 }
-    ];
 
-    const rows = buildSimpleInventoryRows(products, inventory, stock, "IN-WEST-01");
+    const rows = buildSimpleInventoryRows(products, inventory, "IN-WEST-01");
     expect(rows).toHaveLength(2);
     expect(rows.find((row) => row.productSlug === "agri-drone-x1")?.quantity).toBe(4);
     expect(rows.find((row) => row.productSlug === "archived-kit")?.isArchived).toBe(true);
     expect(rows.find((row) => row.productSlug === "archived-kit")?.quantity).toBe(0);
+    expect(rows.find((row) => row.productSlug === "agri-drone-x1")?.warehouseCode).toBe("IN-WEST-01");
   });
 
   it("derives in stock / out of stock from quantity only", () => {
     const products = [{ slug: "agri-drone-x1", name: "Agri Drone", workflow_status: "published" }];
     const inventory = [{ product_slug: "agri-drone-x1", sku: "AGRI-DRONE-X1", quantity: 0, stock_status: "out_of_stock" }];
-    const stock = [{ warehouse_code: "IN-WEST-01", product_slug: "agri-drone-x1", sku: "AGRI-DRONE-X1", available_quantity: 8 }];
 
-    const rows = buildSimpleInventoryRows(products, inventory, stock, "IN-WEST-01");
+    const rows = buildSimpleInventoryRows(products, inventory, "IN-WEST-01");
     expect(rows[0]?.quantity).toBe(0);
     expect(rows[0]?.stockStatus).toBe("out_of_stock");
-  });
-
-  it("picks the preferred warehouse row for admin product stock display", () => {
-    const stock = [
-      { warehouse_code: "IN-EAST-01", product_slug: "agri-drone-x1", available_quantity: 2 },
-      { warehouse_code: "IN-WEST-01", product_slug: "agri-drone-x1", available_quantity: 7 }
-    ];
-    expect(pickWarehouseStockRow(stock, "agri-drone-x1", "IN-WEST-01")?.warehouse_code).toBe("IN-WEST-01");
   });
 });
 

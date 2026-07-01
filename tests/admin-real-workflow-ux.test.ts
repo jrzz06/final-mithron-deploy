@@ -14,7 +14,8 @@ describe("admin real workflow UX", () => {
 
     expect(adminService).toContain("select=id&limit=1");
     expect(adminService).toContain("PRODUCT_MANAGER_LIMIT");
-    expect(adminService).not.toContain("limit=500");
+    expect(adminService).toContain("inventoryCatalogQuery");
+    expect(adminService).toContain("limit=500");
     expect(productsPage).not.toContain("slice(0, 16)");
     expect(productsPage).toContain("ProductCatalogGrid");
     expect(productGrid).toContain("data-product-card");
@@ -60,6 +61,8 @@ describe("admin real workflow UX", () => {
     expect(ordersUi).toContain("data-order-detail-panel");
     expect(ordersUi).toContain("data-shipment-actions");
     expect(ordersUi).toContain("data-inventory-allocation");
+    expect(ordersProducts).toContain("resolveCatalogAvailability");
+    expect(ordersProducts).toContain("inventory:");
     expect(ordersUi).not.toContain("No image");
     expect(orderForms).toContain("order_item_product_slug");
     expect(orderForms).toContain("tracking_number");
@@ -120,9 +123,10 @@ describe("admin real workflow UX", () => {
     const warehouseSnapshotStart = adminService.indexOf("export const getWarehouseSnapshot");
     const operationsSnapshotStart = adminService.indexOf("export async function getOperationsSnapshot");
     const warehouseSnapshotSource = adminService.slice(warehouseSnapshotStart, operationsSnapshotStart);
-    expect(warehouseSnapshotSource).not.toContain("limit=500");
+    expect(warehouseSnapshotSource).toContain("inventoryCatalogQuery");
+    expect(warehouseSnapshotSource).toContain("limit=500");
     expect(warehouseSnapshotSource).not.toContain("select=*");
-    expect(warehouseSnapshotSource).toContain("limit=80");
+    expect(warehouseSnapshotSource).toContain("WAREHOUSE_SNAPSHOT_ROW_LIMIT");
   });
 });
 

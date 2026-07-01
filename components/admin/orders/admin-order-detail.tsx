@@ -28,7 +28,7 @@ type AdminOrderDetailProps = {
   allOrders: AdminRow[];
   orderItems: AdminRow[];
   products: AdminRow[];
-  stock: AdminRow[];
+  inventory: AdminRow[];
   shipments: AdminRow[];
   catalogProducts: CatalogProduct[];
   defaultWarehouseCode: string;
@@ -43,7 +43,7 @@ export function AdminOrderDetail({
   allOrders,
   orderItems,
   products,
-  stock,
+  inventory,
   shipments,
   catalogProducts,
   defaultWarehouseCode,
@@ -72,7 +72,7 @@ export function AdminOrderDetail({
       <AdminOrderProductsSection
         items={items}
         products={products}
-        stock={stock}
+        inventory={inventory}
         order={order}
         defaultWarehouseCode={defaultWarehouseCode}
         catalogProducts={catalogProducts}

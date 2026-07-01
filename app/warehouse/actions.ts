@@ -394,7 +394,6 @@ async function clearInventorySourceTable(table: InventorySourceTable, actorId: s
 
 async function clearInventorySourceTables(actorId: string | null, productSlugs: string[]) {
   return {
-    warehouse_stock: await clearInventorySourceTable("warehouse_stock", actorId, productSlugs),
     inventory: await clearInventorySourceTable("inventory", actorId, productSlugs)
   };
 }
@@ -420,8 +419,7 @@ export async function saveSimpleInventoryFormAction(formData: FormData) {
   if (!actorId) throw new Error("Authentication required.");
 
   const previousInventory = await fetchInventoryBySku(input.productSlug, input.sku);
-  const previousStock = await fetchWarehouseStockBySku(input.productSlug, input.sku, input.warehouseCode);
-  const previousVariantId = String(previousStock?.variant_id ?? previousInventory?.variant_id ?? "").trim();
+  const previousVariantId = String(previousInventory?.variant_id ?? "").trim();
   const variantId = input.variantId ?? (previousVariantId || null);
 
   await saveProductInventory(
@@ -469,13 +467,11 @@ export async function saveInventoryQuickEditFormAction(formData: FormData) {
   const variantId = readInventoryString(formData, "variant_id") || null;
   const note = readInventoryString(formData, "note") || null;
   const reasonCode = readInventoryString(formData, "reason_code") || "warehouse_quick_edit";
-  const expectedWarehouseUpdatedAt = readExpectedUpdatedAt(formData);
   const expectedInventoryUpdatedAt = readOptionalExpectedUpdatedAt(formData, "expected_inventory_updated_at");
   const actorId = await currentActorId();
   const now = new Date().toISOString();
   const previousInventory = await fetchInventoryBySku(productSlug, sku);
-  const previousStock = await fetchWarehouseStockBySku(productSlug, sku, warehouseCode);
-  const quantityBefore = Number(previousInventory?.quantity ?? previousStock?.available_quantity ?? 0);
+  const quantityBefore = Number(previousInventory?.quantity ?? 0);
 
   if (adjustmentMode === "increase") {
     quantity = quantityBefore + (adjustmentQuantity ?? quantity);
@@ -500,16 +496,6 @@ export async function saveInventoryQuickEditFormAction(formData: FormData) {
     throw new AdminRecordConflictError(
       "Concurrent inventory update detected. Reload stock levels and retry.",
       previousInventory
-    );
-  }
-  if (
-    expectedWarehouseUpdatedAt
-    && previousStock?.updated_at
-    && String(previousStock.updated_at) !== expectedWarehouseUpdatedAt
-  ) {
-    throw new AdminRecordConflictError(
-      "Concurrent inventory update detected. Reload stock levels and retry.",
-      previousStock
     );
   }
 
@@ -559,9 +545,8 @@ async function importInventoryCsvRecord(
     );
   }
 
-  const previousStock = await fetchWarehouseStockBySku(productSlug, canonicalSku, warehouseCode);
   const previousInventory = await fetchInventoryBySku(productSlug, canonicalSku);
-  const quantityBefore = Number(previousInventory?.quantity ?? previousStock?.available_quantity ?? 0);
+  const quantityBefore = Number(previousInventory?.quantity ?? 0);
   const product = existingProducts[0];
 
   await upsertProductInventoryRecord(
@@ -583,7 +568,7 @@ async function importInventoryCsvRecord(
       sku: canonicalSku,
       variantId: null,
       warehouseCode,
-      warehouseStockId: String(previousStock?.id ?? "") || null,
+      warehouseStockId: null,
       movementType: "correction",
       quantityBefore,
       quantityAfter: record.stock,
@@ -667,9 +652,8 @@ export async function saveInventoryBulkUpdateFormAction(formData: FormData) {
     const [warehouseCode = scope.warehouseCode, productSlug = "", sku = ""] = selected.split("::");
     if (!productSlug || !sku) continue;
     const previousInventory = await fetchInventoryBySku(productSlug, sku);
-    const previousStock = await fetchWarehouseStockBySku(productSlug, sku, warehouseCode);
     const onHandQuantity = Number(previousInventory?.quantity ?? 0);
-    const variantId = String(previousInventory?.variant_id ?? previousStock?.variant_id ?? "").trim() || null;
+    const variantId = String(previousInventory?.variant_id ?? "").trim() || null;
     const persistedStatus = nextStatus === "archived" ? "out_of_stock" : nextStatus;
 
     await upsertProductInventoryRecord(

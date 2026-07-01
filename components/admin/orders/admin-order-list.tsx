@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { AdminTableShell } from "@/components/admin/module-panel";
 import { AdminOrderListItem } from "@/components/admin/orders/admin-order-list-item";
-import { publicOrderLabel, text, type AdminRow } from "@/components/admin/orders/order-view-helpers";
+import { publicOrderLabel, orderMatchesSelectionKey, orderSelectionKey, text, type AdminRow } from "@/components/admin/orders/order-view-helpers";
 
 type AdminOrderListProps = {
   orders: AdminRow[];
@@ -70,13 +70,15 @@ export function AdminOrderList({
           <div className="flex flex-col">
             {orders.map((order, index) => {
               const orderId = text(order.id);
-              const orderNumber = publicOrderLabel(order);
-              const isSelected = selectedKey === orderNumber || selectedOrderId === orderId;
+              const selectionKey = orderSelectionKey(order);
+              const displayLabel = publicOrderLabel(order);
+              const isSelected =
+                orderMatchesSelectionKey(order, selectedKey, orders) || selectedOrderId === orderId;
               const hasShipment = shipments.some((s) => text(s.order_id) === orderId);
 
               return (
                 <AdminOrderListItem
-                  key={orderId || orderNumber}
+                  key={orderId || selectionKey}
                   order={order}
                   orderItems={orderItems}
                   products={products}
@@ -84,8 +86,8 @@ export function AdminOrderList({
                   selected={isSelected}
                   isPending={Boolean(order._optimistic_pending)}
                   hasShipment={hasShipment}
-                  href={buildOrderHref(orderNumber)}
-                  onSelect={() => onSelectOrder(orderNumber)}
+                  href={buildOrderHref(selectionKey)}
+                  onSelect={() => onSelectOrder(selectionKey)}
                   tabIndex={focusedIndex === index ? 0 : -1}
                   onFocus={() => onFocusIndex(index)}
                 />

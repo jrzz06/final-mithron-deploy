@@ -111,14 +111,9 @@ export function filterStockForWarehouseScope<T extends Record<string, unknown>>(
 
 export function filterInventoryForWarehouseScope<T extends Record<string, unknown>>(
   inventory: T[],
-  stock: Array<Record<string, unknown>>,
-  scope: WarehouseScope
+  _scope: WarehouseScope
 ) {
-  if (scope.isGlobal) return inventory;
-  const skus = new Set(
-    filterStockForWarehouseScope(stock, scope).map((row) => `${String(row.product_slug ?? "")}:${String(row.sku ?? "")}`)
-  );
-  return inventory.filter((row) => skus.has(`${String(row.product_slug ?? "")}:${String(row.sku ?? "")}`));
+  return inventory;
 }
 
 export function filterShipmentsForWarehouseScope<T extends Record<string, unknown>>(

@@ -19,6 +19,7 @@ import {
 import { buildContentSecurityPolicyForPath, generateCspNonce } from "@/lib/csp";
 import { isStorefrontGuestOnly } from "@/lib/storefront/guest-demo";
 import { resolveSupabaseCookieOptions, resolveSupabasePublishableKey } from "@/lib/supabase/cookie-config";
+import { getCanonicalProductionOrigin, isObsoleteAppHost } from "@/lib/site-url";
 import { extractSecurityCorrelationId, recordSecurityEventFromMiddleware } from "@/services/security-observability";
 
 const DEFAULT_SESSION_TIMEOUT_MINUTES = 60;
@@ -142,7 +143,24 @@ function applySessionHandoff(response: NextResponse, userId: string | null, role
   return response;
 }
 
+function maybeRedirectObsoleteDeploymentHost(request: NextRequest) {
+  if (process.env.VERCEL_ENV !== "production") return null;
+
+  const host = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
+    ?? request.headers.get("host")?.trim();
+  if (!host || !isObsoleteAppHost(host)) return null;
+
+  const destination = new URL(
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    getCanonicalProductionOrigin()
+  );
+  return secureRedirectResponse(request, destination);
+}
+
 export async function proxy(request: NextRequest, event: NextFetchEvent) {
+  const obsoleteHostRedirect = maybeRedirectObsoleteDeploymentHost(request);
+  if (obsoleteHostRedirect) return obsoleteHostRedirect;
+
   const pathname = request.nextUrl.pathname;
   const authCode = request.nextUrl.searchParams.get("code");
   if (authCode && pathname !== "/auth/callback") {

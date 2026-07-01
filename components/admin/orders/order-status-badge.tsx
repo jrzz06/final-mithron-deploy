@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { humanStatus } from "@/lib/platform/copy";
+import { orderLongText } from "@/components/admin/orders/order-layout-utils";
 
 type StatusTone = {
   icon: LucideIcon;
@@ -70,12 +71,12 @@ export function OrderStatusBadge({ status, compact = false, className = "" }: Or
   return (
     <span
       aria-label={`Status: ${label}`}
-      className={`inline-flex max-w-full items-center gap-1.5 rounded-md border px-2.5 font-medium ${tone.surface} ${tone.text} ${
-        compact ? "h-5 text-[10px]" : "h-6 text-xs"
+      className={`inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-md border px-2.5 font-medium ${tone.surface} ${tone.text} ${
+        compact ? "h-auto min-h-5 py-0.5 text-[10px]" : "h-auto min-h-6 py-0.5 text-xs"
       } ${className}`}
     >
       <Icon className={compact ? "h-3 w-3 shrink-0" : "h-3.5 w-3.5 shrink-0"} aria-hidden />
-      <span className="min-w-0 truncate">{label}</span>
+      <span className={orderLongText}>{label}</span>
     </span>
   );
 }

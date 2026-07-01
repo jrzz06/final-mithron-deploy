@@ -131,7 +131,6 @@ describe("inventory CSV workflow", () => {
     const rows = buildSimpleInventoryRows(
       products,
       [{ product_slug: "zio", sku: "ZIO", stock_status: "available", quantity: 0, reserved_quantity: 0, reorder_threshold: 0 }],
-      [],
       "IN-WEST-01"
     );
 
@@ -156,7 +155,7 @@ describe("inventory CSV workflow", () => {
       { product_slug: "drone-kit", sku: "DRONE-KIT", stock_status: "available", quantity: 0, reserved_quantity: 0, reorder_threshold: 0 }
     ];
 
-    const rows = buildSimpleInventoryRows(products, inventory, [], "IN-WEST-01");
+    const rows = buildSimpleInventoryRows(products, inventory, "IN-WEST-01");
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ sku: "DRONE-KIT", quantity: 0, stockStatus: "out_of_stock" });

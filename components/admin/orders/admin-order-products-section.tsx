@@ -10,6 +10,7 @@ import {
   OrderStockBadge,
   orderHoverClass
 } from "@/components/admin/orders/order-detail-primitives";
+import { orderClamp2, orderLongText, orderWrapRow } from "@/components/admin/orders/order-layout-utils";
 import { OrderProductThumbnail } from "@/components/admin/orders/order-product-thumbnail";
 import {
   assignedWarehouseCode,
@@ -19,6 +20,7 @@ import {
   text,
   type AdminRow
 } from "@/components/admin/orders/order-view-helpers";
+import { resolveCatalogAvailability } from "@/lib/inventory-availability";
 
 type CatalogProduct = {
   slug: string;
@@ -32,7 +34,7 @@ type CatalogProduct = {
 type AdminOrderProductsSectionProps = {
   items: AdminRow[];
   products: AdminRow[];
-  stock: AdminRow[];
+  inventory: AdminRow[];
   order: AdminRow;
   defaultWarehouseCode: string;
   catalogProducts: CatalogProduct[];
@@ -41,7 +43,7 @@ type AdminOrderProductsSectionProps = {
 export function AdminOrderProductsSection({
   items,
   products,
-  stock,
+  inventory,
   order,
   defaultWarehouseCode,
   catalogProducts
@@ -72,10 +74,7 @@ export function AdminOrderProductsSection({
               taxIncluded: catalog?.taxIncluded,
               taxGroup: catalog?.taxGroup
             });
-            const stockRow =
-              stock.find((row) => text(row.product_slug) === slug && text(row.sku) === sku) ??
-              stock.find((row) => text(row.product_slug) === slug && text(row.warehouse_code) === warehouse);
-            const available = Number(stockRow?.available_quantity ?? 0);
+            const available = resolveCatalogAvailability(slug, inventory);
             const image = resolveProductImage(products, slug);
             const imageSrc = image ? resolveNextImageSrc(image) : null;
             const productName = text(item.product_name, slug || "Product");
@@ -83,11 +82,11 @@ export function AdminOrderProductsSection({
             return (
               <article
                 key={text(item.id) || `${slug}-${sku}`}
-                className={`grid gap-5 rounded-lg border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] p-5 md:grid-cols-[96px_1fr_auto] ${orderHoverClass()} hover:border-[var(--platform-border-strong)]`}
+                className={`grid gap-4 rounded-lg border border-[var(--platform-border)] bg-[var(--platform-surface-muted)] p-5 md:grid-cols-[96px_minmax(0,1fr)] ${orderHoverClass()} hover:border-[var(--platform-border-strong)]`}
               >
                 <OrderProductThumbnail src={imageSrc} alt={productName} size="detail" />
                 <div className="min-w-0 space-y-3">
-                  <p className="text-base font-semibold text-[var(--platform-text-primary)]">
+                  <p className={`${orderClamp2} ${orderLongText} text-base font-semibold text-[var(--platform-text-primary)]`}>
                     {slug ? (
                       <Link
                         href={`/admin/products?product_slug=${encodeURIComponent(slug)}`}
@@ -110,7 +109,7 @@ export function AdminOrderProductsSection({
                     <OrderField label="Available" value={numberText(available)} />
                   </OrderFieldGrid>
                 </div>
-                <div className="flex flex-col items-start gap-3 md:items-end">
+                <div className={`${orderWrapRow} md:col-span-2 md:justify-end`}>
                   <OrderStockBadge available={available} />
                   {slug ? (
                     <Link

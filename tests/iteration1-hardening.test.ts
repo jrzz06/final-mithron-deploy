@@ -15,6 +15,7 @@ describe("iteration 1 production hardening contracts", () => {
 
     const proxy = readWorkspaceFile("proxy.ts");
     expect(proxy).toContain("export async function proxy");
+    expect(proxy).toContain("maybeRedirectObsoleteDeploymentHost");
     expect(proxy).toContain("current_enterprise_role");
     expect(proxy).toContain("recordSecurityEventFromMiddleware");
     expect(proxy).toContain("authorizeRoute(role, pathname");

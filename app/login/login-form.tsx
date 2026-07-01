@@ -4,8 +4,9 @@ import { FormEvent, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { recordClientAuthEvent } from "@/lib/auth/audit-client";
 import { mapAuthErrorForClient } from "@/lib/auth/client-errors";
-import { GUEST_AUTH_HOME, isGuestStorefrontNextPath } from "@/lib/auth/guest-auth";
-import { resolveClientAuthRedirectPath } from "@/lib/auth/redirects";
+import { GUEST_AUTH_HOME } from "@/lib/auth/guest-auth";
+import { getSafeAuthRedirectPath, resolveClientAuthRedirectPath } from "@/lib/auth/redirects";
+import { resolveClientAuthOrigin } from "@/lib/site-url";
 import { hasSocialSignIn, type AuthProviderAvailability } from "@/lib/auth/provider-registry";
 import { createClient } from "@/lib/client";
 import styles from "./login.module.css";
@@ -22,13 +23,9 @@ type LoginStatus =
   | "loading-role"
   | "google";
 
-function guestRedirectTarget(nextPath: string) {
-  return isGuestStorefrontNextPath(nextPath) ? nextPath : GUEST_AUTH_HOME;
-}
-
 function buildOAuthCallbackUrl(nextPath: string) {
-  const callback = new URL("/auth/callback", window.location.origin);
-  callback.searchParams.set("next", guestRedirectTarget(nextPath));
+  const callback = new URL("/auth/callback", resolveClientAuthOrigin());
+  callback.searchParams.set("next", getSafeAuthRedirectPath(nextPath, GUEST_AUTH_HOME));
   return callback.toString();
 }
 

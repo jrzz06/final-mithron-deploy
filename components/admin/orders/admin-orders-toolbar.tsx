@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ADMIN_QUEUE_LABELS, type AdminOrderQueue } from "@/lib/orders/lifecycle";
 import { buildOrdersUrl, orderMatchesQueue, orderNeedsAction, type AdminRow } from "@/components/admin/orders/order-view-helpers";
+import { orderLongText } from "@/components/admin/orders/order-layout-utils";
 
 const queueDefinitions = (Object.keys(ADMIN_QUEUE_LABELS) as AdminOrderQueue[]).map((key) => ({
   key,
@@ -84,7 +85,7 @@ export function AdminOrdersToolbar({
                 q: filtersQuery || undefined,
                 sort: sort !== "newest" ? sort : undefined
               })}
-              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+              className={`inline-flex min-w-0 max-w-full items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${orderLongText} ${
                 active
                   ? "border-violet-500/50 bg-violet-500/10 text-violet-100"
                   : "border-[var(--platform-border)] bg-[var(--platform-surface-muted)] text-[var(--platform-text-secondary)] hover:border-[var(--platform-border-strong)]"

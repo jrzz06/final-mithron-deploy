@@ -15,6 +15,7 @@ import {
 } from "@/lib/warehouse/order-helpers";
 import { getWarehouseSnapshot } from "@/services/admin";
 import { getAdminSettingsPolicy } from "@/services/admin-settings-policy";
+import { resolveCatalogAvailability } from "@/services/inventory";
 import {
   advanceWarehouseOrderStepFormAction,
   dispatchWarehouseOrderFormAction
@@ -87,9 +88,6 @@ export default async function WarehouseOrderDetailPage({ params, searchParams }:
   const operationMessage = searchValue(query, "operation_message");
 
   const itemsByOrder = snapshot.data.orderItems.filter((item) => String(item.order_id ?? "") === id);
-  const stockBySku = new Map(
-    snapshot.data.stock.map((row) => [`${String(row.product_slug ?? "")}:${String(row.sku ?? "")}`, row])
-  );
   const productsBySlug = new Map(snapshot.data.products.map((product) => [String(product.slug ?? ""), product]));
 
   const metadata = order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
@@ -119,7 +117,6 @@ export default async function WarehouseOrderDetailPage({ params, searchParams }:
   const itemRows = itemsByOrder.map((item) => {
     const productSlug = String(item.product_slug ?? "");
     const sku = String(item.sku ?? "");
-    const stock = stockBySku.get(`${productSlug}:${sku}`);
     const product = productsBySlug.get(productSlug);
     return {
       id: String(item.id ?? `${productSlug}-${sku}`),
@@ -128,8 +125,8 @@ export default async function WarehouseOrderDetailPage({ params, searchParams }:
       sku,
       quantity: Number(item.quantity ?? 0),
       image: firstImageFrom(product?.image) ?? firstImageFrom(product?.hero),
-      warehouseLocation: String(stock?.warehouse_code ?? warehouseCode),
-      availableStock: Number(stock?.available_quantity ?? stock?.quantity ?? 0)
+      warehouseLocation: warehouseCode,
+      availableStock: resolveCatalogAvailability(productSlug, snapshot.data.inventory)
     };
   });
 

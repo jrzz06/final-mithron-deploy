@@ -105,8 +105,8 @@ const MOVEMENT_AUDIT_LIMIT = 80;
 const warehouseSnapshotScopes: Record<WarehouseSnapshotScope, Set<WarehouseSnapshotTable>> = {
   full: new Set(["products", "inventory", "stock", "movements", "orders", "orderItems", "shipments", "shipmentItems", "shipmentTimeline", "activityLogs"]),
   dashboard: new Set(["inventory", "stock", "movements", "orders", "shipments"]),
-  orders: new Set(["products", "stock", "orders", "orderItems", "shipments"]),
-  picking: new Set(["stock", "orders", "orderItems"]),
+  orders: new Set(["products", "inventory", "orders", "orderItems", "shipments"]),
+  picking: new Set(["inventory", "orders", "orderItems"]),
   packing: new Set(["orders", "orderItems", "shipments"]),
   dispatch: new Set(["shipments", "shipmentItems", "shipmentTimeline", "orders", "orderItems"]),
   transfers: new Set(["stock", "movements"]),
@@ -1186,10 +1186,14 @@ export const getWarehouseSnapshot = cache(async (input: WarehouseSnapshotInput =
       : Promise.resolve(skipped<T>(table))
   );
 
+  const inventoryCatalogQuery =
+    "select=product_slug,sku,variant_id,stock_status,quantity,reserved_quantity,reorder_threshold,updated_at&order=updated_at.desc&limit=500";
+  const warehouseStockQuery =
+    "select=id,warehouse_code,product_slug,sku,variant_id,available_quantity,committed_quantity,last_counted_at,updated_at&order=updated_at.desc&limit=120";
   const [products, inventory, stock, movements, orders, orderItems, shipments, shipmentItems, shipmentTimeline, activityLogs] = await Promise.all([
     maybeFetch("products", "mithron_products", `select=slug,name,category,price,image,hero,workflow_status,archived_at,is_visible,updated_at&order=sort_order.asc&limit=${WAREHOUSE_SNAPSHOT_ROW_LIMIT}`),
-    maybeFetch("inventory", "inventory", `select=product_slug,sku,variant_id,stock_status,quantity,reserved_quantity,reorder_threshold,updated_at&order=updated_at.desc&limit=120`),
-    maybeFetch("stock", "warehouse_stock", `select=id,warehouse_code,product_slug,sku,variant_id,available_quantity,committed_quantity,last_counted_at,updated_at&order=updated_at.desc&limit=120`),
+    maybeFetch("inventory", "inventory", inventoryCatalogQuery),
+    maybeFetch("stock", "warehouse_stock", warehouseStockQuery),
     maybeFetch("movements", "inventory_movements", `select=id,movement_type,product_slug,sku,quantity_before,quantity_after,quantity_delta,reason_code,actor_user_id,related_order_id,related_shipment_id,created_at&order=created_at.desc&limit=${WAREHOUSE_SNAPSHOT_ROW_LIMIT}`),
     maybeFetch("orders", "orders", `select=id,order_number,customer_email,status,payment_status,fulfillment_status,channel,total,currency,metadata,timeline,shipment_tracking,invoice_url,archived_at,deleted_at,created_at,updated_at&order=created_at.desc&limit=${WAREHOUSE_SNAPSHOT_ROW_LIMIT}`),
     maybeFetch("orderItems", "order_items", `select=id,order_id,product_slug,product_name,sku,quantity,line_total,metadata,created_at&order=created_at.desc&limit=120`),
